@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strings"
+	"time"
 
 	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -62,6 +63,22 @@ func resourceFreeIPAUser() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"krb_principal_expiration": {
+				Description: "Kerberos principal expiration " +
+					"[RFC3339](https://datatracker.ietf.org/doc/html/rfc3339#section-5.8) format " +
+					"(see [RFC3339 time string](https://tools.ietf.org/html/rfc3339#section-5.8) e.g., " +
+					"`YYYY-MM-DDTHH:MM:SSZ`)",
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"krb_password_expiration": {
+				Description: "User password expiration " +
+					"[RFC3339](https://datatracker.ietf.org/doc/html/rfc3339#section-5.8) format " +
+					"(see [RFC3339 time string](https://tools.ietf.org/html/rfc3339#section-5.8) e.g., " +
+					"`YYYY-MM-DDTHH:MM:SSZ`)",
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"userpassword": {
 				Type:      schema.TypeString,
@@ -279,6 +296,22 @@ func resourceFreeIPADNSUserCreate(ctx context.Context, d *schema.ResourceData, m
 	if _v, ok := d.GetOkExists("car_license"); ok {
 		v := utilsGetArry(_v.([]interface{}))
 		optArgs.Carlicense = &v
+	}
+	if _v, ok := d.GetOkExists("krb_principal_expiration"); ok {
+		v := _v.(string)
+		timestamp, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return diag.Errorf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err)
+		}
+		optArgs.Krbprincipalexpiration = &timestamp
+	}
+	if _v, ok := d.GetOkExists("krb_password_expiration"); ok {
+		v := _v.(string)
+		timestamp, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return diag.Errorf("The krb_password_expiration timestamp could not be parsed as RFC3339: %s", err)
+		}
+		optArgs.Krbpasswordexpiration = &timestamp
 	}
 
 	_, err = client.UserAdd(&args, &optArgs)
@@ -538,6 +571,32 @@ func resourceFreeIPADNSUserUpdate(ctx context.Context, d *schema.ResourceData, m
 			v := utilsGetArry(_v.([]interface{}))
 			optArgs.Mail = &v
 			hasChange = true
+		}
+	}
+	if d.HasChange("krb_principal_expiration") {
+		if _v, ok := d.GetOkExists("krb_principal_expiration"); ok {
+			v := _v.(string)
+			if v != "" {
+				timestamp, err := time.Parse(time.RFC3339, v)
+				if err != nil {
+					return diag.Errorf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err)
+				}
+				optArgs.Krbprincipalexpiration = &timestamp
+				hasChange = true
+			}
+		}
+	}
+	if d.HasChange("krb_password_expiration") {
+		if _v, ok := d.GetOkExists("krb_password_expiration"); ok {
+			v := _v.(string)
+			if v != "" {
+				timestamp, err := time.Parse(time.RFC3339, v)
+				if err != nil {
+					return diag.Errorf("The krb_password_expiration timestamp could not be parsed as RFC3339: %s", err)
+				}
+				optArgs.Krbpasswordexpiration = &timestamp
+				hasChange = true
+			}
 		}
 	}
 

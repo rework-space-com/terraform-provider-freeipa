@@ -1,0 +1,54 @@
+name: Terraform Acceptance Tests
+
+on:
+  push:
+    branches:
+      - hosts
+  pull_request:
+    paths:
+      - '.github/workflows/test-acc.yaml'
+      - '**.go'
+
+permissions:
+  # Permission for checking out code
+  contents: read
+
+jobs:
+  acceptance:
+    name: Acceptance Tests
+    runs-on: ubuntu-latest
+    services:
+      ipa:
+        image: freeipa/freeipa-server:fedora-36-4.9.11
+        options: '--hostname ipa.ipatest.lan --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.lo.disable_ipv6=0 --cap-add=NET_ADMIN'
+        ports:
+          - '80:80'
+          - '443:443'
+        env:
+          IPA_SERVER_HOSTNAME: "ipa.ipatest.lan"
+          IPA_SERVER_INSTALL_OPTS: '--no-ntp --ds-password=P@ssword --admin-password=P@ssword --domain=ipatest.lan --realm=IPATEST.LAN --no-forwarders --setup-dns --no-dnssec-validation --allow-zone-overlap --no-reverse --unattended'
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.3.*'
+          terraform_wrapper: false
+      - name: Add ipa container to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 ipa.ipatest.lan" | sudo tee -a /etc/hosts
+      - name: Run acceptance tests
+        run: |
+          docker logs "${{ job.services.ipa.id }}"
+          echo "Waiting for FreeIPA Server to initialize"
+          while [ "$(docker logs --tail 1 ${{ job.services.ipa.id }})" != "FreeIPA server configured." ] ; do echo "FreeIPA server not ready. Waiting another 30s." ; sleep 30 ; done
+          go test -v -cover ./...
+        env:
+          TF_ACC: '1'
+          FREEIPA_HOST: 'ipa.ipatest.lan'
+          FREEIPA_USERNAME: 'admin'
+          FREEIPA_PASSWORD: 'P@ssword'
+        timeout-minutes: 30

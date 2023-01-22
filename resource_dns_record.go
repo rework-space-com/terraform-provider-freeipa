@@ -294,7 +294,7 @@ func resourceFreeIPADNSDNSRecordDelete(ctx context.Context, d *schema.ResourceDa
 	case "SRV":
 		optArgs.Srvrecord = &records
 	case "TXT":
-		optArgs.Ptrrecord = &records
+		optArgs.Txtrecord = &records
 	case "SSHFP":
 		optArgs.Sshfprecord = &records
 	}

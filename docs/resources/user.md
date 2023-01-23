@@ -56,6 +56,7 @@ resource freeipa_user "user-1" {
 - `userpassword` (String, Sensitive) Prompt to set the user password
 - `krb_principal_expiration` (String) "YYYY-MM-DDTHH:MM:SSZ", Kerberos principal expiration
 - `krb_password_expiration` (String) "YYYY-MM-DDTHH:MM:SSZ", User password expiration
+- `userclass`(List of String) User category (semantics placed on this attribute are for local interpretation)
 
 ### Read-Only
 

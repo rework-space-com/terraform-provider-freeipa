@@ -166,6 +166,11 @@ func resourceFreeIPAUser() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"userclass": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -313,6 +318,12 @@ func resourceFreeIPADNSUserCreate(ctx context.Context, d *schema.ResourceData, m
 		}
 		optArgs.Krbpasswordexpiration = &timestamp
 	}
+	if _v, ok := d.GetOkExists("userclass"); ok {
+		v := utilsGetArry(_v.([]interface{}))
+		optArgs.Userclass = &v
+	}
+
+
 
 	_, err = client.UserAdd(&args, &optArgs)
 	if err != nil {
@@ -597,6 +608,13 @@ func resourceFreeIPADNSUserUpdate(ctx context.Context, d *schema.ResourceData, m
 				optArgs.Krbpasswordexpiration = &timestamp
 				hasChange = true
 			}
+		}
+	}
+	if d.HasChange("userclass") {
+		if _v, ok := d.GetOkExists("userclass"); ok {
+			v := utilsGetArry(_v.([]interface{}))
+			optArgs.Userclass = &v
+			hasChange = true
 		}
 	}
 

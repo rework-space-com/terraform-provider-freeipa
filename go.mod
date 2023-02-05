@@ -3,8 +3,9 @@ module terraform-provider-freeipa-2
 go 1.18
 
 require (
-	// github.com/ccin2p3/go-freeipa v1.1.0
 	github.com/RomanButsiy/go-freeipa v1.1.2
+	// github.com/ccin2p3/go-freeipa v1.1.1
+	github.com/hashicorp/terraform-plugin-docs v0.10.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.17.0
 )
 

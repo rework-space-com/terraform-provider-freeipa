@@ -54,6 +54,10 @@ func Provider() *schema.Provider {
 			"freeipa_sudo_rule_user_membership":       resourceFreeIPASudoRuleUserMembership(),
 			"freeipa_sudo_rule_runasuser_membership":  resourceFreeIPASudoRuleRunAsUserMembership(),
 			"freeipa_sudo_rule_runasgroup_membership": resourceFreeIPASudoRuleRunAsGroupMembership(),
+			"freeipa_hbac_policy":                     resourceFreeIPAHBACPolicy(),
+			"freeipa_hbac_policy_host_membership":     resourceFreeIPAHBACPolicyHostMembership(),
+			"freeipa_hbac_policy_user_membership":     resourceFreeIPAHBACPolicyUserMembership(),
+			"freeipa_hbac_policy_service_membership":  resourceFreeIPAHBACPolicyServiceMembership(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{},

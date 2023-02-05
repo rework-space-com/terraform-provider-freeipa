@@ -323,8 +323,6 @@ func resourceFreeIPADNSUserCreate(ctx context.Context, d *schema.ResourceData, m
 		optArgs.Userclass = &v
 	}
 
-
-
 	_, err = client.UserAdd(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa user: %s", err)

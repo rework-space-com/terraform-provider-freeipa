@@ -366,12 +366,12 @@ func resourceFreeIPADNSHostDelete(ctx context.Context, d *schema.ResourceData, m
 	}
 	continuedel := false
 	updatednsdel := true
-	var fqdns = [] string {d.Get("name").(string)}
+	var fqdns = []string{d.Get("name").(string)}
 	args := ipa.HostDelArgs{
 		Fqdn: fqdns,
 	}
 	optArgs := ipa.HostDelOptionalArgs{
-		Continue: &continuedel,
+		Continue:  &continuedel,
 		Updatedns: &updatednsdel,
 	}
 

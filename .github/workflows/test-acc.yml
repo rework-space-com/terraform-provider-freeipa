@@ -19,12 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     services:
       ipa:
-        image: freeipa/freeipa-server:fedora-36-4.9.11
+        image: freeipa/freeipa-server:fedora-37-4.10.1
         options: '--hostname ipa.ipatest.lan --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.lo.disable_ipv6=0 --cap-add=NET_ADMIN'
         ports:
           - '80:80'
           - '443:443'
         env:
+          container: "docker"
           IPA_SERVER_HOSTNAME: "ipa.ipatest.lan"
           IPA_SERVER_INSTALL_OPTS: '--no-ntp --ds-password=P@ssword --admin-password=P@ssword --domain=ipatest.lan --realm=IPATEST.LAN --no-forwarders --setup-dns --no-dnssec-validation --allow-zone-overlap --no-reverse --unattended'
 

@@ -8,69 +8,59 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-
 func TestAccFreeIPADNSDNSRecord(t *testing.T) {
-	var testDnsRecordA map[string]string
-	testDnsRecordA = map[string]string{
-		"name": "reca",
-		"records": "[\"192.168.1.10\"]",
-		"type": "A",
+	testDnsRecordA := map[string]string{
+		"name":      "reca",
+		"records":   "[\"192.168.1.10\"]",
+		"type":      "A",
 		"zone_name": "testacc.ipatest.lan.",
 	}
-	var testDnsRecordPTR map[string]string
-	testDnsRecordPTR = map[string]string{
-		"name": "11",
-		"records": "[\"default.testacc.ipatest.lan.\"]",
-		"type": "PTR",
+	testDnsRecordPTR := map[string]string{
+		"name":      "11",
+		"records":   "[\"default.testacc.ipatest.lan.\"]",
+		"type":      "PTR",
 		"zone_name": "1.168.192.in-addr.arpa.",
 	}
-	var testDnsRecordAAAA map[string]string
-	testDnsRecordAAAA = map[string]string{
-		"name": "recaaaa",
-		"records": "[\"2001:db8:3333:4444:5555:6666:7777:8888\"]",
-		"type": "AAAA",
+	testDnsRecordAAAA := map[string]string{
+		"name":      "recaaaa",
+		"records":   "[\"2001:db8:3333:4444:5555:6666:7777:8888\"]",
+		"type":      "AAAA",
 		"zone_name": "testacc.ipatest.lan.",
 	}
-	var testDnsRecordCNAME map[string]string
-	testDnsRecordCNAME = map[string]string{
-		"name": "reccname",
-		"records": "[\"reca.testacc.ipatest.lan.\"]",
-		"type": "CNAME",
+	testDnsRecordCNAME := map[string]string{
+		"name":      "reccname",
+		"records":   "[\"reca.testacc.ipatest.lan.\"]",
+		"type":      "CNAME",
 		"zone_name": "testacc.ipatest.lan.",
 	}
-	var testDnsRecordTXT map[string]string
-	testDnsRecordTXT = map[string]string{
-		"name": "rectxt",
-		"records": "[\"EXAMPLE_TXT_RECORD\"]",
-		"type": "TXT",
+	testDnsRecordTXT := map[string]string{
+		"name":      "rectxt",
+		"records":   "[\"EXAMPLE_TXT_RECORD\"]",
+		"type":      "TXT",
 		"zone_name": "testacc.ipatest.lan.",
 	}
-	var testDnsRecordSSHFP map[string]string
-	testDnsRecordSSHFP = map[string]string{
-		"name": "recsshfp",
-		"records": "[\"1 1 84DE37B22918F76ED66910B47EB440B0A35F4A56\"]",
-		"type": "SSHFP",
+	testDnsRecordSSHFP := map[string]string{
+		"name":      "recsshfp",
+		"records":   "[\"1 1 84DE37B22918F76ED66910B47EB440B0A35F4A56\"]",
+		"type":      "SSHFP",
 		"zone_name": "testacc.ipatest.lan.",
 	}
-	var testDnsRecordMX map[string]string
-	testDnsRecordMX = map[string]string{
-		"name": "recmx",
-		"records": "[\"0 mail.example.com.\"]",
-		"type": "MX",
+	testDnsRecordMX := map[string]string{
+		"name":      "recmx",
+		"records":   "[\"0 mail.example.com.\"]",
+		"type":      "MX",
 		"zone_name": "testacc.ipatest.lan.",
 	}
-	var testDnsRecordSRV map[string]string
-	testDnsRecordSRV = map[string]string{
-		"name": "recsrv",
-		"records": "[\"10 5 443 reccname.testacc.ipatest.lan.\"]",
-		"type": "SRV",
+	testDnsRecordSRV := map[string]string{
+		"name":      "recsrv",
+		"records":   "[\"10 5 443 reccname.testacc.ipatest.lan.\"]",
+		"type":      "SRV",
 		"zone_name": "testacc.ipatest.lan.",
 	}
-
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFreeIPADNSDNSRecordResource_basic(testDnsRecordA),

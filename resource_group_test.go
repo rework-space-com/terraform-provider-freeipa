@@ -8,25 +8,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-
 func TestAccFreeIPADNSGroup_posix(t *testing.T) {
-	var testGroup map[string]string
-	testGroup = map[string]string{
-		"name": "testgrouppos",
+	testGroup := map[string]string{
+		"name":        "testgrouppos",
 		"description": "User group test",
-		"gid_number": "10001",
+		"gid_number":  "10001",
 	}
-	var testGroup2 map[string]string
-	testGroup2 = map[string]string{
-		"name": "testgrouppos",
+	testGroup2 := map[string]string{
+		"name":        "testgrouppos",
 		"description": "User group test 2",
-		"gid_number": "10002",
+		"gid_number":  "10002",
 	}
-
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFreeIPADNSGroupResource_basic(testGroup),
@@ -93,23 +89,20 @@ func testAccFreeIPADNSGroupResource_full(dataset map[string]string) string {
 }
 
 func TestAccFreeIPADNSGroup_noposix(t *testing.T) {
-	var testGroup map[string]string
-	testGroup = map[string]string{
-		"name": "testgroupnonpos",
+	testGroup := map[string]string{
+		"name":        "testgroupnonpos",
 		"description": "User group test",
-		"nonposix": "true",
+		"nonposix":    "true",
 	}
-	var testGroup2 map[string]string
-	testGroup2 = map[string]string{
-		"name": "testgroupnonpos",
+	testGroup2 := map[string]string{
+		"name":        "testgroupnonpos",
 		"description": "User group test 2",
-		"nonposix": "true",
+		"nonposix":    "true",
 	}
-
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFreeIPADNSGroupResource_nonposix_basic(testGroup),
@@ -176,25 +169,21 @@ func testAccFreeIPADNSGroupResource_nonposix_full(dataset map[string]string) str
 	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["nonposix"])
 }
 
-
 func TestAccFreeIPADNSGroup_external(t *testing.T) {
-	var testGroup map[string]string
-	testGroup = map[string]string{
-		"name": "testgroupext",
+	testGroup := map[string]string{
+		"name":        "testgroupext",
 		"description": "User group test",
-		"external": "true",
+		"external":    "true",
 	}
-	var testGroup2 map[string]string
-	testGroup2 = map[string]string{
-		"name": "testgroupext",
+	testGroup2 := map[string]string{
+		"name":        "testgroupext",
 		"description": "User group test 2",
-		"external": "true",
+		"external":    "true",
 	}
-
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFreeIPADNSGroupResource_external_basic(testGroup),

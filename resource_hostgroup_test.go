@@ -8,18 +8,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-
 func TestAccFreeIPADNSHostgroup(t *testing.T) {
-	var testHostgroup map[string]string
-	testHostgroup = map[string]string{
-		"name": "testhostgroup",
+	testHostgroup := map[string]string{
+		"name":        "testhostgroup",
 		"description": "Host group test",
 	}
 
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFreeIPADNSHostgroupResource_basic(testHostgroup),

@@ -8,26 +8,22 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-
 func TestAccFreeIPADNSUserGroupMembership(t *testing.T) {
-	var testDatasetUser map[string]string
-	testDatasetUser = map[string]string{
-		"login": "testuser",
+	testDatasetUser := map[string]string{
+		"login":     "testuser",
 		"firstname": "Test",
-		"lastname": "User",
+		"lastname":  "User",
 	}
-	var testDatasetGroup map[string]string
-	testDatasetGroup = map[string]string{
+	testDatasetGroup := map[string]string{
 		"name": "testgroup",
 	}
-	var testDatasetGroup2 map[string]string
-	testDatasetGroup2 = map[string]string{
+	testDatasetGroup2 := map[string]string{
 		"name": "testgroup-2",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFreeIPADNSUserGroupMembershipResource_user(testDatasetUser, testDatasetGroup),

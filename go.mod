@@ -9,7 +9,10 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.17.0
 )
 
-require golang.org/x/exp v0.0.0-20230129154200-a960b3787bd2
+require (
+	github.com/hashicorp/terraform-plugin-docs v0.10.1
+	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9
+)
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect

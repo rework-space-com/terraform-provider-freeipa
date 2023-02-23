@@ -8,25 +8,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-
 func TestAccFreeIPADNSHostGroupMembership(t *testing.T) {
-	var testDatasetHost map[string]string
-	testDatasetHost = map[string]string{
-		"name": "testhost.testacc.ipatest.lan",
+	testDatasetHost := map[string]string{
+		"name":       "testhost.testacc.ipatest.lan",
 		"ip_address": "192.168.1.10",
 	}
-	var testDatasetHostgroup map[string]string
-	testDatasetHostgroup = map[string]string{
+	testDatasetHostgroup := map[string]string{
 		"name": "test-hostgroup",
 	}
-	var testDatasetHostgroup2 map[string]string
-	testDatasetHostgroup2 = map[string]string{
+	testDatasetHostgroup2 := map[string]string{
 		"name": "test-hostgroup-2",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFreeIPADNSHostGroupMembershipResource_host(testDatasetHost, testDatasetHostgroup),

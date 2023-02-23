@@ -8,59 +8,55 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-
 func TestAccFreeIPADNSDNSZone(t *testing.T) {
-	var testDnsZone map[string]string
-	testDnsZone = map[string]string{
-		"zone_name": "testacc.ipatest.lan",
-		"admin_email_address": "hostmaster@ipatest.lan",
+	testDnsZone := map[string]string{
+		"zone_name":                   "testacc.ipatest.lan",
+		"admin_email_address":         "hostmaster@ipatest.lan",
 		"allow_inline_dnssec_signing": "false",
-		"allow_prt_sync": "true",
-		"allow_query": "192.168.1.0/24",
-		"allow_transfer": "1.1.1.1",
-		"authoritative_nameserver": "192.168.1.53",
-		"bind_update_policy": "grant IPATEST.LAN krb5-self * A; grant IPATEST.LAN krb5-self * AAAA; grant IPATEST.LAN krb5-self * SSHFP;",
-		"default_ttl": "3600",
-		"disable_zone": "false",
-		"dynamic_updates": "true",
-		"is_reverse_zone": "false",
-		"skip_nameserver_check": "true",
-		"skip_overlap_check": "true",
-		"soa_expire": "86400",
-		"soa_minimum": "3600",
-		"soa_refresh": "3600",
-		"soa_retry": "2",
-		"ttl": "3600",
-		"zone_forwarders": "1.1.1.1",
+		"allow_prt_sync":              "true",
+		"allow_query":                 "192.168.1.0/24",
+		"allow_transfer":              "1.1.1.1",
+		"authoritative_nameserver":    "192.168.1.53",
+		"bind_update_policy":          "grant IPATEST.LAN krb5-self * A; grant IPATEST.LAN krb5-self * AAAA; grant IPATEST.LAN krb5-self * SSHFP;",
+		"default_ttl":                 "3600",
+		"disable_zone":                "false",
+		"dynamic_updates":             "true",
+		"is_reverse_zone":             "false",
+		"skip_nameserver_check":       "true",
+		"skip_overlap_check":          "true",
+		"soa_expire":                  "86400",
+		"soa_minimum":                 "3600",
+		"soa_refresh":                 "3600",
+		"soa_retry":                   "2",
+		"ttl":                         "3600",
+		"zone_forwarders":             "1.1.1.1",
 	}
-	var testDnsZoneReverse map[string]string
-	testDnsZoneReverse = map[string]string{
-		"zone_name": "192.168.1.0/24",
-		"admin_email_address": "hostmaster@ipatest.lan",
+	testDnsZoneReverse := map[string]string{
+		"zone_name":                   "192.168.1.0/24",
+		"admin_email_address":         "hostmaster@ipatest.lan",
 		"allow_inline_dnssec_signing": "false",
-		"allow_prt_sync": "true",
-		"allow_query": "192.168.1.0/24",
-		"allow_transfer": "1.1.1.1",
-		"authoritative_nameserver": "192.168.1.53",
-		"bind_update_policy": "grant IPATEST.LAN krb5-self * A; grant IPATEST.LAN krb5-self * AAAA; grant IPATEST.LAN krb5-self * SSHFP;",
-		"default_ttl": "3600",
-		"disable_zone": "false",
-		"dynamic_updates": "true",
-		"is_reverse_zone": "true",
-		"skip_nameserver_check": "true",
-		"skip_overlap_check": "true",
-		"soa_expire": "86400",
-		"soa_minimum": "3600",
-		"soa_refresh": "3600",
-		"soa_retry": "2",
-		"ttl": "3600",
-		"zone_forwarders": "1.1.1.1",
+		"allow_prt_sync":              "true",
+		"allow_query":                 "192.168.1.0/24",
+		"allow_transfer":              "1.1.1.1",
+		"authoritative_nameserver":    "192.168.1.53",
+		"bind_update_policy":          "grant IPATEST.LAN krb5-self * A; grant IPATEST.LAN krb5-self * AAAA; grant IPATEST.LAN krb5-self * SSHFP;",
+		"default_ttl":                 "3600",
+		"disable_zone":                "false",
+		"dynamic_updates":             "true",
+		"is_reverse_zone":             "true",
+		"skip_nameserver_check":       "true",
+		"skip_overlap_check":          "true",
+		"soa_expire":                  "86400",
+		"soa_minimum":                 "3600",
+		"soa_refresh":                 "3600",
+		"soa_retry":                   "2",
+		"ttl":                         "3600",
+		"zone_forwarders":             "1.1.1.1",
 	}
-
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFreeIPADNSDNSZoneResource_basic(testDnsZone),
@@ -147,9 +143,9 @@ func testAccFreeIPADNSDNSZoneResource_full(dataset map[string]string) string {
 		zone_forwarders             = ["%s"]
 	}
 	`, provider_host, provider_user, provider_pass, dataset["zone_name"], dataset["admin_email_address"], dataset["allow_inline_dnssec_signing"], dataset["allow_prt_sync"],
-	dataset["allow_query"], dataset["allow_transfer"], provider_host, dataset["bind_update_policy"], dataset["default_ttl"], dataset["disable_zone"],
-	dataset["dynamic_updates"], dataset["is_reverse_zone"], dataset["skip_nameserver_check"], dataset["skip_overlap_check"], dataset["soa_expire"],
-	dataset["soa_minimum"], dataset["soa_refresh"], dataset["soa_retry"], dataset["ttl"], dataset["zone_forwarders"])
+		dataset["allow_query"], dataset["allow_transfer"], provider_host, dataset["bind_update_policy"], dataset["default_ttl"], dataset["disable_zone"],
+		dataset["dynamic_updates"], dataset["is_reverse_zone"], dataset["skip_nameserver_check"], dataset["skip_overlap_check"], dataset["soa_expire"],
+		dataset["soa_minimum"], dataset["soa_refresh"], dataset["soa_retry"], dataset["ttl"], dataset["zone_forwarders"])
 }
 
 func testAccFreeIPADNSDNSZoneReverseResource_basic(dataset map[string]string) string {
@@ -206,7 +202,7 @@ func testAccFreeIPADNSDNSZoneReverseResource_full(dataset map[string]string) str
 		zone_forwarders             = ["%s"]
 	}
 	`, provider_host, provider_user, provider_pass, dataset["zone_name"], dataset["admin_email_address"], dataset["allow_inline_dnssec_signing"], dataset["allow_prt_sync"],
-	dataset["allow_query"], dataset["allow_transfer"], provider_host, dataset["bind_update_policy"], dataset["default_ttl"], dataset["disable_zone"],
-	dataset["dynamic_updates"], dataset["is_reverse_zone"], dataset["skip_nameserver_check"], dataset["skip_overlap_check"], dataset["soa_expire"],
-	dataset["soa_minimum"], dataset["soa_refresh"], dataset["soa_retry"], dataset["ttl"], dataset["zone_forwarders"])
+		dataset["allow_query"], dataset["allow_transfer"], provider_host, dataset["bind_update_policy"], dataset["default_ttl"], dataset["disable_zone"],
+		dataset["dynamic_updates"], dataset["is_reverse_zone"], dataset["skip_nameserver_check"], dataset["skip_overlap_check"], dataset["soa_expire"],
+		dataset["soa_minimum"], dataset["soa_refresh"], dataset["soa_retry"], dataset["ttl"], dataset["zone_forwarders"])
 }

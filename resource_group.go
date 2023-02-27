@@ -91,7 +91,7 @@ func resourceFreeIPADNSGroupCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceFreeIPADNSGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa grupe")
+	log.Printf("[DEBUG] Read freeipa group")
 
 	client, err := meta.(*Config).Client()
 	if err != nil {
@@ -107,13 +107,20 @@ func resourceFreeIPADNSGroupRead(ctx context.Context, d *schema.ResourceData, me
 		Cn: d.Id(),
 	}
 
+	log.Printf("[DEBUG] Read freeipa group %s", d.Id())
 	res, err := client.GroupShow(&args, &optArgs)
 
 	if err != nil {
-		return diag.Errorf("Error show freeipa grupe: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Group not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa group: %s", err)
+		}
 	}
 
-	log.Printf("[DEBUG] Read freeipa grupe %s", res.Result.Cn)
+	log.Printf("[DEBUG] Read freeipa group %s", res.Result.Cn)
 	return nil
 }
 
@@ -164,7 +171,7 @@ func resourceFreeIPADNSGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 			if strings.Contains(err.Error(), "EmptyModlist") {
 				log.Printf("[DEBUG] EmptyModlist (4202): no modifications to be performed")
 			} else {
-				return diag.Errorf("Error update freeipa groupe: %s", err)
+				return diag.Errorf("Error update freeipa group: %s", err)
 			}
 		}
 	}
@@ -175,7 +182,7 @@ func resourceFreeIPADNSGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceFreeIPADNSGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa grupe")
+	log.Printf("[DEBUG] Delete freeipa group")
 
 	client, err := meta.(*Config).Client()
 	if err != nil {
@@ -186,7 +193,7 @@ func resourceFreeIPADNSGroupDelete(ctx context.Context, d *schema.ResourceData, 
 	}
 	_, err = client.GroupDel(&args, &ipa.GroupDelOptionalArgs{})
 	if err != nil {
-		return diag.Errorf("Error delete freeipa grupe: %s", err)
+		return diag.Errorf("Error delete freeipa group: %s", err)
 	}
 
 	d.SetId("")

@@ -121,6 +121,7 @@ func resourceFreeIPAUserGroupMembershipRead(ctx context.Context, d *schema.Resou
 		log.Printf("[DEBUG] Warning! Group or User membership not exist")
 		d.Set("user", "")
 		d.Set("group", "")
+		d.SetId("")
 	}
 
 	return nil

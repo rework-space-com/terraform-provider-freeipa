@@ -218,7 +218,13 @@ func resourceFreeIPADNSHostRead(ctx context.Context, d *schema.ResourceData, met
 	res, err := client.HostShow(&args, &optArgs)
 
 	if err != nil {
-		return diag.Errorf("Error show freeipa host: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Host not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa host: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] Read freeipa host %s", res.Result.Fqdn)

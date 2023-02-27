@@ -111,6 +111,16 @@ func resourceFreeIPASudoRuleDenyCommandMembershipRead(ctx context.Context, d *sc
 
 	res, err := client.SudoruleShow(&args, &optArgs)
 
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Sudo rule not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa sudo rule: %s", err)
+		}
+	}
+
 	switch typeId {
 	case "srdc":
 		if res.Result.MemberdenycmdSudocmd == nil || !slices.Contains(*res.Result.MemberdenycmdSudocmd, cmdId) {
@@ -119,7 +129,7 @@ func resourceFreeIPASudoRuleDenyCommandMembershipRead(ctx context.Context, d *sc
 			d.Set("sudocmd", "")
 			d.Set("sudocmd_group", "")
 			d.SetId("")
-			return diag.Errorf("Error configuring freeipa Sudo rule denied command, sudocmd not assigned: %s", cmdId)
+			return nil
 		}
 	case "srdcg":
 		if res.Result.MemberdenycmdSudocmdgroup == nil || !slices.Contains(*res.Result.MemberdenycmdSudocmdgroup, cmdId) {
@@ -128,7 +138,7 @@ func resourceFreeIPASudoRuleDenyCommandMembershipRead(ctx context.Context, d *sc
 			d.Set("sudocmd", "")
 			d.Set("sudocmd_group", "")
 			d.SetId("")
-			return diag.Errorf("Error configuring freeipa Sudo rule denied command, sudocmd not assigned: %s", cmdId)
+			return nil
 		}
 	}
 

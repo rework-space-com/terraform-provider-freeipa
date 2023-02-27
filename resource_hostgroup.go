@@ -82,7 +82,13 @@ func resourceFreeIPADNSHostGroupRead(ctx context.Context, d *schema.ResourceData
 	res, err := client.HostgroupShow(&args, &optArgs)
 
 	if err != nil {
-		return diag.Errorf("Error show freeipa hostgroup: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Hostgroup not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa hostgroup: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] Read freeipa hostgroup %s", res.Result.Cn)

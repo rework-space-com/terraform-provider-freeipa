@@ -103,8 +103,17 @@ func resourceFreeIPADNSHBACPolicyServiceMembershipRead(ctx context.Context, d *s
 		All: &all,
 	}
 	res, err := client.HbacruleShow(&args, &optArgs)
+
 	if err != nil {
-		return diag.Errorf("Error show freeipa HBAC policy host membership: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.Set("service", "")
+			d.Set("servicegroup", "")
+			d.SetId("")
+			log.Printf("[DEBUG] HBAC policy not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa HBAC policy: %s", err)
+		}
 	}
 
 	switch typeId {
@@ -114,7 +123,7 @@ func resourceFreeIPADNSHBACPolicyServiceMembershipRead(ctx context.Context, d *s
 			d.Set("service", "")
 			d.Set("servicegroup", "")
 			d.SetId("")
-			return diag.Errorf("Error configuring freeipa HBAC policy, servicegroup not assigned: %s", svcId)
+			return nil
 		}
 	case "s":
 		if res.Result.MemberserviceHbacsvc == nil || !slices.Contains(*res.Result.MemberserviceHbacsvc, svcId) {
@@ -122,7 +131,7 @@ func resourceFreeIPADNSHBACPolicyServiceMembershipRead(ctx context.Context, d *s
 			d.Set("service", "")
 			d.Set("servicegroup", "")
 			d.SetId("")
-			return diag.Errorf("Error configuring freeipa HBAC policy, service not assigned: %s", svcId)
+			return nil
 		}
 	}
 

@@ -81,7 +81,13 @@ func resourceFreeIPASudocmdgroupRead(ctx context.Context, d *schema.ResourceData
 	res, err := client.SudocmdgroupShow(&args, &optArgs)
 
 	if err != nil {
-		return diag.Errorf("Error show freeipa sudo command group: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Sudo command group not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa sudo command group: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] Read freeipa sudo command group %s", res.Result.Cn)

@@ -350,10 +350,18 @@ func resourceFreeIPADNSUserRead(ctx context.Context, d *schema.ResourceData, met
 		v := _v.(string)
 		optArgs.UID = &v
 	}
+
+	log.Printf("[DEBUG] Read freeipa user %s", d.Id())
 	res, err := client.UserShow(&ipa.UserShowArgs{}, &optArgs)
 
 	if err != nil {
-		return diag.Errorf("Error show freeipa user: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] User not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa user: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] Read freeipa user %s", res.Result.UID)

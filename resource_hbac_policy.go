@@ -120,7 +120,13 @@ func resourceFreeIPADNSHBACPolicyRead(ctx context.Context, d *schema.ResourceDat
 	res, err := client.HbacruleShow(&args, &optArgs)
 
 	if err != nil {
-		return diag.Errorf("Error show freeipa HBAC policy: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] HBAC policy not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa HBAC policy: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] Read freeipa HBAC policy %s", res.Result.Cn)

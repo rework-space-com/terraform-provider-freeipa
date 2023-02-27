@@ -127,7 +127,6 @@ func resourceFreeIPASudoRuleHostMembershipRead(ctx context.Context, d *schema.Re
 	}
 
 	res, err := client.SudoruleShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

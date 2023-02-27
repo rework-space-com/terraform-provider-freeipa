@@ -103,7 +103,6 @@ func resourceFreeIPADNSHBACPolicyServiceMembershipRead(ctx context.Context, d *s
 		All: &all,
 	}
 	res, err := client.HbacruleShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.Set("service", "")

@@ -79,7 +79,6 @@ func resourceFreeIPASudocmdRead(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	res, err := client.SudocmdShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

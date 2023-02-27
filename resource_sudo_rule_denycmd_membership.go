@@ -110,7 +110,6 @@ func resourceFreeIPASudoRuleDenyCommandMembershipRead(ctx context.Context, d *sc
 	}
 
 	res, err := client.SudoruleShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

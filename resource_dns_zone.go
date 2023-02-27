@@ -264,7 +264,6 @@ func resourceFreeIPADNSDNSZoneRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	res, err := client.DnszoneShow(&ipa.DnszoneShowArgs{}, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

@@ -80,7 +80,6 @@ func resourceFreeIPADNSHostGroupRead(ctx context.Context, d *schema.ResourceData
 	}
 
 	res, err := client.HostgroupShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

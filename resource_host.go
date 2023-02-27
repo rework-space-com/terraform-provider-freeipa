@@ -216,7 +216,6 @@ func resourceFreeIPADNSHostRead(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	res, err := client.HostShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

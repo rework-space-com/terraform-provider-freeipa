@@ -109,7 +109,6 @@ func resourceFreeIPADNSGroupRead(ctx context.Context, d *schema.ResourceData, me
 
 	log.Printf("[DEBUG] Read freeipa group %s", d.Id())
 	res, err := client.GroupShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

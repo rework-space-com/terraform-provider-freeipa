@@ -95,7 +95,6 @@ func resourceFreeIPASudoRuleRunAsGroupMembershipRead(ctx context.Context, d *sch
 	}
 
 	res, err := client.SudoruleShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

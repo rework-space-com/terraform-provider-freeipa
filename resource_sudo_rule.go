@@ -139,7 +139,6 @@ func resourceFreeIPASudoRuleRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	res, err := client.SudoruleShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

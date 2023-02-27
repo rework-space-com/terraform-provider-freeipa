@@ -89,7 +89,6 @@ func resourceFreeIPASudocmdgroupMembershipRead(ctx context.Context, d *schema.Re
 	}
 
 	res, err := client.SudocmdgroupShow(&args, &optArgs)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			d.SetId("")

@@ -149,9 +149,14 @@ func resourceFreeIPADNSDNSRecordRead(ctx context.Context, d *schema.ResourceData
 
 	res, err := client.DnsrecordShow(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error creating freeipa dns record: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] DNS record not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa DNS record: %s", err)
+		}
 	}
-
 	_type := d.Get("type")
 
 	switch _type {

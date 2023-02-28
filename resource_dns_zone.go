@@ -264,9 +264,14 @@ func resourceFreeIPADNSDNSZoneRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	res, err := client.DnszoneShow(&ipa.DnszoneShowArgs{}, &optArgs)
-
 	if err != nil {
-		return diag.Errorf("Error show freeipa dns zone: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] DNS Zone not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa DNS zone: %s", err)
+		}
 	}
 
 	d.Set("disable_zone", !*res.Result.Idnszoneactive)

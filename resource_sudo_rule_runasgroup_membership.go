@@ -95,6 +95,15 @@ func resourceFreeIPASudoRuleRunAsGroupMembershipRead(ctx context.Context, d *sch
 	}
 
 	res, err := client.SudoruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Sudo rule not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa sudo rule: %s", err)
+		}
+	}
 
 	switch typeId {
 	case "srraug":
@@ -104,7 +113,7 @@ func resourceFreeIPASudoRuleRunAsGroupMembershipRead(ctx context.Context, d *sch
 			d.Set("runasgroup", "")
 			d.Set("runasgroup", "")
 			d.SetId("")
-			return diag.Errorf("Error configuring freeipa Sudo rule runasgroup, runasgroup not assigned: %s", group_id)
+			return nil
 		}
 	}
 

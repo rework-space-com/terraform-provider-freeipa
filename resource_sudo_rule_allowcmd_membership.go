@@ -110,6 +110,15 @@ func resourceFreeIPASudoRuleAllowCommandMembershipRead(ctx context.Context, d *s
 	}
 
 	res, err := client.SudoruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Sudo rule not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa sudo rule: %s", err)
+		}
+	}
 
 	switch typeId {
 	case "srac":
@@ -119,7 +128,7 @@ func resourceFreeIPASudoRuleAllowCommandMembershipRead(ctx context.Context, d *s
 			d.Set("sudocmd", "")
 			d.Set("sudocmd_group", "")
 			d.SetId("")
-			return diag.Errorf("Error configuring freeipa Sudo rule allowed command, sudocmd not assigned: %s", cmdId)
+			return nil
 		}
 	case "sracg":
 		if res.Result.MemberallowcmdSudocmdgroup == nil || !slices.Contains(*res.Result.MemberallowcmdSudocmdgroup, cmdId) {
@@ -128,7 +137,7 @@ func resourceFreeIPASudoRuleAllowCommandMembershipRead(ctx context.Context, d *s
 			d.Set("sudocmd", "")
 			d.Set("sudocmd_group", "")
 			d.SetId("")
-			return diag.Errorf("Error configuring freeipa Sudo rule allowed command, sudocmd not assigned: %s", cmdId)
+			return nil
 		}
 	}
 

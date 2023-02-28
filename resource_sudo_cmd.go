@@ -79,9 +79,14 @@ func resourceFreeIPASudocmdRead(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	res, err := client.SudocmdShow(&args, &optArgs)
-
 	if err != nil {
-		return diag.Errorf("Error show freeipa sudo command: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Sudo command not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa Sudo command: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] Read freeipa sudo command %s", res.Result.Sudocmd)

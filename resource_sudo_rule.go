@@ -139,9 +139,14 @@ func resourceFreeIPASudoRuleRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	res, err := client.SudoruleShow(&args, &optArgs)
-
 	if err != nil {
-		return diag.Errorf("Error show freeipa sudo rule: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Sudo rule not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa sudo rule: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] Read freeipa sudo rule %s", res.Result.Cn)

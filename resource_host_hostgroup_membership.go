@@ -118,9 +118,10 @@ func resourceFreeIPAHostHostGroupMembershipRead(ctx context.Context, d *schema.R
 	}
 
 	if strings.Contains(*res.Summary, "0 groups matched") {
-		log.Printf("[DEBUG] Warning! Group or User membership not exist")
+		log.Printf("[DEBUG] Warning! Hostgroup or Host membership not exist")
 		d.Set("host", "")
 		d.Set("hostgroup", "")
+		d.SetId("")
 	}
 
 	return nil
@@ -157,9 +158,14 @@ func resourceFreeIPAHostHostGroupMembershipDelete(ctx context.Context, d *schema
 
 	_, err = client.HostgroupRemoveMember(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error delete freeipa the host group membership: %s", err)
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Hostgroup not found")
+			return nil
+		} else {
+			return diag.Errorf("Error delete freeipa the host group membership: %s", err)
+		}
 	}
-
 	d.SetId("")
 
 	return nil

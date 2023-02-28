@@ -86,6 +86,15 @@ func resourceFreeIPASudoRuleOptionRead(ctx context.Context, d *schema.ResourceDa
 	}
 
 	res, err := client.SudoruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			d.SetId("")
+			log.Printf("[DEBUG] Sudo rule not found")
+			return nil
+		} else {
+			return diag.Errorf("Error reading freeipa sudo rule: %s", err)
+		}
+	}
 
 	switch typeId {
 	case "sro":
@@ -94,12 +103,8 @@ func resourceFreeIPASudoRuleOptionRead(ctx context.Context, d *schema.ResourceDa
 			d.Set("name", "")
 			d.Set("option", "")
 			d.SetId("")
-			return diag.Errorf("Error configuring freeipa Sudo rule option, option not assigned: %s", opt_id)
+			return nil
 		}
-	}
-
-	if err != nil {
-		return diag.Errorf("Error show freeipa sudo rule option: %s", err)
 	}
 
 	log.Printf("[DEBUG] Read freeipa sudo rule option %s", res.Result.Cn)

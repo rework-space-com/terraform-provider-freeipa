@@ -62,4 +62,8 @@ resource freeipa_user "user-1" {
 
 - `id` (String) The ID of this resource.
 
+### Import
 
+Import is supported using the following syntax:
+
+ - `terraform import freeipa_user.default testuser`

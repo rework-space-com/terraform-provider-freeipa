@@ -23,21 +23,24 @@ func resourceFreeIPAHBACPolicyHostMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "HBAC policy name",
 			},
 			"host": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"hostgroup"},
+				Description:   "Host FDQN the policy is applied to",
 			},
 			"hostgroup": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"host"},
+				Description:   "Hostgroup the policy is applied to",
 			},
 		},
 	}

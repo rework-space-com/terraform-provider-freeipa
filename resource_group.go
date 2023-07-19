@@ -25,27 +25,32 @@ func resourceFreeIPAGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				// ForceNew: true,
+				Description: "Group name",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Group description",
 			},
 			"gid_number": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				ConflictsWith: []string{"nonposix", "external"},
+				Description:   "GID (use this option to set it manually)",
 			},
 			"nonposix": {
 				Type:          schema.TypeBool,
 				Optional:      true,
 				Default:       false,
 				ConflictsWith: []string{"gid_number", "external"},
+				Description:   "Create as a non-POSIX group",
 			},
 			"external": {
 				Type:          schema.TypeBool,
 				Optional:      true,
 				Default:       false,
 				ConflictsWith: []string{"gid_number", "nonposix"},
+				Description:   "Allow adding external non-IPA members from trusted domains",
 			},
 			"addattr": {
 				Type:     schema.TypeList,
@@ -53,6 +58,7 @@ func resourceFreeIPAGroup() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: "Add an attribute/value pair. Format is attr=value. The attribute must be part of the schema.",
 			},
 			"setattr": {
 				Type:     schema.TypeList,
@@ -60,6 +66,7 @@ func resourceFreeIPAGroup() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: "Set an attribute to a name/value pair. Format is attr=value.",
 			},
 		},
 	}

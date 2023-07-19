@@ -23,21 +23,24 @@ func resourceFreeIPAHBACPolicyUserMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "HBAC policy name",
 			},
 			"user": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"group"},
+				Description:   "User FDQN the policy is applied to",
 			},
 			"group": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"user"},
+				Description:   "Group the policy is applied to",
 			},
 		},
 	}

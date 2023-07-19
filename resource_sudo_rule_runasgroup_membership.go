@@ -23,14 +23,16 @@ func resourceFreeIPASudoRuleRunAsGroupMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Sudo rule name",
 			},
 			"runasgroup": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Run As Group to add to the sudo rule. Can be an external group (local group of ipa clients)",
 			},
 		},
 	}

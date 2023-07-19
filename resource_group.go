@@ -47,12 +47,26 @@ func resourceFreeIPAGroup() *schema.Resource {
 				Default:       false,
 				ConflictsWith: []string{"gid_number", "nonposix"},
 			},
+			"addattr": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"setattr": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
 
 func resourceFreeIPADNSGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa grupe")
+	log.Printf("[DEBUG] Creating freeipa group")
 
 	client, err := meta.(*Config).Client()
 	if err != nil {
@@ -79,6 +93,20 @@ func resourceFreeIPADNSGroupCreate(ctx context.Context, d *schema.ResourceData, 
 	if _v, ok := d.GetOkExists("external"); ok {
 		v := _v.(bool)
 		optArgs.External = &v
+	}
+	if _v, ok := d.GetOk("addattr"); ok {
+		v := make([]string, len(_v.([]interface{})))
+		for i, value := range _v.([]interface{}) {
+			v[i] = value.(string)
+		}
+		optArgs.Addattr = &v
+	}
+	if _v, ok := d.GetOk("setattr"); ok {
+		v := make([]string, len(_v.([]interface{})))
+		for i, value := range _v.([]interface{}) {
+			v[i] = value.(string)
+		}
+		optArgs.Setattr = &v
 	}
 	_, err = client.GroupAdd(&args, &optArgs)
 	if err != nil {
@@ -159,6 +187,26 @@ func resourceFreeIPADNSGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 				optArgs.Gidnumber = &v
 				hasChange = true
 			}
+		}
+	}
+	if d.HasChange("addattr") {
+		if _v, ok := d.GetOkExists("addattr"); ok {
+			v := make([]string, len(_v.([]interface{})))
+			for i, value := range _v.([]interface{}) {
+				v[i] = value.(string)
+			}
+			optArgs.Addattr = &v
+			hasChange = true
+		}
+	}
+	if d.HasChange("setattr") {
+		if _v, ok := d.GetOkExists("setattr"); ok {
+			v := make([]string, len(_v.([]interface{})))
+			for i, value := range _v.([]interface{}) {
+				v[i] = value.(string)
+			}
+			optArgs.Setattr = &v
+			hasChange = true
 		}
 	}
 

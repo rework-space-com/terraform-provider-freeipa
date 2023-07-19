@@ -103,6 +103,10 @@ func resourceFreeIPASudoRuleCreate(ctx context.Context, d *schema.ResourceData, 
 		v := _v.(string)
 		optArgs.Ipasudorunasusercategory = &v
 	}
+	if _v, ok := d.GetOkExists("commandcategory"); ok {
+		v := _v.(string)
+		optArgs.Cmdcategory = &v
+	}
 	if _v, ok := d.GetOkExists("runasgroupcategory"); ok {
 		v := _v.(string)
 		optArgs.Ipasudorunasgroupcategory = &v
@@ -200,6 +204,13 @@ func resourceFreeIPASudoRuleUpdate(ctx context.Context, d *schema.ResourceData, 
 		if _v, ok := d.GetOkExists("runasusercategory"); ok {
 			v := _v.(string)
 			optArgs.Ipasudorunasusercategory = &v
+			hasChange = true
+		}
+	}
+	if d.HasChange("commandcategory") {
+		if _v, ok := d.GetOkExists("commandcategory"); ok {
+			v := _v.(string)
+			optArgs.Cmdcategory = &v
 			hasChange = true
 		}
 	}

@@ -23,14 +23,16 @@ func resourceFreeIPASudoRuleRunAsUserMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Sudo rule name",
 			},
 			"runasuser": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Run As User to add to the sudo rule. Can be an external user (local user of ipa clients)",
 			},
 		},
 	}

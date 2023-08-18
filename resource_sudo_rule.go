@@ -22,49 +22,58 @@ func resourceFreeIPASudoRule() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the sudo rule",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Sudo rule description",
 			},
 			"enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-				ForceNew: false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				ForceNew:    false,
+				Description: "Enable this sudo rule",
 			},
 			"usercategory": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    false,
+				Description: "User category the sudo rule is applied to (allowed value: all)",
 			},
 			"hostcategory": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Host category the sudo rule is applied to (allowed value: all)",
 			},
 			"commandcategory": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Command category the sudo rule is applied to (allowed value: all)",
 			},
 			"runasusercategory": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Run as user category the sudo rule is applied to (allowed value: all)",
 			},
 			"runasgroupcategory": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Run as group category the sudo rule is applied to (allowed value: all)",
 			},
 			"order": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: false,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Sudo rule order (must be unique)",
 			},
 		},
 	}
@@ -102,6 +111,10 @@ func resourceFreeIPASudoRuleCreate(ctx context.Context, d *schema.ResourceData, 
 	if _v, ok := d.GetOkExists("runasusercategory"); ok {
 		v := _v.(string)
 		optArgs.Ipasudorunasusercategory = &v
+	}
+	if _v, ok := d.GetOkExists("commandcategory"); ok {
+		v := _v.(string)
+		optArgs.Cmdcategory = &v
 	}
 	if _v, ok := d.GetOkExists("runasgroupcategory"); ok {
 		v := _v.(string)
@@ -200,6 +213,13 @@ func resourceFreeIPASudoRuleUpdate(ctx context.Context, d *schema.ResourceData, 
 		if _v, ok := d.GetOkExists("runasusercategory"); ok {
 			v := _v.(string)
 			optArgs.Ipasudorunasusercategory = &v
+			hasChange = true
+		}
+	}
+	if d.HasChange("commandcategory") {
+		if _v, ok := d.GetOkExists("commandcategory"); ok {
+			v := _v.(string)
+			optArgs.Cmdcategory = &v
 			hasChange = true
 		}
 	}

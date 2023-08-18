@@ -23,21 +23,24 @@ func resourceFreeIPASudoRuleHostMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Sudo rule name",
 			},
 			"host": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"hostgroup"},
+				Description:   "Host to add to the sudo rule",
 			},
 			"hostgroup": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"host"},
+				Description:   "Hostgroup to add to the sudo rule",
 			},
 			// Hostmask not implemented yet. Maybe one day but I don't see the need.
 			// "hostmask": {

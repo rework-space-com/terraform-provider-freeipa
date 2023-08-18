@@ -13,11 +13,13 @@ func TestAccFreeIPADNSGroup_posix(t *testing.T) {
 		"name":        "testgrouppos",
 		"description": "User group test",
 		"gid_number":  "10001",
+		"addattr":     "owner=uid=test",
 	}
 	testGroup2 := map[string]string{
-		"name":        "testgrouppos",
+		"name":        "testgrouppos2",
 		"description": "User group test 2",
 		"gid_number":  "10002",
+		"addattr":     "owner=uid=test",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -36,6 +38,7 @@ func TestAccFreeIPADNSGroup_posix(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup["name"]),
 					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup["description"]),
 					resource.TestCheckResourceAttr("freeipa_group.group", "gid_number", testGroup["gid_number"]),
+					resource.TestCheckResourceAttr("freeipa_group.group", "addattr.0", testGroup["addattr"]),
 				),
 			},
 			{
@@ -44,6 +47,7 @@ func TestAccFreeIPADNSGroup_posix(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup2["name"]),
 					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup2["description"]),
 					resource.TestCheckResourceAttr("freeipa_group.group", "gid_number", testGroup2["gid_number"]),
+					resource.TestCheckResourceAttr("freeipa_group.group", "addattr.0", testGroup2["addattr"]),
 				),
 			},
 		},
@@ -84,8 +88,9 @@ func testAccFreeIPADNSGroupResource_full(dataset map[string]string) string {
 		name        = "%s"
 		description  = "%s"
 		gid_number = %s
+                addattr = ["%s"]
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["gid_number"])
+	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["gid_number"], dataset["addattr"])
 }
 
 func TestAccFreeIPADNSGroup_noposix(t *testing.T) {
@@ -93,11 +98,13 @@ func TestAccFreeIPADNSGroup_noposix(t *testing.T) {
 		"name":        "testgroupnonpos",
 		"description": "User group test",
 		"nonposix":    "true",
+		"addattr":     "owner=uid=test",
 	}
 	testGroup2 := map[string]string{
-		"name":        "testgroupnonpos",
+		"name":        "testgroupnonpos2",
 		"description": "User group test 2",
 		"nonposix":    "true",
+		"addattr":     "owner=uid=test",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -116,6 +123,7 @@ func TestAccFreeIPADNSGroup_noposix(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup["name"]),
 					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup["description"]),
 					resource.TestCheckResourceAttr("freeipa_group.group", "nonposix", "true"),
+					resource.TestCheckResourceAttr("freeipa_group.group", "addattr.0", testGroup["addattr"]),
 				),
 			},
 			{
@@ -124,6 +132,7 @@ func TestAccFreeIPADNSGroup_noposix(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup2["name"]),
 					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup2["description"]),
 					resource.TestCheckResourceAttr("freeipa_group.group", "nonposix", "true"),
+					resource.TestCheckResourceAttr("freeipa_group.group", "addattr.0", testGroup2["addattr"]),
 				),
 			},
 		},
@@ -165,8 +174,9 @@ func testAccFreeIPADNSGroupResource_nonposix_full(dataset map[string]string) str
 		name        = "%s"
 		description  = "%s"
 		nonposix = %s
+		addattr = ["%s"]
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["nonposix"])
+	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["nonposix"], dataset["addattr"])
 }
 
 func TestAccFreeIPADNSGroup_external(t *testing.T) {
@@ -176,7 +186,7 @@ func TestAccFreeIPADNSGroup_external(t *testing.T) {
 		"external":    "true",
 	}
 	testGroup2 := map[string]string{
-		"name":        "testgroupext",
+		"name":        "testgroupext2",
 		"description": "User group test 2",
 		"external":    "true",
 	}

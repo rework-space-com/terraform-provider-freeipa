@@ -23,21 +23,24 @@ func resourceFreeIPASudoRuleDenyCommandMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Sudo rule name",
 			},
 			"sudocmd": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"sudocmd_group"},
+				Description:   "Sudo command to deny by the sudo rule",
 			},
 			"sudocmd_group": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"sudocmd"},
+				Description:   "Sudo command group to deny by the sudo rule",
 			},
 		},
 	}

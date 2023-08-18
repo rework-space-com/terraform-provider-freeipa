@@ -1,0 +1,22 @@
+---
+page_title: "{{ .Name }} {{ .Type }} - {{ .ProviderShortName }}"
+description: |-
+{{.Description}}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+
+{{if .HasExample}}
+## Example Usage
+
+{{tffile .ExampleFile}}
+{{end}}
+
+{{if .HasImport}}
+## Import Usage
+
+{{tffile .ImportFile}}
+{{end}}
+
+{{ .SchemaMarkdown | trimspace }}

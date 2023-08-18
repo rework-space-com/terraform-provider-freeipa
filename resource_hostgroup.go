@@ -22,14 +22,16 @@ func resourceFreeIPAHostGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Hostgroup's name",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Required: false,
-				Optional: true,
+				Type:        schema.TypeString,
+				Required:    false,
+				Optional:    true,
+				Description: "A description of this hostgroup",
 			},
 		},
 	}

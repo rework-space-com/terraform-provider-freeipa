@@ -23,14 +23,16 @@ func resourceFreeIPASudocmdgroupMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the sudo command group",
 			},
 			"sudocmd": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Sudo command to add to the group",
 			},
 		},
 	}

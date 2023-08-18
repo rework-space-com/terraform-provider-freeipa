@@ -1,10 +1,10 @@
 ---
-page_title: "Provider: FREEIPA"
+page_title: "Provider: FreeIPA"
 description: |-
   
 ---
 
-# FREEIPA Provider
+# FreeIPA Provider
 
 ## Example Usage
 

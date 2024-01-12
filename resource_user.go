@@ -380,6 +380,10 @@ func resourceFreeIPADNSUserRead(ctx context.Context, d *schema.ResourceData, met
 	if _v, ok := d.GetOkExists("name"); ok {
 		v := _v.(string)
 		optArgs.UID = &v
+	} else {
+		var tempId = d.Id()
+		optArgs.UID = &tempId
+		d.Set("name", d.Id())
 	}
 
 	log.Printf("[DEBUG] Read freeipa user %s", d.Id())

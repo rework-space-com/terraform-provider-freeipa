@@ -123,6 +123,12 @@ func resourceFreeIPAHost() *schema.Resource {
 				Optional:    true,
 				Description: "The service is allowed to authenticate on behalf of a client",
 			},
+			"force": {
+				Type:        schema.TypeBool,
+				Required:    false,
+				Optional:    true,
+				Description: "Skip host's DNS check (A/AAAA) before adding it",
+			},
 		},
 	}
 }
@@ -204,6 +210,11 @@ func resourceFreeIPADNSHostCreate(ctx context.Context, d *schema.ResourceData, m
 	if _v, ok := d.GetOkExists("trusted_to_auth_as_delegation"); ok {
 		v := _v.(bool)
 		optArgs.Ipakrboktoauthasdelegate = &v
+	}
+
+	if _v, ok := d.GetOkExists("force"); ok {
+		v := _v.(bool)
+		optArgs.Force = &v
 	}
 	_, err = client.HostAdd(&args, &optArgs)
 	if err != nil {

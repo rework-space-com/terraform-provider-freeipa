@@ -8,3 +8,5 @@ func main() {
 	plugin.Serve(&plugin.ServeOpts{
 		ProviderFunc: Provider})
 }
+
+// Test

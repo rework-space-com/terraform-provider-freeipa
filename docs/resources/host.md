@@ -33,6 +33,7 @@ resource freeipa_host "host-1" {
 
 - `assigned_idview` (String) Assigned ID View
 - `description` (String) A description of this host
+- `force` (Boolean) Skip host's DNS check (A/AAAA) before adding it
 - `ip_address` (String) IP address of the host
 - `ipasshpubkeys` (List of String) SSH public key
 - `krb_auth_indicators` (List of String) Defines a whitelist for Authentication Indicators. Use 'otp' to allow OTP-based 2FA authentications. Use 'radius' to allow RADIUS-based 2FA authentications. Other values may be used for custom configurations.

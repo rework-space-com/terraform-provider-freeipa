@@ -18,3 +18,6 @@ Clone the repository. Enter the provider directory and build the provider
 $ cd terraform-provider-freeipa
 $ go build -o ~/go/bin/terraform-provider-freeipa
 ```
+## Contributing to the provider
+
+To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/rework-space-com/terraform-provider-freeipa/issues/new/choose).

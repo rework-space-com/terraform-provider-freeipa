@@ -24,6 +24,8 @@ func TestAccFreeIPADNSHost(t *testing.T) {
 		"krb_preauth":                 "false",
 		"trusted_for_delegation":      "false",
 		"trusted_to_auth_as_delegate": "false",
+		"userpassword":                "P@ssword",
+		"random_password":             "false",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -101,8 +103,10 @@ func testAccFreeIPADNSHostResource_full(dataset map[string]string) string {
 		krb_preauth = %s
 		trusted_for_delegation = %s
 		trusted_to_auth_as_delegate = %s
+		userpassword = "%s"
+		random_password = %s
 	}
 	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["ip_address"], dataset["locality"],
 		dataset["location"], dataset["platform"], dataset["operating_system"], dataset["mac_addresses"], dataset["ipasshpubkeys"], dataset["userclass"],
-		dataset["krb_auth_indicators"], dataset["krb_preauth"], dataset["trusted_for_delegation"], dataset["trusted_to_auth_as_delegate"])
+		dataset["krb_auth_indicators"], dataset["krb_preauth"], dataset["trusted_for_delegation"], dataset["trusted_to_auth_as_delegate"], dataset["userpassword"], dataset["random_password"])
 }

@@ -3,7 +3,7 @@ name: Terraform Acceptance Tests
 on:
   push:
     branches:
-      - hosts
+      - 'feature/**'
   pull_request:
     paths:
       - '.github/workflows/test-acc.yaml'

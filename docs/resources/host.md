@@ -46,7 +46,10 @@ resource freeipa_host "host-1" {
 - `trusted_for_delegation` (Boolean) Client credentials may be delegated to the service
 - `trusted_to_auth_as_delegate` (Boolean) The service is allowed to authenticate on behalf of a client
 - `user_certificates` (List of String) Base-64 encoded host certificate
+- `force` (Boolean) Skip host's DNS check (A/AAAA) before adding it
 - `userclass` (List of String) Host category (semantics placed on this attribute are for local interpretation)
+- `userpassword` (String, Sensitive) Password used in bulk enrollment
+- `random_password` (Boolean) Generate a random password to be used in bulk enrollment
 
 ### Read-Only
 

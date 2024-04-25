@@ -129,6 +129,17 @@ func resourceFreeIPAHost() *schema.Resource {
 				Optional:    true,
 				Description: "Skip host's DNS check (A/AAAA) before adding it",
 			},
+			"userpassword": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Password used in bulk enrollment",
+			},
+			"random_password": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Generate a random password to be used in bulk enrollment",
+			},
 		},
 	}
 }
@@ -211,7 +222,14 @@ func resourceFreeIPADNSHostCreate(ctx context.Context, d *schema.ResourceData, m
 		v := _v.(bool)
 		optArgs.Ipakrboktoauthasdelegate = &v
 	}
-
+	if _v, ok := d.GetOkExists("random_password"); ok {
+		v := _v.(bool)
+		optArgs.Random = &v
+	}
+	if _v, ok := d.GetOkExists("userpassword"); ok {
+		v := _v.(string)
+		optArgs.Userpassword = &v
+	}
 	if _v, ok := d.GetOkExists("force"); ok {
 		v := _v.(bool)
 		optArgs.Force = &v
@@ -372,6 +390,20 @@ func resourceFreeIPADNSHostUpdate(ctx context.Context, d *schema.ResourceData, m
 		if _v, ok := d.GetOkExists("trusted_to_auth_as_delegation"); ok {
 			v := _v.(bool)
 			optArgs.Ipakrboktoauthasdelegate = &v
+			hasChange = true
+		}
+	}
+	if d.HasChange("userpassword") {
+		if _v, ok := d.GetOkExists("userpassword"); ok {
+			v := _v.(string)
+			optArgs.Userpassword = &v
+			hasChange = true
+		}
+	}
+	if d.HasChange("random_password") {
+		if _v, ok := d.GetOkExists("random_password"); ok {
+			v := _v.(bool)
+			optArgs.Random = &v
 			hasChange = true
 		}
 	}

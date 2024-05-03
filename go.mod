@@ -1,4 +1,4 @@
-module terraform-provider-freeipa-2
+module terraform-provider-freeipa
 
 go 1.18
 

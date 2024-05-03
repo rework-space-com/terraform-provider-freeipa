@@ -1,4 +1,4 @@
-package main
+package freeipa
 
 func utilsGetArry(itemsRaw []interface{}) []string {
 	res := make([]string, len(itemsRaw))

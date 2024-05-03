@@ -1,4 +1,4 @@
-package main
+package freeipa
 
 import (
 	"crypto/tls"

@@ -35,3 +35,8 @@ provider "freeipa" {
 - `insecure` (Boolean) Whether to verify the server's SSL certificate
 - `password` (String) Password to use for connection
 - `username` (String) Username to use for connection
+
+## Environment Variables
+
+Configuration can be provided by setting the `FREEIPA_HOST`, `FREEIPA_USERNAME`,
+and `FREEIPA_PASSWORD` environment variables.

@@ -31,6 +31,7 @@ provider "freeipa" {
 
 ### Optional
 
+- `ca_certificate` (String) Path to the server's SSL CA certificate
 - `host` (String) The FreeIPA host
 - `insecure` (Boolean) Whether to verify the server's SSL certificate
 - `password` (String) Password to use for connection
@@ -39,4 +40,4 @@ provider "freeipa" {
 ## Environment Variables
 
 Configuration can be provided by setting the `FREEIPA_HOST`, `FREEIPA_USERNAME`,
-and `FREEIPA_PASSWORD` environment variables.
+`FREEIPA_PASSWORD`, and `FREEIPA_CA_CERT` environment variables.

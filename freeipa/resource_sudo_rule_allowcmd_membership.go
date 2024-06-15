@@ -72,9 +72,12 @@ func resourceFreeIPASudoRuleAllowCommandMembershipCreate(ctx context.Context, d 
 		cmd_id = "sracg"
 	}
 
-	_, err = client.SudoruleAddAllowCommand(&args, &optArgs)
+	_v, err := client.SudoruleAddAllowCommand(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa sudo rule allowed command membership: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa sudo rule allowed command membership: %v", _v.Failed)
 	}
 
 	switch cmd_id {

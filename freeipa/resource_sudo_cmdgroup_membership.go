@@ -56,9 +56,12 @@ func resourceFreeIPASudocmdgroupMembershipCreate(ctx context.Context, d *schema.
 		optArgs.Sudocmd = &v
 	}
 
-	_, err = client.SudocmdgroupAddMember(&args, &optArgs)
+	_v, err := client.SudocmdgroupAddMember(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa sudo command group membership: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa sudo command group membership: %v", _v.Failed)
 	}
 
 	id := fmt.Sprintf("%s/sc/%s", d.Get("name").(string), d.Get("sudocmd").(string))

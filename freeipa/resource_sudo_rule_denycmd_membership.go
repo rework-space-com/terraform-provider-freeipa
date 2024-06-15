@@ -72,9 +72,12 @@ func resourceFreeIPASudoRuleDenyCommandMembershipCreate(ctx context.Context, d *
 		cmd_id = "srdcg"
 	}
 
-	_, err = client.SudoruleAddDenyCommand(&args, &optArgs)
+	_v, err := client.SudoruleAddDenyCommand(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa sudo rule denied command membership: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa sudo rule denied command membership: %v", _v.Failed)
 	}
 
 	switch cmd_id {

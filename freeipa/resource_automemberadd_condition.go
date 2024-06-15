@@ -93,9 +93,12 @@ func resourceFreeIPAAutomemberaddConditionCreate(ctx context.Context, d *schema.
 		}
 		optArgs.Automemberexclusiveregex = &v
 	}
-	_, err = client.AutomemberAddCondition(&args, &optArgs)
+	_v, err := client.AutomemberAddCondition(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa automember condition: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa automember condition: %v", _v.Failed)
 	}
 
 	d.SetId(d.Get("name").(string))

@@ -72,10 +72,14 @@ func resourceFreeIPADNSHBACPolicyHostMembershipCreate(ctx context.Context, d *sc
 		hostmember_id = "hg"
 	}
 
-	_, err = client.HbacruleAddHost(&args, &optArgs)
+	_v, err := client.HbacruleAddHost(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa the HBAC policy host membership: %s", err)
 	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa the HBAC policy host membership: %v", _v.Failed)
+	}
+
 	switch hostmember_id {
 	case "hg":
 		id := fmt.Sprintf("%s/hg/%s", d.Get("name").(string), d.Get("hostgroup").(string))

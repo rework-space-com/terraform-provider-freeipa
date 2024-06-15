@@ -59,9 +59,12 @@ func resourceFreeIPASudoRuleRunAsGroupMembershipCreate(ctx context.Context, d *s
 		group_id = "srraug"
 	}
 
-	_, err = client.SudoruleAddRunasgroup(&args, &optArgs)
+	_v, err := client.SudoruleAddRunasgroup(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa sudo rule runasgroup membership: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa sudo rule runasgroup membership: %v", _v.Failed)
 	}
 
 	switch group_id {

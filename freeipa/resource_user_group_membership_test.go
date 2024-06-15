@@ -24,13 +24,6 @@ func TestAccFreeIPADNSUserGroupMembership(t *testing.T) {
 		"name": "testgroup-3",
 	}
 
-	/*testDatasetExtGroup := map[string]string{
-		"name": "testgroup-ext",
-	}
-	testDatasetExtGroup2 := map[string]string{
-		"name": "testgroup2-ext",
-	}*/
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -49,21 +42,6 @@ func TestAccFreeIPADNSUserGroupMembership(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership2", "group", testDatasetGroup2["name"]),
 				),
 			},
-			// External users need a valid trust setup to work. Not possible for acceptance test
-			/*{
-				Config: testAccFreeIPADNSUserGroupMembershipResource_externaluser(testDatasetExtGroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership3", "name", testDatasetExtGroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership3", "external_member", "user@domain"),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSUserGroupMembershipResource_externalgroup(testDatasetExtGroup2),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership4", "name", testDatasetExtGroup2["name"]),
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership4", "external_member", "usergroup@domain"),
-				),
-			},*/
 		},
 	})
 }
@@ -121,51 +99,3 @@ func testAccFreeIPADNSUserGroupMembershipResource_group(dataset_group map[string
 	}
 	`, provider_host, provider_user, provider_pass, dataset_group["name"], dataset_group2["name"])
 }
-
-/*func testAccFreeIPADNSUserGroupMembershipResource_externaluser(dataset_group map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-
-	resource "freeipa_group" "group3" {
-		name       = "%s"
-		external = true
-	}
-	resource freeipa_user_group_membership "groupmembership3" {
-	   name     = resource.freeipa_group.group3.id
-	   external_member = "user@domain"
-	}
-	`, provider_host, provider_user, provider_pass, dataset_group["name"])
-}
-
-func testAccFreeIPADNSUserGroupMembershipResource_externalgroup(dataset_group map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-
-	resource "freeipa_group" "group4" {
-		name       = "%s"
-		external   = true
-	}
-
-	resource freeipa_user_group_membership "groupmembership4" {
-	   name     = resource.freeipa_group.group4.id
-	   external_member = "usergroup@domain"
-	}
-	}
-	`, provider_host, provider_user, provider_pass, dataset_group["name"])
-}*/

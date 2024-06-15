@@ -125,35 +125,6 @@ func resourceFreeIPAUserGroupMembershipRead(ctx context.Context, d *schema.Resou
 		return diag.Errorf("Error creating freeipa identity client: %s", err)
 	}
 
-	/*optArgs := ipa.GroupFindOptionalArgs{
-		Cn: &name,
-	}
-
-	switch typeId {
-	case "g":
-		v := []string{userId}
-		optArgs.Group = &v
-	case "u":
-		v := []string{userId}
-		optArgs.User = &v
-	case "e":
-		v := []string{userId}
-		optArgs.User = &v
-	}
-
-	res, err := client.GroupFind("", &ipa.GroupFindArgs{}, &optArgs)
-	if err != nil {
-		return diag.Errorf("Error find freeipa the user group membership: %s", err)
-	}
-
-	if strings.Contains(*res.Summary, "0 groups matched") {
-		log.Printf("[DEBUG] Warning! Group or User membership not exist")
-		d.Set("user", "")
-		d.Set("group", "")
-		d.Set("external_member", "")
-		d.SetId("")
-	}*/
-
 	reqArgs := ipa.GroupShowArgs{
 		Cn: name,
 	}

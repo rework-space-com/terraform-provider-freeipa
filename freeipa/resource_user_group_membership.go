@@ -32,21 +32,21 @@ func resourceFreeIPAUserGroupMembership() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"group","external_member"},
+				ConflictsWith: []string{"group", "external_member"},
 				Description:   "User to add",
 			},
 			"group": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"user","external_member"},
+				ConflictsWith: []string{"user", "external_member"},
 				Description:   "Group to add",
 			},
 			"external_member": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"user","group"},
+				ConflictsWith: []string{"user", "group"},
 				Description:   "External member to add. name must refer to an external group. (Requires a valid AD Trust configuration).",
 			},
 		},
@@ -168,7 +168,6 @@ func resourceFreeIPAUserGroupMembershipRead(ctx context.Context, d *schema.Resou
 		return diag.Errorf("Error find freeipa the user group membership: %s", err)
 	}
 
-	
 	log.Printf("[DEBUG] group show %s is %v", name, res.Result.String())
 
 	switch typeId {

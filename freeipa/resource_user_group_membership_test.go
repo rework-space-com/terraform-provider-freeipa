@@ -156,7 +156,7 @@ func testAccFreeIPADNSUserGroupMembershipResource_externalgroup(dataset_group ma
 		password = "%s"
 		insecure = true
 	  }
-	
+
 	resource "freeipa_group" "group4" {
 		name       = "%s"
 		external   = true

@@ -20,6 +20,9 @@ func TestAccFreeIPADNSUserGroupMembership(t *testing.T) {
 	testDatasetGroup2 := map[string]string{
 		"name": "testgroup-2",
 	}
+	testDatasetGroup3 := map[string]string{
+		"name": "testgroup-3",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -28,15 +31,15 @@ func TestAccFreeIPADNSUserGroupMembership(t *testing.T) {
 			{
 				Config: testAccFreeIPADNSUserGroupMembershipResource_user(testDatasetUser, testDatasetGroup),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupemembership", "name", testDatasetGroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupemembership", "user", testDatasetUser["login"]),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership", "name", testDatasetGroup["name"]),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership", "user", testDatasetUser["login"]),
 				),
 			},
 			{
-				Config: testAccFreeIPADNSUserGroupMembershipResource_group(testDatasetGroup, testDatasetGroup2),
+				Config: testAccFreeIPADNSUserGroupMembershipResource_group(testDatasetGroup3, testDatasetGroup2),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupemembership", "name", testDatasetGroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupemembership", "group", testDatasetGroup2["name"]),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership2", "name", testDatasetGroup3["name"]),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership2", "group", testDatasetGroup2["name"]),
 				),
 			},
 		},
@@ -64,7 +67,7 @@ func testAccFreeIPADNSUserGroupMembershipResource_user(dataset_user map[string]s
 	resource "freeipa_group" "group" {
 		name       = "%s"
 	}
-	resource freeipa_user_group_membership "groupemembership" {
+	resource freeipa_user_group_membership "groupmembership" {
 	   name = resource.freeipa_group.group.id
 	   user = resource.freeipa_user.user.id
 	}
@@ -83,15 +86,15 @@ func testAccFreeIPADNSUserGroupMembershipResource_group(dataset_group map[string
 		insecure = true
 	  }
 	
-	resource "freeipa_group" "group" {
+	resource "freeipa_group" "group2" {
 		name       = "%s"
 	}
 	resource "freeipa_group" "subgroup" {
 		name       = "%s"
 	}
 
-	resource freeipa_user_group_membership "groupemembership" {
-	   name = resource.freeipa_group.group.id
+	resource freeipa_user_group_membership "groupmembership2" {
+	   name = resource.freeipa_group.group2.id
 	   group = resource.freeipa_group.subgroup.id
 	}
 	`, provider_host, provider_user, provider_pass, dataset_group["name"], dataset_group2["name"])

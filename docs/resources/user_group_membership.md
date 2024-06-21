@@ -36,6 +36,7 @@ resource freeipa_user_group_membership "test-1" {
 
 - `group` (String) Group to add
 - `user` (String) User to add
+- `external_member` (String) External member to add. Only for external groups. Requires a valid AD Trust configuration.
 
 ### Read-Only
 

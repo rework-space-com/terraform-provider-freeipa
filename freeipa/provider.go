@@ -32,6 +32,12 @@ func Provider() *schema.Provider {
 				Default:     false,
 				Description: descriptions["insecure"],
 			},
+			"ca_certificate": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("FREEIPA_CA_CERT", ""),
+				Description: descriptions["ca_certificate"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -80,6 +86,8 @@ func init() {
 		"password": "Password to use for connection",
 
 		"insecure": "Whether to verify the server's SSL certificate",
+
+		"ca_certificate": "Path to the server's SSL CA certificate",
 	}
 }
 
@@ -89,5 +97,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Username:           d.Get("username").(string),
 		Password:           d.Get("password").(string),
 		InsecureSkipVerify: d.Get("insecure").(bool),
+		CaCertificate:      d.Get("ca_certificate").(string),
 	}, nil
 }

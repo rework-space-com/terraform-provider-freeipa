@@ -9,6 +9,7 @@ import (
 	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"golang.org/x/exp/slices"
 )
 
 func resourceFreeIPAHostHostGroupMembership() *schema.Resource {
@@ -71,9 +72,12 @@ func resourceFreeIPAHostHostGroupMembershipCreate(ctx context.Context, d *schema
 		host_id = "hg"
 	}
 
-	_, err = client.HostgroupAddMember(&args, &optArgs)
+	_v, err := client.HostgroupAddMember(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa the host group membership: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa the host group membership: %v", _v.Failed)
 	}
 
 	switch host_id {
@@ -102,31 +106,37 @@ func resourceFreeIPAHostHostGroupMembershipRead(ctx context.Context, d *schema.R
 		return diag.Errorf("Error creating freeipa identity client: %s", err)
 	}
 
-	optArgs := ipa.HostgroupFindOptionalArgs{
-		Cn: &name,
+	args := ipa.HostgroupShowArgs{
+		Cn: name,
 	}
+	z := new(bool)
+	*z = true
+	optArgs := ipa.HostgroupShowOptionalArgs{
+		All: z,
+	}
+
+	res, err := client.HostgroupShow(&args, &optArgs)
+	if err != nil {
+		return diag.Errorf("Error find freeipa the host group membership: %s", err)
+	}
+	log.Printf("[DEBUG] hostgroup show %s is %v", name, res.Result.String())
 
 	switch typeId {
 	case "hg":
 		v := []string{hostId}
-		optArgs.Hostgroup = &v
+		hostgroups := *res.Result.MemberHostgroup
+		log.Printf("[DEBUG] Hostgroup list in group %s is %v", name, hostgroups)
+		if slices.Contains(hostgroups, v[0]) {
+			return nil
+		}
 	case "h":
 		v := []string{hostId}
-		optArgs.Host = &v
+		hosts := *res.Result.MemberHost
+		log.Printf("[DEBUG] Host list in group %s is %v", name, hosts)
+		if slices.Contains(hosts, v[0]) {
+			return nil
+		}
 	}
-
-	res, err := client.HostgroupFind("", &ipa.HostgroupFindArgs{}, &optArgs)
-	if err != nil {
-		return diag.Errorf("Error find freeipa the host group membership: %s", err)
-	}
-
-	if strings.Contains(*res.Summary, "0 groups matched") {
-		log.Printf("[DEBUG] Warning! Hostgroup or Host membership not exist")
-		d.Set("host", "")
-		d.Set("hostgroup", "")
-		d.SetId("")
-	}
-
 	return nil
 }
 

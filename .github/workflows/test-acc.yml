@@ -30,8 +30,8 @@ jobs:
           IPA_SERVER_INSTALL_OPTS: '--no-ntp --ds-password=P@ssword --admin-password=P@ssword --domain=ipatest.lan --realm=IPATEST.LAN --no-forwarders --setup-dns --no-dnssec-validation --allow-zone-overlap --no-reverse --unattended'
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.18'
       - uses: hashicorp/setup-terraform@v2

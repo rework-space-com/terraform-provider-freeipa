@@ -72,9 +72,12 @@ func resourceFreeIPASudoRuleUserMembershipCreate(ctx context.Context, d *schema.
 		user_id = "srug"
 	}
 
-	_, err = client.SudoruleAddUser(&args, &optArgs)
+	_v, err := client.SudoruleAddUser(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa sudo rule user membership: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa sudo rule user membership: %v", _v.Failed)
 	}
 
 	switch user_id {

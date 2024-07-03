@@ -59,9 +59,12 @@ func resourceFreeIPASudoRuleRunAsUserMembershipCreate(ctx context.Context, d *sc
 		user_id = "srrau"
 	}
 
-	_, err = client.SudoruleAddRunasuser(&args, &optArgs)
+	_v, err := client.SudoruleAddRunasuser(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa sudo rule runasuser membership: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa sudo rule runasuser membership: %v", _v.Failed)
 	}
 
 	switch user_id {

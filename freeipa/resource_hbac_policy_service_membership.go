@@ -72,10 +72,14 @@ func resourceFreeIPADNSHBACPolicyServiceMembershipCreate(ctx context.Context, d 
 		svcmember_id = "sg"
 	}
 
-	_, err = client.HbacruleAddService(&args, &optArgs)
+	_v, err := client.HbacruleAddService(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa the HBAC policy service membership: %s", err)
 	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa the HBAC policy service membership: %v", _v.Failed)
+	}
+
 	switch svcmember_id {
 	case "sg":
 		id := fmt.Sprintf("%s/sg/%s", d.Get("name").(string), d.Get("servicegroup").(string))

@@ -72,10 +72,14 @@ func resourceFreeIPADNSHBACPolicyUserMembershipCreate(ctx context.Context, d *sc
 		user_id = "g"
 	}
 
-	_, err = client.HbacruleAddUser(&args, &optArgs)
+	_v, err := client.HbacruleAddUser(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa the HBAC policy user membership: %s", err)
 	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa the HBAC policy user membership: %v", _v.Failed)
+	}
+
 	switch user_id {
 	case "g":
 		id := fmt.Sprintf("%s/g/%s", d.Get("name").(string), d.Get("group").(string))

@@ -78,10 +78,10 @@ func resourceFreeIPADNSHBACPolicyUserMembershipCreate(ctx context.Context, d *sc
 	}
 	switch user_id {
 	case "g":
-		id := fmt.Sprintf("%s/g/%s", d.Get("name").(string), d.Get("group").(string))
+		id := fmt.Sprintf("%s/g/%s", encodeSlash(d.Get("name").(string)), d.Get("group").(string))
 		d.SetId(id)
 	case "u":
-		id := fmt.Sprintf("%s/u/%s", d.Get("name").(string), d.Get("user").(string))
+		id := fmt.Sprintf("%s/u/%s", encodeSlash(d.Get("name").(string)), d.Get("user").(string))
 		d.SetId(id)
 	}
 
@@ -179,7 +179,7 @@ func parseHBACPolicyUserMembershipID(id string) (string, string, string, error) 
 		return "", "", "", fmt.Errorf("Unable to determine user membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	user := idParts[2]
 

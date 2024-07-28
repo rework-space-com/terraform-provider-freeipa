@@ -61,7 +61,7 @@ func resourceFreeIPASudocmdgroupMembershipCreate(ctx context.Context, d *schema.
 		return diag.Errorf("Error creating freeipa sudo command group membership: %s", err)
 	}
 
-	id := fmt.Sprintf("%s/sc/%s", d.Get("name").(string), d.Get("sudocmd").(string))
+	id := fmt.Sprintf("%s/sc/%s", encodeSlash(d.Get("name").(string)), d.Get("sudocmd").(string))
 	d.SetId(id)
 
 	return resourceFreeIPASudocmdgroupMembershipRead(ctx, d, meta)
@@ -161,7 +161,7 @@ func parseSudocmdgroupMembershipID(id string) (string, string, string, error) {
 		return "", "", "", fmt.Errorf("Unable to determine sudo command group membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	sudocmd := idParts[2]
 

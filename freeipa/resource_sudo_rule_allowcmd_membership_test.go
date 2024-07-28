@@ -15,6 +15,12 @@ func TestAccFreeIPASudoRuleAllowCommand(t *testing.T) {
 		"allowcmd2":   "/bin/fish",
 		"allowcmdgrp": "terminals",
 	}
+	testSudoRuleAllowCommandWithSlash := map[string]string{
+		"name":        "category_test/sudo-rule-test",
+		"allowcmd1":   "/bin/bash",
+		"allowcmd2":   "/bin/fish",
+		"allowcmdgrp": "terminals",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -32,6 +38,20 @@ func TestAccFreeIPASudoRuleAllowCommand(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_allowcmd_membership.test_rule_allowcmdgrp", "name", testSudoRuleAllowCommand["name"]),
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_allowcmd_membership.test_rule_allowcmdgrp", "sudocmd_group", testSudoRuleAllowCommand["allowcmdgrp"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudoRuleAllowCommandResource_basic(testSudoRuleAllowCommandWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_allowcmd_membership.test_rule_allowcmd", "name", testSudoRuleAllowCommandWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_allowcmd_membership.test_rule_allowcmd", "sudocmd", testSudoRuleAllowCommandWithSlash["allowcmd1"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudoRuleAllowCommandResource_full(testSudoRuleAllowCommandWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_allowcmd_membership.test_rule_allowcmdgrp", "name", testSudoRuleAllowCommandWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_allowcmd_membership.test_rule_allowcmdgrp", "sudocmd_group", testSudoRuleAllowCommandWithSlash["allowcmdgrp"]),
 				),
 			},
 		},

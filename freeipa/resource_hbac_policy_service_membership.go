@@ -78,10 +78,10 @@ func resourceFreeIPADNSHBACPolicyServiceMembershipCreate(ctx context.Context, d 
 	}
 	switch svcmember_id {
 	case "sg":
-		id := fmt.Sprintf("%s/sg/%s", d.Get("name").(string), d.Get("servicegroup").(string))
+		id := fmt.Sprintf("%s/sg/%s", encodeSlash(d.Get("name").(string)), d.Get("servicegroup").(string))
 		d.SetId(id)
 	case "s":
-		id := fmt.Sprintf("%s/s/%s", d.Get("name").(string), d.Get("service").(string))
+		id := fmt.Sprintf("%s/s/%s", encodeSlash(d.Get("name").(string)), d.Get("service").(string))
 		d.SetId(id)
 	}
 
@@ -180,7 +180,7 @@ func parseHBACPolicyServiceMembershipID(id string) (string, string, string, erro
 		return "", "", "", fmt.Errorf("Unable to determine service membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	svc := idParts[2]
 

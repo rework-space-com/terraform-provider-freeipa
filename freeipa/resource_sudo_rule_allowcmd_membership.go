@@ -79,10 +79,10 @@ func resourceFreeIPASudoRuleAllowCommandMembershipCreate(ctx context.Context, d 
 
 	switch cmd_id {
 	case "srac":
-		id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), cmd_id, d.Get("sudocmd").(string))
+		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), cmd_id, d.Get("sudocmd").(string))
 		d.SetId(id)
 	case "sracg":
-		id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), cmd_id, d.Get("sudocmd_group").(string))
+		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), cmd_id, d.Get("sudocmd_group").(string))
 		d.SetId(id)
 	}
 
@@ -196,7 +196,7 @@ func parseSudoRuleAllowCommandMembershipID(id string) (string, string, string, e
 		return "", "", "", fmt.Errorf("Unable to determine sudo rule allowed command membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	sudocmd := idParts[2]
 

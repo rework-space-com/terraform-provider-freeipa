@@ -92,10 +92,10 @@ func resourceFreeIPASudoRuleHostMembershipCreate(ctx context.Context, d *schema.
 
 	switch host_id {
 	case "srh":
-		id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), host_id, d.Get("host").(string))
+		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), host_id, d.Get("host").(string))
 		d.SetId(id)
 	case "srhg":
-		id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), host_id, d.Get("hostgroup").(string))
+		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), host_id, d.Get("hostgroup").(string))
 		d.SetId(id)
 		// Hostmask not implemented yet. Maybe one day but I don't see the need.
 		// case "srhm":
@@ -227,7 +227,7 @@ func parseSudoRuleHostMembershipID(id string) (string, string, string, error) {
 		return "", "", "", fmt.Errorf("Unable to determine sudo rule host membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	host := idParts[2]
 

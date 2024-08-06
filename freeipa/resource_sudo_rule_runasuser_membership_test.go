@@ -15,6 +15,12 @@ func TestAccFreeIPASudoRuleRunAsUser(t *testing.T) {
 		"firstname": "Test",
 		"lastname":  "User",
 	}
+	testSudoRuleRunAsUserWithSlash := map[string]string{
+		"name":      "category_test/sudo-rule-test",
+		"user":      "test-user",
+		"firstname": "Test",
+		"lastname":  "User",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -24,6 +30,12 @@ func TestAccFreeIPASudoRuleRunAsUser(t *testing.T) {
 				Config: testAccFreeIPASudoRuleRunAsUserResource_basic(testSudoRuleRunAsUser),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.runasusermember", "runasuser", testSudoRuleRunAsUser["user"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudoRuleRunAsUserResource_basic(testSudoRuleRunAsUserWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.runasusermember", "runasuser", testSudoRuleRunAsUserWithSlash["user"]),
 				),
 			},
 		},

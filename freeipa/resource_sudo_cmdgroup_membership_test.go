@@ -14,6 +14,11 @@ func TestAccFreeIPASudocmdgroupMembership(t *testing.T) {
 		"sudocmd":  "/bin/bash",
 		"sudocmd2": "/bin/fish",
 	}
+	testSudocmdgroupMembershipWithSlash := map[string]string{
+		"name":     "category_test/terminals",
+		"sudocmd":  "/bin/bash",
+		"sudocmd2": "/bin/fish",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -30,6 +35,19 @@ func TestAccFreeIPASudocmdgroupMembership(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member", "name", testSudocmdgroupMembership["name"]),
 					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member2", "name", testSudocmdgroupMembership["name"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudocmdgroupMembershipResource_basic(testSudocmdgroupMembershipWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member", "name", testSudocmdgroupMembershipWithSlash["name"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudocmdgroupMembershipResource_full(testSudocmdgroupMembershipWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member", "name", testSudocmdgroupMembershipWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member2", "name", testSudocmdgroupMembershipWithSlash["name"]),
 				),
 			},
 		},

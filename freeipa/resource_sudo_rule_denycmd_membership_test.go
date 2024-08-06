@@ -15,6 +15,12 @@ func TestAccFreeIPASudoRuleDenyCommand(t *testing.T) {
 		"denycmd2":   "/bin/fish",
 		"denycmdgrp": "terminals",
 	}
+	testSudoRuleDenyCommandWithSlash := map[string]string{
+		"name":       "category_test/sudo-rule-test",
+		"denycmd1":   "/bin/bash",
+		"denycmd2":   "/bin/fish",
+		"denycmdgrp": "terminals",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -32,6 +38,20 @@ func TestAccFreeIPASudoRuleDenyCommand(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_denycmd_membership.test_rule_denycmdgrp", "name", testSudoRuleDenyCommand["name"]),
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_denycmd_membership.test_rule_denycmdgrp", "sudocmd_group", testSudoRuleDenyCommand["denycmdgrp"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudoRuleDenyCommandResource_basic(testSudoRuleDenyCommandWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_denycmd_membership.test_rule_denycmd", "name", testSudoRuleDenyCommandWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_denycmd_membership.test_rule_denycmd", "sudocmd", testSudoRuleDenyCommandWithSlash["denycmd1"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudoRuleDenyCommandResource_full(testSudoRuleDenyCommandWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_denycmd_membership.test_rule_denycmdgrp", "name", testSudoRuleDenyCommandWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_denycmd_membership.test_rule_denycmdgrp", "sudocmd_group", testSudoRuleDenyCommandWithSlash["denycmdgrp"]),
 				),
 			},
 		},

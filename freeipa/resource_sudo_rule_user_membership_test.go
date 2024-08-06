@@ -16,6 +16,13 @@ func TestAccFreeIPASudoRuleUser(t *testing.T) {
 		"lastname":  "User",
 		"usergroup": "test-group",
 	}
+	testSudoRuleUserWithSlash := map[string]string{
+		"name":      "category_test/sudo-rule-test",
+		"user":      "test-user",
+		"firstname": "Test",
+		"lastname":  "User",
+		"usergroup": "test-group",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -26,6 +33,13 @@ func TestAccFreeIPASudoRuleUser(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_user_membership.usermember", "user", testSudoRuleUser["user"]),
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_user_membership.groupmember", "group", testSudoRuleUser["usergroup"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudoRuleUserResource_basic(testSudoRuleUserWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_user_membership.usermember", "user", testSudoRuleUserWithSlash["user"]),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_user_membership.groupmember", "group", testSudoRuleUserWithSlash["usergroup"]),
 				),
 			},
 		},

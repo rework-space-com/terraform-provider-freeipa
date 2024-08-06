@@ -78,10 +78,10 @@ func resourceFreeIPADNSHBACPolicyHostMembershipCreate(ctx context.Context, d *sc
 	}
 	switch hostmember_id {
 	case "hg":
-		id := fmt.Sprintf("%s/hg/%s", d.Get("name").(string), d.Get("hostgroup").(string))
+		id := fmt.Sprintf("%s/hg/%s", encodeSlash(d.Get("name").(string)), d.Get("hostgroup").(string))
 		d.SetId(id)
 	case "h":
-		id := fmt.Sprintf("%s/h/%s", d.Get("name").(string), d.Get("host").(string))
+		id := fmt.Sprintf("%s/h/%s", encodeSlash(d.Get("name").(string)), d.Get("host").(string))
 		d.SetId(id)
 	}
 
@@ -179,7 +179,7 @@ func parseHBACPolicyHostMembershipID(id string) (string, string, string, error) 
 		return "", "", "", fmt.Errorf("Unable to determine host membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	host := idParts[2]
 

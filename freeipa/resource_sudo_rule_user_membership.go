@@ -79,10 +79,10 @@ func resourceFreeIPASudoRuleUserMembershipCreate(ctx context.Context, d *schema.
 
 	switch user_id {
 	case "sru":
-		id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), user_id, d.Get("user").(string))
+		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), user_id, d.Get("user").(string))
 		d.SetId(id)
 	case "srug":
-		id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), user_id, d.Get("group").(string))
+		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), user_id, d.Get("group").(string))
 		d.SetId(id)
 	}
 
@@ -196,7 +196,7 @@ func parseSudoRuleUserMembershipID(id string) (string, string, string, error) {
 		return "", "", "", fmt.Errorf("Unable to determine sudo rule user membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	user := idParts[2]
 

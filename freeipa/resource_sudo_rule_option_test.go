@@ -13,6 +13,10 @@ func TestAccFreeIPASudoRuleOption(t *testing.T) {
 		"name":   "sudo-rule-test",
 		"option": "!authenticate",
 	}
+	testSudoRuleOptionWithSlash := map[string]string{
+		"name":   "category_test/sudo-rule-test",
+		"option": "!authenticate",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -22,6 +26,12 @@ func TestAccFreeIPASudoRuleOption(t *testing.T) {
 				Config: testAccFreeIPASudoRuleOptionResource_basic(testSudoRuleOption),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_option.sudoopt", "option", testSudoRuleOption["option"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudoRuleOptionResource_basic(testSudoRuleOptionWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_option.sudoopt", "option", testSudoRuleOptionWithSlash["option"]),
 				),
 			},
 		},

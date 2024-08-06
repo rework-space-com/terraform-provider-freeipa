@@ -66,7 +66,7 @@ func resourceFreeIPASudoRuleRunAsUserMembershipCreate(ctx context.Context, d *sc
 
 	switch user_id {
 	case "srrau":
-		id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), user_id, d.Get("runasuser").(string))
+		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), user_id, d.Get("runasuser").(string))
 		d.SetId(id)
 	}
 
@@ -168,7 +168,7 @@ func parseSudoRuleRunAsUserMembershipID(id string) (string, string, string, erro
 		return "", "", "", fmt.Errorf("Unable to determine sudo rule runasuser membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	user := idParts[2]
 

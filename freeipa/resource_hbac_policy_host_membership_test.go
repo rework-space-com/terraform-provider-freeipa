@@ -15,9 +15,20 @@ func TestAccFreeIPADNSHBACHostMembership(t *testing.T) {
 		"hostname": "test-host.testacc.ipatest.lan",
 		"ip":       "192.168.1.52",
 	}
+	var testHbacHostWithSlash map[string]string
+	testHbacHostWithSlash = map[string]string{
+		"name":     "category_test/hbac_test",
+		"hostname": "test-host.testacc.ipatest.lan",
+		"ip":       "192.168.1.52",
+	}
 	var testHbacHostgroup map[string]string
 	testHbacHostgroup = map[string]string{
 		"name":      "hbac_test",
+		"hostgroup": "test-hostgroup",
+	}
+	var testHbacHostgroupWithSlash map[string]string
+	testHbacHostgroupWithSlash = map[string]string{
+		"name":      "category_test/hbac_test",
 		"hostgroup": "test-hostgroup",
 	}
 
@@ -37,6 +48,20 @@ func TestAccFreeIPADNSHBACHostMembership(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_hostgroup", "name", testHbacHostgroup["name"]),
 					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_hostgroup", "hostgroup", testHbacHostgroup["hostgroup"]),
+				),
+			},
+			{
+				Config: testAccFreeIPADNSHBACHostMembership_host(testHbacHostWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_host", "name", testHbacHostWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_host", "host", testHbacHostWithSlash["hostname"]),
+				),
+			},
+			{
+				Config: testAccFreeIPADNSHBACHostMembership_hostgroup(testHbacHostgroupWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_hostgroup", "name", testHbacHostgroupWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_hostgroup", "hostgroup", testHbacHostgroupWithSlash["hostgroup"]),
 				),
 			},
 		},

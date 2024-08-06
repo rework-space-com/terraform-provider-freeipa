@@ -14,9 +14,19 @@ func TestAccFreeIPADNSHBACServiceMembership(t *testing.T) {
 		"name":    "hbac_test",
 		"service": "sshd",
 	}
+	var testHbacSvcWithSlash map[string]string
+	testHbacSvcWithSlash = map[string]string{
+		"name":    "category_test/hbac_test",
+		"service": "sshd",
+	}
 	var testHbacSvcGroup map[string]string
 	testHbacSvcGroup = map[string]string{
 		"name":         "hbac_test",
+		"servicegroup": "Sudo",
+	}
+	var testHbacSvcGroupWithSlash map[string]string
+	testHbacSvcGroupWithSlash = map[string]string{
+		"name":         "category_test/hbac_test",
 		"servicegroup": "Sudo",
 	}
 
@@ -36,6 +46,20 @@ func TestAccFreeIPADNSHBACServiceMembership(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svcgrp", "name", testHbacSvcGroup["name"]),
 					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svcgrp", "servicegroup", testHbacSvcGroup["servicegroup"]),
+				),
+			},
+			{
+				Config: testAccFreeIPADNSHBACServiceMembershipResource_service(testHbacSvcWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svc", "name", testHbacSvcWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svc", "service", testHbacSvcWithSlash["service"]),
+				),
+			},
+			{
+				Config: testAccFreeIPADNSHBACServiceMembershipResource_servicegroup(testHbacSvcGroupWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svcgrp", "name", testHbacSvcGroupWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svcgrp", "servicegroup", testHbacSvcGroupWithSlash["servicegroup"]),
 				),
 			},
 		},

@@ -58,7 +58,7 @@ func resourceFreeIPASudoRuleOptionCreate(ctx context.Context, d *schema.Resource
 		return diag.Errorf("Error creating freeipa sudo rule option: %s", err)
 	}
 
-	id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), "sro", d.Get("option").(string))
+	id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), "sro", d.Get("option").(string))
 	d.SetId(id)
 
 	return resourceFreeIPASudoRuleOptionRead(ctx, d, meta)
@@ -153,9 +153,9 @@ func parseSudoRuleOptionID(id string) (string, string, string, error) {
 		return "", "", "", fmt.Errorf("Unable to determine sudo rule option ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
-	user := idParts[2]
+	opt := idParts[2]
 
-	return name, _type, user, nil
+	return name, _type, opt, nil
 }

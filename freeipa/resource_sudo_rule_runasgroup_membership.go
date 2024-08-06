@@ -66,7 +66,7 @@ func resourceFreeIPASudoRuleRunAsGroupMembershipCreate(ctx context.Context, d *s
 
 	switch group_id {
 	case "srraug":
-		id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), group_id, d.Get("runasgroup").(string))
+		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), group_id, d.Get("runasgroup").(string))
 		d.SetId(id)
 	}
 
@@ -168,7 +168,7 @@ func parseSudoRuleRunAsGroupMembershipID(id string) (string, string, string, err
 		return "", "", "", fmt.Errorf("Unable to determine sudo rule runasgroup membership ID %s", id)
 	}
 
-	name := idParts[0]
+	name := decodeSlash(idParts[0])
 	_type := idParts[1]
 	group := idParts[2]
 

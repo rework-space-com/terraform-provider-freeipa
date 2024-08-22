@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - 'feature/**'
+      - 'feat/**'
+      - 'fix/**'
+      - main
   pull_request:
     paths:
       - '.github/workflows/test-acc.yaml'

@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_allowcmd_membership Resource - freeipa"
 description: |-
-
+FreeIPA Sudo rule allow command membership resource
 ---
 
 # freeipa_sudo_rule_allowcmd_membership (Resource)
@@ -11,14 +11,26 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_rule_allowcmd_membership "allowed_cmd" {
-  name = "sudo-rule-editors"
+resource "freeipa_sudo_rule_allowcmd_membership" "allowed_cmd" {
+  name    = "sudo-rule-editors"
   sudocmd = "/bin/bash"
 }
 
-resource freeipa_sudo_rule_allowcmd_membership "allowed_cmdgrp" {
-  name = "sudo-rule-editors"
+resource "freeipa_sudo_rule_allowcmd_membership" "allowed_cmd" {
+  name    = "sudo-rule-editors"
+  sudocmds = ["/bin/bash"]
+  identifier     = "allowed_bash"
+}
+
+resource "freeipa_sudo_rule_allowcmd_membership" "allowed_cmdgrp" {
+  name          = "sudo-rule-editors"
   sudocmd_group = "allowed-terminals"
+}
+
+resource "freeipa_sudo_rule_allowcmd_membership" "allowed_cmdgrp" {
+  name          = "sudo-rule-editors"
+  sudocmd_groups = ["allowed-terminals"]
+  identifier     = "allowed_terminals"
 }
 ```
 
@@ -34,9 +46,12 @@ resource freeipa_sudo_rule_allowcmd_membership "allowed_cmdgrp" {
 
 ### Optional
 
-- `sudocmd` (String) Sudo command to allow by the sudo rule
-- `sudocmd_group` (String) Sudo command group to allow by the sudo rule
+- `identifier` (String) Unique identifier to differentiate multiple sudo rule denied membership resources on the same sudo rule. Manadatory for using sudocmds/sudocmd_groups configurations.
+- `sudocmd` (String, Deprecated) **deprecated** Sudo command to allow by the sudo rule
+- `sudocmd_group` (String, Deprecated) **deprecated** Sudo command group to allow by the sudo rule
+- `sudocmd_groups` (List of String) List of sudo command group to allow by the sudo rule
+- `sudocmds` (List of String) List of Sudo command to allow by the sudo rule
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

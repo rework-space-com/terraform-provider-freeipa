@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_user_membership Resource - freeipa"
 description: |-
-
+FreeIPA Sudo rule user membership resource
 ---
 
 # freeipa_sudo_rule_user_membership (Resource)
@@ -11,14 +11,26 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_rule_user_membership "user-0" {
+resource "freeipa_sudo_rule_user_membership" "user-0" {
   name = "sudo-rule-test"
   user = "user01"
 }
 
-resource freeipa_sudo_rule_user_membership "group-3" {
-  name = "sudo-rule-test"
+resource "freeipa_sudo_rule_user_membership" "users-1" {
+  name       = "sudo-rule-test"
+  users      = ["user01"]
+  identifier = "users-1"
+}
+
+resource "freeipa_sudo_rule_user_membership" "group-3" {
+  name  = "sudo-rule-test"
   group = "test-group-0"
+}
+
+resource "freeipa_sudo_rule_user_membership" "groups-3" {
+  name  = "sudo-rule-test"
+  groups = ["test-group-0"]
+  identifier = "groups-3"
 }
 ```
 
@@ -34,9 +46,12 @@ resource freeipa_sudo_rule_user_membership "group-3" {
 
 ### Optional
 
-- `group` (String) Group to add to the sudo rule
-- `user` (String) User to add to the sudo rule
+- `group` (String, Deprecated) **deprecated** User group to add to the sudo rule
+- `groups` (List of String) List of user groups to add to the sudo rule
+- `identifier` (String) Unique identifier to differentiate multiple sudo rule user membership resources on the same sudo rule. Manadatory for using users/groups configurations.
+- `user` (String, Deprecated) **deprecated** User to add to the sudo rule
+- `users` (List of String) List of users to add to the sudo rule
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

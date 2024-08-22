@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_runasgroup_membership Resource - freeipa"
 description: |-
-
+FreeIPA Sudo rule run as group membership resource
 ---
 
 # freeipa_sudo_rule_runasgroup_membership (Resource)
@@ -11,9 +11,15 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_runasrule_user_membership "user-0" {
-  name = "sudo-rule-test"
+resource "freeipa_sudo_rule_runasgroup_membership" "group-0" {
+  name       = "sudo-rule-test"
   runasgroup = "group01"
+}
+
+resource "freeipa_sudo_rule_runasgroup_membership" "groups-0" {
+  name        = "sudo-rule-test"
+  runasgroups = ["group01","group02"]
+  identifier  = "groups-0"
 }
 ```
 
@@ -29,8 +35,10 @@ resource freeipa_sudo_runasrule_user_membership "user-0" {
 
 ### Optional
 
-- `runasgroup` (String) Run As Group to add to the sudo rule. Can be an external group (local group of ipa clients)
+- `identifier` (String) Unique identifier to differentiate multiple sudo rule runasgroup membership resources on the same sudo rule. Manadatory for using runasgroups configurations.
+- `runasgroup` (String, Deprecated) **deprecated** Run As Group to add to the sudo rule. Can be an external group (local group of ipa clients)
+- `runasgroups` (List of String) List of Run As Group to add to the sudo rule. Can be an external group (local group of ipa clients)
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

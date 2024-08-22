@@ -15,6 +15,12 @@ func TestAccFreeIPASudoRuleHost(t *testing.T) {
 		"hostip":    "192.168.10.1",
 		"hostgroup": "test-hosts",
 	}
+	testSudoRuleHostWithSlash := map[string]string{
+		"name":      "category_test/sudo-rule-test",
+		"host":      "host.testacc.ipatest.lan",
+		"hostip":    "192.168.10.1",
+		"hostgroup": "test-hosts",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -25,6 +31,13 @@ func TestAccFreeIPASudoRuleHost(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.hostmember", "name", testSudoRuleHost["name"]),
 					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.hostmember", "host", testSudoRuleHost["host"]),
+				),
+			},
+			{
+				Config: testAccFreeIPASudoRuleHostResource_basic(testSudoRuleHostWithSlash),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.hostmember", "name", testSudoRuleHostWithSlash["name"]),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.hostmember", "host", testSudoRuleHostWithSlash["host"]),
 				),
 			},
 		},

@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "freeipa" {
-  host = "ipa.example.test"
+  host     = "ipa.example.test"
   username = "admin"
   password = "123456789"
   insecure = true

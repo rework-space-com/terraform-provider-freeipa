@@ -7,6 +7,6 @@ resource "freeipa_hbac_policy" "hbac-0" {
 }
 
 resource "freeipa_hbac_policy_host_membership" "hbac-host-1" {
-  name      = "test-hbac"
-  host      = "ipaclient1.ipatest.lan"
+  name = "test-hbac"
+  host = "ipaclient1.ipatest.lan"
 }

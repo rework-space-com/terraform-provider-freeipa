@@ -1,3 +1,4 @@
 terraform-provider-freeipa-2
 terraform-provider-freeipa
 .env
+test/

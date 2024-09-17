@@ -7,8 +7,8 @@ resource "freeipa_hbac_policy" "hbac-0" {
 }
 
 resource "freeipa_hbac_policy_service_membership" "hbac-svc-1" {
-  name      = "test-hbac"
-  service   = "sshd"
+  name    = "test-hbac"
+  service = "sshd"
 }
 
 resource "freeipa_hbac_policy_service_membership" "hbac-svcgrp-1" {

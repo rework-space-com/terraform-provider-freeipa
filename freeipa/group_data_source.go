@@ -31,6 +31,7 @@ type UserGroupDataSource struct {
 
 // UserGroupResourceModel describes the resource data model.
 type UserGroupDataSourceModel struct {
+	Id                       types.String `tfsdk:"id"`
 	Name                     types.String `tfsdk:"name"`
 	Description              types.String `tfsdk:"description"`
 	GidNumber                types.Int64  `tfsdk:"gid_number"`
@@ -57,83 +58,74 @@ func (r *UserGroupDataSource) Schema(ctx context.Context, req datasource.SchemaR
 		MarkdownDescription: "FreeIPA User Group data source",
 
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource in the terraform state",
+				Computed:            true,
+			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Group name",
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Group Description",
-				Optional:            true,
 				Computed:            true,
 			},
 			"gid_number": schema.Int64Attribute{
 				MarkdownDescription: "GID (use this option to set it manually)",
-				Optional:            true,
 				Computed:            true,
 			},
 			"member_external": schema.ListAttribute{
 				MarkdownDescription: "List of external users (from trusted domain) that are member of this group.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"member_user": schema.ListAttribute{
 				MarkdownDescription: "List of users that are member of this group.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"member_group": schema.ListAttribute{
 				MarkdownDescription: "List of groups that are member of this group.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"memberof_group": schema.ListAttribute{
 				MarkdownDescription: "List of groups this group is member of.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"memberof_sudorule": schema.ListAttribute{
 				MarkdownDescription: "List of SUDO rules this group is member of.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"memberof_hbacrule": schema.ListAttribute{
 				MarkdownDescription: "List of HBAC rules this group is member of.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"member_indirect_user": schema.ListAttribute{
 				MarkdownDescription: "List of users that are is indirectly member of this group.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"member_indirect_group": schema.ListAttribute{
 				MarkdownDescription: "List of groups that are is indirectly member of this group.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"memberof_indirect_group": schema.ListAttribute{
 				MarkdownDescription: "List of groups this group is is indirectly member of.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"memberof_indirect_sudorule": schema.ListAttribute{
 				MarkdownDescription: "List of SUDO rules this group is is indirectly member of.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"memberof_indirect_hbacrule": schema.ListAttribute{
 				MarkdownDescription: "List of HBAC rules this group is indirectly member of.",
-				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
@@ -296,6 +288,8 @@ func (r *UserGroupDataSource) Read(ctx context.Context, req datasource.ReadReque
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 		}
 	}
+
+	data.Id = types.StringValue(data.Name.ValueString())
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

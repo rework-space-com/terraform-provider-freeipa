@@ -155,6 +155,10 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	optArgs := ipa.GroupAddOptionalArgs{}
 
 	args := ipa.GroupAddArgs{
@@ -265,9 +269,9 @@ func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 	if res.Result.Gidnumber != nil && !data.GidNumber.IsNull() {
 		data.GidNumber = types.Int64Value(int64(*res.Result.Gidnumber))
 	}
+
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group GID %d", data.GidNumber.ValueInt64()))
 
-	// data.Id = types.StringValue(data.Name.ValueString())
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -337,7 +341,6 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 		}
 	}
 
-	// data.Id = types.StringValue(data.Name.ValueString())
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

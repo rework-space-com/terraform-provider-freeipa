@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 func TestAccFreeIPAGroup_posix(t *testing.T) {
@@ -29,20 +30,36 @@ func TestAccFreeIPAGroup_posix(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resourcefull(testGroup),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_group.group-1", "description", string(testGroup["description"])),
 					resource.TestCheckResourceAttr("freeipa_group.group-1", "gid_number", string(testGroup["gid_number"])),
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resourcefull(testGroup) + testAccFreeIPAGroup_resourcefull(testGroup2) + testAccFreeIPAGroup_datasource(testGroup),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup) + testAccFreeIPAGroup_resource(testGroup2) + testAccFreeIPAGroup_datasource(testGroup),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.freeipa_group.group-1", "description", string(testGroup["description"])),
 					resource.TestCheckResourceAttr("data.freeipa_group.group-1", "gid_number", string(testGroup["gid_number"])),
 					resource.TestCheckResourceAttr("freeipa_group.group-2", "description", string(testGroup2["description"])),
 					resource.TestCheckResourceAttr("freeipa_group.group-2", "gid_number", string(testGroup2["gid_number"])),
 				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup) + testAccFreeIPAGroup_resource(testGroup2) + testAccFreeIPAGroup_datasource(testGroup),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 			},
 		},
 	})
@@ -63,11 +80,19 @@ func TestAccFreeIPAGroup_noposix(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAGroupNonposix_resourcefull(testGroup),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_group.group-1", "name", testGroup["name"]),
 					resource.TestCheckResourceAttr("freeipa_group.group-1", "description", string(testGroup["description"])),
 				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 			},
 		},
 	})
@@ -88,11 +113,19 @@ func TestAccFreeIPAGroup_external(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAGroupExternal_resourcefull(testGroup),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_group.group-1", "name", testGroup["name"]),
 					resource.TestCheckResourceAttr("freeipa_group.group-1", "description", string(testGroup["description"])),
 				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 			},
 		},
 	})

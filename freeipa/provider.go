@@ -266,12 +266,15 @@ func (c *freeipaProvider) NewFreeIPAClient(ctx context.Context, conf *freeipaPro
 func (p *freeipaProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewUserGroupResource,
+		NewUserResource,
+		NewUserGroupMembershipResource,
 	}
 }
 
 func (p *freeipaProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewUserGroupDataSource,
+		NewUserDataSource,
 	}
 }
 

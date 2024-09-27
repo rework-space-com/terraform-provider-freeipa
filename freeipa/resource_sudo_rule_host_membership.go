@@ -85,9 +85,12 @@ func resourceFreeIPASudoRuleHostMembershipCreate(ctx context.Context, d *schema.
 	// 	host_id = "srhm"
 	// }
 
-	_, err = client.SudoruleAddHost(&args, &optArgs)
+	_v, err := client.SudoruleAddHost(&args, &optArgs)
 	if err != nil {
 		return diag.Errorf("Error creating freeipa sudo rule host membership: %s", err)
+	}
+	if _v.Completed == 0 {
+		return diag.Errorf("Error creating freeipa sudo rule host membership: %v", _v.Failed)
 	}
 
 	switch host_id {

@@ -62,11 +62,11 @@ func resourceFreeIPAUserGroupMembershipCreate(ctx context.Context, d *schema.Res
 	}
 
 	user_id := "u"
-
+	name := d.Get("name").(string)
 	optArgs := ipa.GroupAddMemberOptionalArgs{}
 
 	args := ipa.GroupAddMemberArgs{
-		Cn: d.Get("name").(string),
+		Cn: name,
 	}
 	if _v, ok := d.GetOkExists("user"); ok {
 		v := []string{_v.(string)}
@@ -96,15 +96,34 @@ func resourceFreeIPAUserGroupMembershipCreate(ctx context.Context, d *schema.Res
 		return diag.Errorf("Error creating freeipa the user group membership: %v", _v.Failed)
 	}
 
+	if _v, ok := d.GetOkExists("external_member"); ok {
+		v := _v.(string)
+		z := new(bool)
+		*z = true
+		groupRes, err := client.GroupShow(&ipa.GroupShowArgs{Cn: name}, &ipa.GroupShowOptionalArgs{All: z})
+		if err != nil {
+			return diag.Errorf("Error looking up freeipa user group membership: %s", err)
+		}
+		if !slices.Contains(*groupRes.Result.Ipaexternalmember, v) {
+			_, err = client.GroupRemoveMember(&ipa.GroupRemoveMemberArgs{Cn: name}, &ipa.GroupRemoveMemberOptionalArgs{Ipaexternalmember: &[]string{v}})
+			if err != nil {
+				return diag.Errorf("Error deleting invalid freeipa user group membership: %s", err)
+			}
+			return diag.Errorf("Error, external member is not using the correct format. Use the lowercase upn format (ie: 'domain users@domain.net'): %s", v)
+		} else {
+			log.Printf("[DEBUG] group show %s is %v", name, groupRes.Result.String())
+		}
+	}
+
 	switch user_id {
 	case "g":
-		id := fmt.Sprintf("%s/g/%s", d.Get("name").(string), d.Get("group").(string))
+		id := fmt.Sprintf("%s/g/%s", name, d.Get("group").(string))
 		d.SetId(id)
 	case "u":
-		id := fmt.Sprintf("%s/u/%s", d.Get("name").(string), d.Get("user").(string))
+		id := fmt.Sprintf("%s/u/%s", name, d.Get("user").(string))
 		d.SetId(id)
 	case "e":
-		id := fmt.Sprintf("%s/e/%s", d.Get("name").(string), d.Get("external_member").(string))
+		id := fmt.Sprintf("%s/e/%s", name, d.Get("external_member").(string))
 		d.SetId(id)
 	}
 

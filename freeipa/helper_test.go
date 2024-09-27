@@ -177,3 +177,23 @@ func testAccFreeIPAUser_datasource(dataset map[string]string) string {
 
 	`, dataset["index"], dataset["name"])
 }
+
+func testAccFreeIPAUserGroupMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_user_group_membership" "membership-%s" {
+	  name  = %s
+	`, dataset["index"], dataset["name"])
+
+	if dataset["user"] != "" {
+		tf_def += fmt.Sprintf("  user = %s\n", dataset["user"])
+	}
+	if dataset["group"] != "" {
+		tf_def += fmt.Sprintf("  group = %s\n", dataset["group"])
+	}
+	if dataset["external_member"] != "" {
+		tf_def += fmt.Sprintf("  external_member = \"%s\"\n", dataset["external_member"])
+	}
+	tf_def += "}\n"
+
+	return tf_def
+}

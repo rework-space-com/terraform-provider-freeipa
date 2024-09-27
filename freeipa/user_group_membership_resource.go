@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"golang.org/x/exp/slices"
 )
 
@@ -65,7 +66,7 @@ func (r *userGroupMembership) ConfigValidators(ctx context.Context) []resource.C
 func (r *userGroupMembership) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA resource",
+		MarkdownDescription: "FreeIPA User Group Membership resource",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -137,6 +138,7 @@ func (r *userGroupMembership) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create user group membership %s", data.Id.ValueString()))
 	optArgs := ipa.GroupAddMemberOptionalArgs{}
 
 	args := ipa.GroupAddMemberArgs{
@@ -144,11 +146,13 @@ func (r *userGroupMembership) Create(ctx context.Context, req resource.CreateReq
 	}
 	if !data.User.IsNull() {
 		v := []string{string(data.User.ValueString())}
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create user group membership user %s", data.User.ValueString()))
 		optArgs.User = &v
 		data.Id = types.StringValue(fmt.Sprintf("%s/u/%s", data.Name.ValueString(), data.User.ValueString()))
 	}
 	if !data.Group.IsNull() {
 		v := []string{string(data.Group.ValueString())}
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create user group membership group %s", data.Group.ValueString()))
 		optArgs.Group = &v
 		data.Id = types.StringValue(fmt.Sprintf("%s/g/%s", data.Name.ValueString(), data.Group.ValueString()))
 	}
@@ -159,11 +163,37 @@ func (r *userGroupMembership) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	_v, err := r.client.GroupAddMember(&args, &optArgs)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error creating freeipa user group membership: %s", _v.String()))
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group membership: %s", err))
+		return
 	}
 	if _v.Completed == 0 {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group membership: %v", _v.Failed))
+		return
+	}
+
+	if !data.ExternalMember.IsNull() {
+		v := []string{string(data.ExternalMember.ValueString())}
+		z := new(bool)
+		*z = true
+		groupRes, err := r.client.GroupShow(&ipa.GroupShowArgs{Cn: data.Name.ValueString()}, &ipa.GroupShowOptionalArgs{All: z})
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] group show return is %s", groupRes.Result.String()))
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error looking up freeipa user group membership: %s", err))
+			return
+		}
+		if !slices.Contains(*groupRes.Result.Ipaexternalmember, data.ExternalMember.ValueString()) {
+			_, err = r.client.GroupRemoveMember(&ipa.GroupRemoveMemberArgs{Cn: data.Name.ValueString()}, &ipa.GroupRemoveMemberOptionalArgs{Ipaexternalmember: &v})
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error deleting invalid freeipa user group membership: %s", err))
+				return
+			}
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("external member is not using the correct format. Use the lowercase upn format (ie: 'domain users@domain.net'): %s", data.ExternalMember.ValueString()))
+			return
+		} else {
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] group show %s is %v", data.Name.ValueString(), groupRes.Result.String()))
+		}
 	}
 
 	// Save data into Terraform state
@@ -197,10 +227,7 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading information on freeipa user group %s: %s", name, err))
 	}
-
-	data.User = types.StringValue("")
-	data.Group = types.StringValue("")
-	data.ExternalMember = types.StringValue("")
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read user group membership %s returns %v", data.Id.ValueString(), res.Result))
 
 	switch typeId {
 	case "g":

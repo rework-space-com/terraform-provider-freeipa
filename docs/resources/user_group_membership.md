@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_user_group_membership Resource - freeipa"
 description: |-
-FreeIPA resource
+FreeIPA User Group Membership resource
 ---
 
 # freeipa_user_group_membership (Resource)

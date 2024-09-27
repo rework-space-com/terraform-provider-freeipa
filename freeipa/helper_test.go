@@ -63,7 +63,6 @@ func testAccFreeIPAGroup_datasource(dataset map[string]string) string {
 	data "freeipa_group" "group-%s" {
 		name        = "%s"
 	}
-
 	`, dataset["index"], dataset["name"])
 }
 
@@ -165,7 +164,6 @@ func testAccFreeIPAUser_resource(dataset map[string]string) string {
 		tf_def += fmt.Sprintf("  userclass = [\"%s\"]\n", dataset["userclass"])
 	}
 	tf_def += "}\n"
-
 	return tf_def
 }
 
@@ -174,7 +172,6 @@ func testAccFreeIPAUser_datasource(dataset map[string]string) string {
 	data "freeipa_user" "user-%s" {
 		name        = "%s"
 	}
-
 	`, dataset["index"], dataset["name"])
 }
 
@@ -194,6 +191,86 @@ func testAccFreeIPAUserGroupMembership_resource(dataset map[string]string) strin
 		tf_def += fmt.Sprintf("  external_member = \"%s\"\n", dataset["external_member"])
 	}
 	tf_def += "}\n"
-
 	return tf_def
+}
+
+func testAccFreeIPADNSZone_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_dns_zone" "dns-zone-%s" {
+	  zone_name  = "%s"
+	`, dataset["index"], dataset["zone_name"])
+
+	if dataset["admin_email_address"] != "" {
+		tf_def += fmt.Sprintf("  admin_email_address = \"%s\"\n", dataset["admin_email_address"])
+	}
+	if dataset["allow_inline_dnssec_signing"] != "" {
+		tf_def += fmt.Sprintf("  allow_inline_dnssec_signing = %s\n", dataset["allow_inline_dnssec_signing"])
+	}
+	if dataset["allow_ptr_sync"] != "" {
+		tf_def += fmt.Sprintf("  allow_prt_sync = %s\n", dataset["allow_prt_sync"])
+	}
+	if dataset["allow_query"] != "" {
+		tf_def += fmt.Sprintf("  allow_query = \"%s\"\n", dataset["allow_query"])
+	}
+	if dataset["allow_transfer"] != "" {
+		tf_def += fmt.Sprintf("  allow_transfer = \"%s\"\n", dataset["allow_transfer"])
+	}
+	if dataset["authoritative_nameserver"] != "" {
+		tf_def += fmt.Sprintf("  authoritative_nameserver = \"%s\"\n", dataset["authoritative_nameserver"])
+	}
+	if dataset["bind_update_policy"] != "" {
+		tf_def += fmt.Sprintf("  bind_update_policy = \"%s\"\n", dataset["bind_update_policy"])
+	}
+	if dataset["default_ttl"] != "" {
+		tf_def += fmt.Sprintf("  default_ttl = %s\n", dataset["default_ttl"])
+	}
+	if dataset["disable_zone"] != "" {
+		tf_def += fmt.Sprintf("  disable_zone = %s\n", dataset["disable_zone"])
+	}
+	if dataset["dynamic_updates"] != "" {
+		tf_def += fmt.Sprintf("  dynamic_updates = %s\n", dataset["dynamic_updates"])
+	}
+	if dataset["is_reverse_zone"] != "" {
+		tf_def += fmt.Sprintf("  is_reverse_zone = %s\n", dataset["is_reverse_zone"])
+	}
+	if dataset["nsec3param_record"] != "" {
+		tf_def += fmt.Sprintf("  nsec3param_record = \"%s\"\n", dataset["nsec3param_record"])
+	}
+	if dataset["skip_nameserver_check"] != "" {
+		tf_def += fmt.Sprintf("  skip_nameserver_check = %s\n", dataset["skip_nameserver_check"])
+	}
+	if dataset["skip_overlap_check"] != "" {
+		tf_def += fmt.Sprintf("  skip_overlap_check = %s\n", dataset["skip_overlap_check"])
+	}
+	if dataset["soa_expire"] != "" {
+		tf_def += fmt.Sprintf("  soa_expire = %s\n", dataset["soa_expire"])
+	}
+	if dataset["soa_minimum"] != "" {
+		tf_def += fmt.Sprintf("  soa_minimum = %s\n", dataset["soa_minimum"])
+	}
+	if dataset["soa_refresh"] != "" {
+		tf_def += fmt.Sprintf("  soa_refresh = %s\n", dataset["soa_refresh"])
+	}
+	if dataset["soa_retry"] != "" {
+		tf_def += fmt.Sprintf("  soa_retry = %s\n", dataset["soa_retry"])
+	}
+	if dataset["soa_serial_number"] != "" {
+		tf_def += fmt.Sprintf("  soa_serial_number = %s\n", dataset["soa_serial_number"])
+	}
+	if dataset["ttl"] != "" {
+		tf_def += fmt.Sprintf("  ttl = %s\n", dataset["ttl"])
+	}
+	if dataset["zone_forwarders"] != "" {
+		tf_def += fmt.Sprintf("  zone_forwarders = [\"%s\"]\n", dataset["zone_forwarders"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPADNSZone_datasource(dataset map[string]string) string {
+	return fmt.Sprintf(`
+	data "freeipa_dns_zone" "dns-zone-%s" {
+		zone_name       = "%s"
+	}
+	`, dataset["index"], dataset["zone_name"])
 }

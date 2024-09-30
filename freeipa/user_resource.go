@@ -502,13 +502,13 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if res.Result.Mail != nil && !data.EmailAddress.IsNull() {
 		data.EmailAddress, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Mail)
 	}
-	if res.Result.Telephonenumber != nil {
+	if res.Result.Telephonenumber != nil && !data.TelephoneNumbers.IsNull() {
 		data.TelephoneNumbers, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Telephonenumber)
 	}
-	if res.Result.Mobile != nil {
+	if res.Result.Mobile != nil && !data.MobileNumbers.IsNull() {
 		data.MobileNumbers, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Mobile)
 	}
-	if res.Result.Random != nil {
+	if res.Result.Random != nil && !data.RandomPassword.IsNull() {
 		data.RandomPassword = types.BoolValue(*res.Result.Random)
 	}
 	if res.Result.Uidnumber != nil && !data.UidNumber.IsNull() {
@@ -517,46 +517,46 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if res.Result.Gidnumber != nil && !data.GidNumber.IsNull() {
 		data.GidNumber = types.Int32Value(int32(*res.Result.Gidnumber))
 	}
-	if res.Result.Street != nil {
+	if res.Result.Street != nil && !data.StreetAddress.IsNull() {
 		data.StreetAddress = types.StringValue(*res.Result.Street)
 	}
-	if res.Result.L != nil {
+	if res.Result.L != nil && !data.City.IsNull() {
 		data.City = types.StringValue(*res.Result.L)
 	}
-	if res.Result.St != nil {
+	if res.Result.St != nil && !data.Province.IsNull() {
 		data.Province = types.StringValue(*res.Result.St)
 	}
-	if res.Result.Postalcode != nil {
+	if res.Result.Postalcode != nil && !data.PostalCode.IsNull() {
 		data.PostalCode = types.StringValue(*res.Result.Postalcode)
 	}
-	if res.Result.Ou != nil {
+	if res.Result.Ou != nil && !data.OrganisationUnit.IsNull() {
 		data.OrganisationUnit = types.StringValue(*res.Result.Ou)
 	}
-	if res.Result.Title != nil {
+	if res.Result.Title != nil && !data.JobTitle.IsNull() {
 		data.JobTitle = types.StringValue(*res.Result.Title)
 	}
-	if res.Result.Manager != nil {
+	if res.Result.Manager != nil && !data.Manager.IsNull() {
 		data.Manager = types.StringValue(*res.Result.Manager)
 	}
-	if res.Result.Employeenumber != nil {
+	if res.Result.Employeenumber != nil && !data.EmployeeNumber.IsNull() {
 		data.EmployeeNumber = types.StringValue(*res.Result.Employeenumber)
 	}
-	if res.Result.Employeetype != nil {
+	if res.Result.Employeetype != nil && !data.EmployeeType.IsNull() {
 		data.EmployeeType = types.StringValue(*res.Result.Employeetype)
 	}
-	if res.Result.Preferredlanguage != nil {
+	if res.Result.Preferredlanguage != nil && !data.PreferredLanguage.IsNull() {
 		data.PreferredLanguage = types.StringValue(*res.Result.Preferredlanguage)
 	}
 	// if res.Result.Nsaccountlock != nil {
 	// 	data.AccountDisabled = types.BoolValue(*res.Result.Nsaccountlock)
 	// }
-	if res.Result.Ipasshpubkey != nil {
+	if res.Result.Ipasshpubkey != nil && !data.SshPublicKeys.IsNull() {
 		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
 	}
-	if res.Result.Carlicense != nil {
+	if res.Result.Carlicense != nil && !data.CarLicense.IsNull() {
 		data.CarLicense, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Carlicense)
 	}
-	if res.Result.Krbprincipalexpiration != nil && !data.KrbPrincipalExpiration.IsUnknown() {
+	if res.Result.Krbprincipalexpiration != nil && !data.KrbPrincipalExpiration.IsNull() {
 		timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", res.Result.Krbprincipalexpiration.String())
 		if err != nil {
 			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))
@@ -564,7 +564,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		}
 		data.KrbPrincipalExpiration = types.StringValue(timestamp.Format(time.RFC3339))
 	}
-	if res.Result.Krbpasswordexpiration != nil && !data.KrbPasswordExpiration.IsUnknown() {
+	if res.Result.Krbpasswordexpiration != nil && !data.KrbPasswordExpiration.IsNull() {
 		timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", res.Result.Krbpasswordexpiration.String())
 		if err != nil {
 			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))
@@ -572,7 +572,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		}
 		data.KrbPasswordExpiration = types.StringValue(timestamp.Format(time.RFC3339))
 	}
-	if res.Result.Userclass != nil {
+	if res.Result.Userclass != nil && !data.UserClass.IsNull() {
 		data.UserClass, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Userclass)
 	}
 

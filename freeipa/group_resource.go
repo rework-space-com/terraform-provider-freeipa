@@ -262,7 +262,7 @@ func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	data.Name = types.StringValue(res.Result.Cn)
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group Cn %s", data.Name.ValueString()))
-	if res.Result.Description != nil {
+	if res.Result.Description != nil && !data.Description.IsNull() {
 		data.Description = types.StringValue(*res.Result.Description)
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group Description %s", data.Description.ValueString()))
 	}

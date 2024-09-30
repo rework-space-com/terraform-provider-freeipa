@@ -342,10 +342,63 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 		}
 	}
 
-	if !data.DisableZone.IsNull() {
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa DNS Zone %s", data.ZoneName.ValueString()))
+	if res.Result.Idnszoneactive != nil && !data.DisableZone.IsNull() {
 		data.DisableZone = types.BoolValue(!*res.Result.Idnszoneactive)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone disable_zone %s", data.DisableZone.String()))
 	}
-	data.ComputedZoneName = types.StringValue(res.Result.Idnsname)
+	if res.Result.Idnssoamname != nil && !data.AuthoritativeNameserver.IsNull() {
+		data.AuthoritativeNameserver = types.StringValue(*res.Result.Idnssoamname)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone authoritative_nameserver %s", data.AuthoritativeNameserver.ValueString()))
+	}
+	if res.Result.Idnssoarname != "" && !data.AdminEmailAddress.IsNull() {
+		data.AdminEmailAddress = types.StringValue(res.Result.Idnssoarname)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone admin_email_address %s", data.AdminEmailAddress.ValueString()))
+	}
+	if !data.SoaSerialNumber.IsNull() {
+		data.SoaSerialNumber = types.Int64Value(int64(res.Result.Idnssoaserial))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_serial_number %d", int(data.SoaSerialNumber.ValueInt64())))
+	}
+	if !data.SoaRetry.IsNull() {
+		data.SoaRetry = types.Int64Value(int64(res.Result.Idnssoaretry))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_retry %d", int(data.SoaRetry.ValueInt64())))
+	}
+	if res.Result.Dnsttl != nil && !data.TTL.IsNull() {
+		data.TTL = types.Int64Value(int64(*res.Result.Dnsttl))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone ttl %d", int(data.TTL.ValueInt64())))
+	}
+	if res.Result.Dnsdefaultttl != nil && !data.DefaultTTL.IsNull() {
+		data.DefaultTTL = types.Int64Value(int64(*res.Result.Dnsdefaultttl))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone default_ttl %d", int(data.DefaultTTL.ValueInt64())))
+	}
+	if res.Result.Idnsupdatepolicy != nil && !data.BindUpdatePolicy.IsNull() {
+		data.BindUpdatePolicy = types.StringValue(*res.Result.Idnsupdatepolicy)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone bind_update_policy %s", data.BindUpdatePolicy.ValueString()))
+	}
+	if res.Result.Idnsallowdynupdate != nil && !data.DynamicUpdate.IsNull() {
+		data.DynamicUpdate = types.BoolValue(!*res.Result.Idnsallowdynupdate)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone dynamic_updates %s", data.DynamicUpdate.String()))
+	}
+	if res.Result.Idnsallowquery != nil && !data.AllowQuery.IsNull() {
+		data.AllowQuery = types.StringValue(*res.Result.Idnsallowquery)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_query %s", data.AllowQuery.ValueString()))
+	}
+	if res.Result.Idnsallowtransfer != nil && !data.AllowTransfer.IsNull() {
+		data.AllowTransfer = types.StringValue(*res.Result.Idnsallowtransfer)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_transfer %s", data.AllowTransfer.ValueString()))
+	}
+	if res.Result.Idnsallowsyncptr != nil && !data.AllowPtrSync.IsNull() {
+		data.AllowPtrSync = types.BoolValue(!*res.Result.Idnsallowsyncptr)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_ptr_sync %s", data.AllowPtrSync.String()))
+	}
+	if res.Result.Idnssecinlinesigning != nil && !data.AllowInlineDnssecSigning.IsNull() {
+		data.AllowInlineDnssecSigning = types.BoolValue(!*res.Result.Idnssecinlinesigning)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_inline_dnssec_signing %s", data.AllowInlineDnssecSigning.String()))
+	}
+	if res.Result.Nsec3paramrecord != nil && !data.Nsec3ParamRecord.IsNull() {
+		data.Nsec3ParamRecord = types.StringValue(*res.Result.Nsec3paramrecord)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone nsec3param_record %s", data.Nsec3ParamRecord.ValueString()))
+	}
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	if resp.Diagnostics.HasError() {

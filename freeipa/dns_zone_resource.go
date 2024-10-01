@@ -176,6 +176,9 @@ func (r *dnsZone) Schema(ctx context.Context, req resource.SchemaRequest, resp *
 			"computed_zone_name": schema.StringAttribute{
 				MarkdownDescription: "Real zone name compatible with ARPA (ie: `domain.tld.`)",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -214,64 +217,60 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 	optArgs := ipa.DnszoneAddOptionalArgs{}
 	args := ipa.DnszoneAddArgs{}
 
-	if !data.SoaSerialNumber.IsUnknown() {
+	if !data.SoaSerialNumber.IsNull() {
 		args.Idnssoaserial = int(data.SoaSerialNumber.ValueInt64())
 	}
-	if !data.IsReverseZone.IsUnknown() && data.IsReverseZone.ValueBool() {
-		if !data.ZoneName.IsUnknown() {
-			optArgs.NameFromIP = data.ZoneName.ValueStringPointer()
-		}
+	if !data.IsReverseZone.IsNull() && data.IsReverseZone.ValueBool() {
+		optArgs.NameFromIP = data.ZoneName.ValueStringPointer()
 	} else {
-		if !data.ZoneName.IsUnknown() {
-			optArgs.Idnsname = data.ZoneName.ValueStringPointer()
-		}
+		optArgs.Idnsname = data.ZoneName.ValueStringPointer()
 	}
-	if !data.SkipOverlapCheck.IsUnknown() && data.SkipOverlapCheck.ValueBool() {
+	if !data.SkipOverlapCheck.IsNull() && data.SkipOverlapCheck.ValueBool() {
 		optArgs.SkipOverlapCheck = data.SkipOverlapCheck.ValueBoolPointer()
 	}
-	if !data.SkipNameserverCheck.IsUnknown() && data.SkipNameserverCheck.ValueBool() {
+	if !data.SkipNameserverCheck.IsNull() && data.SkipNameserverCheck.ValueBool() {
 		optArgs.SkipNameserverCheck = data.SkipNameserverCheck.ValueBoolPointer()
 	}
-	if !data.AuthoritativeNameserver.IsUnknown() {
+	if !data.AuthoritativeNameserver.IsNull() {
 		optArgs.Idnssoamname = data.AuthoritativeNameserver.ValueStringPointer()
 	}
-	if !data.AdminEmailAddress.IsUnknown() {
+	if !data.AdminEmailAddress.IsNull() {
 		optArgs.Idnssoarname = data.AdminEmailAddress.ValueStringPointer()
 	}
-	if !data.SoaRefresh.IsUnknown() {
+	if !data.SoaRefresh.IsNull() {
 		soa_refresh := int(data.SoaRefresh.ValueInt64())
 		optArgs.Idnssoarefresh = &soa_refresh
 	}
-	if !data.SoaRetry.IsUnknown() {
+	if !data.SoaRetry.IsNull() {
 		soa_retry := int(data.SoaRetry.ValueInt64())
 		optArgs.Idnssoarefresh = &soa_retry
 	}
-	if !data.SoaExpire.IsUnknown() {
+	if !data.SoaExpire.IsNull() {
 		soa_expire := int(data.SoaExpire.ValueInt64())
 		optArgs.Idnssoaexpire = &soa_expire
 	}
-	if !data.SoaMinimum.IsUnknown() {
+	if !data.SoaMinimum.IsNull() {
 		soa_min := int(data.SoaMinimum.ValueInt64())
 		optArgs.Idnssoaminimum = &soa_min
 	}
-	if !data.TTL.IsUnknown() {
+	if !data.TTL.IsNull() {
 		soa_ttl := int(data.TTL.ValueInt64())
 		optArgs.Dnsttl = &soa_ttl
 	}
-	if !data.DefaultTTL.IsUnknown() {
+	if !data.DefaultTTL.IsNull() {
 		soa_default_ttl := int(data.DefaultTTL.ValueInt64())
 		optArgs.Dnsdefaultttl = &soa_default_ttl
 	}
-	if !data.DynamicUpdate.IsUnknown() {
+	if !data.DynamicUpdate.IsNull() {
 		optArgs.Idnsallowdynupdate = data.DynamicUpdate.ValueBoolPointer()
 	}
-	if !data.BindUpdatePolicy.IsUnknown() {
+	if !data.BindUpdatePolicy.IsNull() {
 		optArgs.Idnsupdatepolicy = data.BindUpdatePolicy.ValueStringPointer()
 	}
-	if !data.AllowQuery.IsUnknown() {
+	if !data.AllowQuery.IsNull() {
 		optArgs.Idnsallowquery = data.AllowQuery.ValueStringPointer()
 	}
-	if !data.AllowTransfer.IsUnknown() {
+	if !data.AllowTransfer.IsNull() {
 		optArgs.Idnsallowtransfer = data.AllowTransfer.ValueStringPointer()
 	}
 	if len(data.ZoneForwarders.Elements()) > 0 {
@@ -282,13 +281,13 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 		}
 		optArgs.Idnsforwarders = &v
 	}
-	if !data.AllowPtrSync.IsUnknown() {
+	if !data.AllowPtrSync.IsNull() {
 		optArgs.Idnsallowsyncptr = data.AllowPtrSync.ValueBoolPointer()
 	}
-	if !data.AllowInlineDnssecSigning.IsUnknown() {
+	if !data.AllowInlineDnssecSigning.IsNull() {
 		optArgs.Idnssecinlinesigning = data.AllowInlineDnssecSigning.ValueBoolPointer()
 	}
-	if !data.Nsec3ParamRecord.IsUnknown() {
+	if !data.Nsec3ParamRecord.IsNull() {
 		optArgs.Nsec3paramrecord = data.Nsec3ParamRecord.ValueStringPointer()
 	}
 
@@ -301,7 +300,7 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 	data.ComputedZoneName = types.StringValue(res.Result.Idnsname)
 	data.Id = types.StringValue(res.Result.Idnsname)
 
-	if !data.DisableZone.IsUnknown() && data.DisableZone.ValueBool() {
+	if !data.DisableZone.IsNull() && data.DisableZone.ValueBool() {
 		_, err = r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
@@ -388,7 +387,7 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_transfer %s", data.AllowTransfer.ValueString()))
 	}
 	if res.Result.Idnsallowsyncptr != nil && !data.AllowPtrSync.IsNull() {
-		data.AllowPtrSync = types.BoolValue(!*res.Result.Idnsallowsyncptr)
+		data.AllowPtrSync = types.BoolValue(*res.Result.Idnsallowsyncptr)
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_ptr_sync %s", data.AllowPtrSync.String()))
 	}
 	if res.Result.Idnssecinlinesigning != nil && !data.AllowInlineDnssecSigning.IsNull() {
@@ -407,14 +406,17 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 }
 
 func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data dnsZoneModel
+	var data, state dnsZoneModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s: %v", data.ZoneName.ValueString(), data))
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
@@ -424,101 +426,146 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 	//     return
 	// }
 
+	hasChange := false
 	optArgs := ipa.DnszoneModOptionalArgs{
 		Idnsname: data.ZoneName.ValueStringPointer(),
 	}
 
-	if !data.AuthoritativeNameserver.IsUnknown() {
+	if !data.AuthoritativeNameserver.Equal(state.AuthoritativeNameserver) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone AuthoritativeNameserver %s: %s", data.ZoneName.ValueString(), data.AuthoritativeNameserver.ValueString()))
 		optArgs.Idnssoamname = data.AuthoritativeNameserver.ValueStringPointer()
+		hasChange = true
 	}
-	if !data.AdminEmailAddress.IsUnknown() {
+	if !data.AdminEmailAddress.Equal(state.AdminEmailAddress) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone AdminEmailAddress %s: %s", data.ZoneName.ValueString(), data.AdminEmailAddress.ValueString()))
 		optArgs.Idnssoarname = data.AdminEmailAddress.ValueStringPointer()
+		hasChange = true
 	}
-	if !data.SoaSerialNumber.IsUnknown() {
+	if !data.SoaSerialNumber.Equal(state.SoaSerialNumber) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s change: %d", data.ZoneName.ValueString(), int(data.SoaSerialNumber.ValueInt64())))
 		_v := int(data.SoaSerialNumber.ValueInt64())
 		optArgs.Idnssoaserial = &_v
+		hasChange = true
 	}
-	if !data.SoaRefresh.IsUnknown() {
+	if !data.SoaRefresh.Equal(state.SoaRefresh) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s change: %d", data.ZoneName.ValueString(), int(data.SoaRefresh.ValueInt64())))
 		_v := int(data.SoaRefresh.ValueInt64())
 		optArgs.Idnssoarefresh = &_v
+		hasChange = true
 	}
-	if !data.SoaRetry.IsUnknown() {
+	if !data.SoaRetry.Equal(state.SoaRetry) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s change: %d", data.ZoneName.ValueString(), int(data.SoaRetry.ValueInt64())))
 		_v := int(data.SoaRetry.ValueInt64())
 		optArgs.Idnssoaretry = &_v
+		hasChange = true
 	}
-	if !data.SoaExpire.IsUnknown() {
+	if !data.SoaExpire.Equal(state.SoaExpire) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s change: %d", data.ZoneName.ValueString(), int(data.SoaExpire.ValueInt64())))
 		_v := int(data.SoaExpire.ValueInt64())
 		optArgs.Idnssoaexpire = &_v
+		hasChange = true
 	}
-	if !data.SoaMinimum.IsUnknown() {
+	if !data.SoaMinimum.Equal(state.SoaMinimum) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s change: %d", data.ZoneName.ValueString(), int(data.SoaMinimum.ValueInt64())))
 		_v := int(data.SoaMinimum.ValueInt64())
 		optArgs.Idnssoaminimum = &_v
+		hasChange = true
 	}
-	if !data.TTL.IsUnknown() {
+	if !data.TTL.Equal(state.TTL) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s change: %d", data.ZoneName.ValueString(), int(data.TTL.ValueInt64())))
 		_v := int(data.TTL.ValueInt64())
 		optArgs.Dnsttl = &_v
+		hasChange = true
 	}
-	if !data.DefaultTTL.IsUnknown() {
+	if !data.DefaultTTL.Equal(state.DefaultTTL) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s change: %d", data.ZoneName.ValueString(), int(data.DefaultTTL.ValueInt64())))
 		_v := int(data.DefaultTTL.ValueInt64())
 		optArgs.Dnsdefaultttl = &_v
+		hasChange = true
 	}
-	if !data.DynamicUpdate.IsUnknown() {
+	if !data.DynamicUpdate.Equal(state.DynamicUpdate) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s DynamicUpdate has change", data.ZoneName.ValueString()))
 		optArgs.Idnsallowdynupdate = data.DynamicUpdate.ValueBoolPointer()
+		hasChange = true
 	}
-	if !data.AllowPtrSync.IsUnknown() {
+	if !data.AllowPtrSync.Equal(state.AllowPtrSync) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s AllowPtrSync has change", data.ZoneName.ValueString()))
 		optArgs.Idnsallowsyncptr = data.AllowPtrSync.ValueBoolPointer()
+		hasChange = true
 	}
-	if !data.AllowInlineDnssecSigning.IsUnknown() {
+	if !data.AllowInlineDnssecSigning.Equal(state.AllowInlineDnssecSigning) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s AllowInlineDnssecSigning has change", data.ZoneName.ValueString()))
 		optArgs.Idnssecinlinesigning = data.AllowInlineDnssecSigning.ValueBoolPointer()
+		hasChange = true
 	}
-	if !data.BindUpdatePolicy.IsUnknown() {
+	if !data.BindUpdatePolicy.Equal(state.BindUpdatePolicy) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s BindUpdatePolicy has change", data.ZoneName.ValueString()))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone BindUpdatePolicy %s: %s", data.ZoneName.ValueString(), data.BindUpdatePolicy.ValueString()))
 		optArgs.Idnsupdatepolicy = data.BindUpdatePolicy.ValueStringPointer()
+		hasChange = true
 	}
-	if !data.AllowQuery.IsUnknown() {
+	if !data.AllowQuery.Equal(state.AllowQuery) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s AllowQuery has change", data.ZoneName.ValueString()))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone AllowQuery %s: %s", data.ZoneName.ValueString(), data.AllowQuery.ValueString()))
 		optArgs.Idnsallowquery = data.AllowQuery.ValueStringPointer()
+		hasChange = true
 	}
-	if !data.AllowTransfer.IsUnknown() {
+	if !data.AllowTransfer.Equal(state.AllowTransfer) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s AllowTransfer has change", data.ZoneName.ValueString()))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone AllowTransfer %s: %s", data.ZoneName.ValueString(), data.AllowTransfer.ValueString()))
 		optArgs.Idnsallowtransfer = data.AllowTransfer.ValueStringPointer()
+		hasChange = true
 	}
-	if len(data.ZoneForwarders.Elements()) > 0 {
+	if !data.ZoneForwarders.Equal(state.ZoneForwarders) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s DynZoneForwardersamicUpdate has change", data.ZoneName.ValueString()))
 		var v []string
 		for _, value := range data.ZoneForwarders.Elements() {
 			val, _ := strconv.Unquote(value.String())
 			v = append(v, val)
 		}
 		optArgs.Idnsforwarders = &v
+		hasChange = true
 	}
-	if !data.Nsec3ParamRecord.IsUnknown() {
+	if !data.Nsec3ParamRecord.Equal(state.Nsec3ParamRecord) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone Nsec3ParamRecord %s: %s", data.ZoneName.ValueString(), data.Nsec3ParamRecord.ValueString()))
 		optArgs.Nsec3paramrecord = data.Nsec3ParamRecord.ValueStringPointer()
+		hasChange = true
 	}
 
-	res, err := r.client.DnszoneMod(&ipa.DnszoneModArgs{}, &optArgs)
-	if err != nil {
-		if strings.Contains(err.Error(), "EmptyModlist") {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
-			return
-		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa dns zone: %s", err))
-			return
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s hasChange: %v", data.ZoneName.ValueString(), hasChange))
+	if hasChange {
+		_, err := r.client.DnszoneMod(&ipa.DnszoneModArgs{}, &optArgs)
+		if err != nil {
+			if strings.Contains(err.Error(), "EmptyModlist") {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
+				return
+			} else {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa dns zone: %s", err))
+				return
+			}
 		}
 	}
 
-	if !data.DisableZone.IsNull() {
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s plan disabled %s - state disabled %s", data.ZoneName.ValueString(), data.DisableZone.String(), state.DisableZone.String()))
+	if !data.DisableZone.Equal(state.DisableZone) {
+
 		if data.DisableZone.ValueBool() {
-			_, err := r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.ZoneName.ValueStringPointer()})
+			res, err := r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s disable: %v", data.ZoneName.ValueString(), res))
 			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable. Something went wrong: %s", err))
 				return
 			}
 		} else {
-			_, err = r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: data.ZoneName.ValueStringPointer()})
+			res, err := r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s enable: %v", data.ZoneName.ValueString(), res))
 			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone enable. Something went wrong: %s", err))
 				return
 			}
 		}
 	}
-	data.ComputedZoneName = types.StringValue(res.Result.Idnsname)
+	//data.ComputedZoneName = data.Id
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

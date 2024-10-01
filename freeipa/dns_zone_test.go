@@ -11,9 +11,10 @@ func TestAccFreeIPADNSZone_basic(t *testing.T) {
 		"index":     "0",
 		"zone_name": "ipa.example.lan",
 	}
-	testDS := map[string]string{
-		"index":     "0",
-		"zone_name": "ipa.example.lan.",
+	testZoneModified := map[string]string{
+		"index":        "0",
+		"zone_name":    "ipa.example.lan.",
+		"disable_zone": "true",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -27,7 +28,7 @@ func TestAccFreeIPADNSZone_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPADNSZone_datasource(testDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZoneModified),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_dns_zone.dns-zone-0", "computed_zone_name", "ipa.example.lan."),
 				),

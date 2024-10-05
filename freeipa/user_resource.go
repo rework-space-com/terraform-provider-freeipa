@@ -584,10 +584,11 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 }
 
 func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data UserResourceModel
+	var data, state UserResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -603,78 +604,78 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	optArgs := ipa.UserModOptionalArgs{}
 
-	if !data.UID.IsUnknown() {
+	if !data.UID.Equal(state.UID) {
 		optArgs.UID = data.UID.ValueStringPointer()
 	}
-	if !data.FullName.IsUnknown() {
+	if !data.FullName.Equal(state.FullName) {
 		optArgs.Cn = data.FullName.ValueStringPointer()
 	}
-	if !data.FirstName.IsUnknown() {
+	if !data.FirstName.Equal(state.FirstName) {
 		optArgs.Givenname = data.FirstName.ValueStringPointer()
 	}
-	if !data.LastName.IsUnknown() {
+	if !data.LastName.Equal(state.LastName) {
 		optArgs.Sn = data.LastName.ValueStringPointer()
 	}
-	if !data.DisplayName.IsUnknown() {
+	if !data.DisplayName.Equal(state.DisplayName) {
 		optArgs.Displayname = data.DisplayName.ValueStringPointer()
 	}
-	if !data.Initials.IsUnknown() {
+	if !data.Initials.Equal(state.Initials) {
 		optArgs.Initials = data.Initials.ValueStringPointer()
 	}
-	if !data.HomeDirectory.IsUnknown() {
+	if !data.HomeDirectory.Equal(state.HomeDirectory) {
 		optArgs.Homedirectory = data.HomeDirectory.ValueStringPointer()
 	}
-	if !data.Gecos.IsUnknown() {
+	if !data.Gecos.Equal(state.Gecos) {
 		optArgs.Gecos = data.Gecos.ValueStringPointer()
 	}
-	if !data.LoginShell.IsUnknown() {
+	if !data.LoginShell.Equal(state.LoginShell) {
 		optArgs.Loginshell = data.LoginShell.ValueStringPointer()
 	}
-	if !data.UserPassword.IsUnknown() {
+	if !data.UserPassword.Equal(state.UserPassword) {
 		optArgs.Userpassword = data.UserPassword.ValueStringPointer()
 	}
-	if !data.RandomPassword.IsUnknown() {
+	if !data.RandomPassword.Equal(state.RandomPassword) {
 		optArgs.Random = data.RandomPassword.ValueBoolPointer()
 	}
-	if !data.UidNumber.IsNull() {
+	if !data.UidNumber.Equal(state.UidNumber) {
 		uid := int(data.UidNumber.ValueInt32())
 		optArgs.Uidnumber = &uid
 	}
-	if !data.GidNumber.IsNull() {
+	if !data.GidNumber.Equal(state.GidNumber) {
 		gid := int(data.GidNumber.ValueInt32())
 		optArgs.Gidnumber = &gid
 	}
-	if !data.StreetAddress.IsUnknown() {
+	if !data.StreetAddress.Equal(state.StreetAddress) {
 		optArgs.Street = data.StreetAddress.ValueStringPointer()
 	}
-	if !data.City.IsUnknown() {
+	if !data.City.Equal(state.City) {
 		optArgs.L = data.City.ValueStringPointer()
 	}
-	if !data.Province.IsUnknown() {
+	if !data.Province.Equal(state.Province) {
 		optArgs.St = data.Province.ValueStringPointer()
 	}
-	if !data.PostalCode.IsUnknown() {
+	if !data.PostalCode.Equal(state.PostalCode) {
 		optArgs.Postalcode = data.PostalCode.ValueStringPointer()
 	}
-	if !data.OrganisationUnit.IsUnknown() {
+	if !data.OrganisationUnit.Equal(state.OrganisationUnit) {
 		optArgs.Ou = data.OrganisationUnit.ValueStringPointer()
 	}
-	if !data.JobTitle.IsUnknown() {
+	if !data.JobTitle.Equal(state.JobTitle) {
 		optArgs.Title = data.JobTitle.ValueStringPointer()
 	}
-	if !data.EmployeeNumber.IsUnknown() {
+	if !data.EmployeeNumber.Equal(state.EmployeeNumber) {
 		optArgs.Employeenumber = data.EmployeeNumber.ValueStringPointer()
 	}
-	if !data.EmployeeType.IsUnknown() {
+	if !data.EmployeeType.Equal(state.EmployeeType) {
 		optArgs.Employeetype = data.EmployeeType.ValueStringPointer()
 	}
-	if !data.PreferredLanguage.IsUnknown() {
+	if !data.PreferredLanguage.Equal(state.PreferredLanguage) {
 		optArgs.Preferredlanguage = data.PreferredLanguage.ValueStringPointer()
 	}
-	if !data.AccountDisabled.IsUnknown() {
+	if !data.AccountDisabled.Equal(state.AccountDisabled) {
 		optArgs.Nsaccountlock = data.AccountDisabled.ValueBoolPointer()
 	}
-	if len(data.TelephoneNumbers.Elements()) > 0 {
+	if !data.TelephoneNumbers.Equal(state.TelephoneNumbers) {
 		var v []string
 		for _, value := range data.TelephoneNumbers.Elements() {
 			val, _ := strconv.Unquote(value.String())
@@ -682,7 +683,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Telephonenumber = &v
 	}
-	if len(data.MobileNumbers.Elements()) > 0 {
+	if !data.MobileNumbers.Equal(state.MobileNumbers) {
 		var v []string
 		for _, value := range data.MobileNumbers.Elements() {
 			val, _ := strconv.Unquote(value.String())
@@ -690,7 +691,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Mobile = &v
 	}
-	if len(data.KrbPrincipalName.Elements()) > 0 {
+	if !data.KrbPrincipalName.Equal(state.KrbPrincipalName) {
 		var v []string
 		for _, value := range data.KrbPrincipalName.Elements() {
 			val, _ := strconv.Unquote(value.String())
@@ -698,7 +699,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Krbprincipalname = &v
 	}
-	if len(data.SshPublicKeys.Elements()) > 0 {
+	if !data.SshPublicKeys.Equal(state.SshPublicKeys) {
 		var v []string
 		for _, value := range data.SshPublicKeys.Elements() {
 			val, _ := strconv.Unquote(value.String())
@@ -706,7 +707,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Ipasshpubkey = &v
 	}
-	if len(data.CarLicense.Elements()) > 0 {
+	if !data.CarLicense.Equal(state.CarLicense) {
 		var v []string
 		for _, value := range data.CarLicense.Elements() {
 			val, _ := strconv.Unquote(value.String())
@@ -714,7 +715,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Carlicense = &v
 	}
-	if len(data.EmailAddress.Elements()) > 0 {
+	if !data.EmailAddress.Equal(state.EmailAddress) {
 		var v []string
 		for _, value := range data.EmailAddress.Elements() {
 			val, _ := strconv.Unquote(value.String())
@@ -722,21 +723,21 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Mail = &v
 	}
-	if !data.KrbPrincipalExpiration.IsNull() {
+	if !data.KrbPrincipalExpiration.Equal(state.KrbPrincipalExpiration) {
 		timestamp, err := time.Parse(time.RFC3339, data.KrbPrincipalExpiration.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))
 		}
 		optArgs.Krbprincipalexpiration = &timestamp
 	}
-	if !data.KrbPasswordExpiration.IsNull() {
+	if !data.KrbPasswordExpiration.Equal(state.KrbPasswordExpiration) {
 		timestamp, err := time.Parse(time.RFC3339, data.KrbPasswordExpiration.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_password_expiration timestamp could not be parsed as RFC3339: %s", err))
 		}
 		optArgs.Krbpasswordexpiration = &timestamp
 	}
-	if len(data.UserClass.Elements()) > 0 {
+	if !data.UserClass.Equal(state.UserClass) {
 		var v []string
 		for _, value := range data.UserClass.Elements() {
 			val, _ := strconv.Unquote(value.String())

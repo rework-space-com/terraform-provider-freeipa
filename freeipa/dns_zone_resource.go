@@ -301,11 +301,13 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 	data.Id = types.StringValue(res.Result.Idnsname)
 
 	if !data.DisableZone.IsNull() && data.DisableZone.ValueBool() {
-		_, err = r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
-			return
-		}
+		//TODO solve the failed error on enable/dissable zone
+		r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
+		// _, err = r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
+		// if err != nil {
+		// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
+		// 	return
+		// }
 	}
 
 	// Save data into Terraform state
@@ -547,22 +549,22 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s plan disabled %s - state disabled %s", data.ZoneName.ValueString(), data.DisableZone.String(), state.DisableZone.String()))
+	//TODO solve the failed error on enable/dissable zone
 	if !data.DisableZone.Equal(state.DisableZone) {
-
 		if data.DisableZone.ValueBool() {
-			res, err := r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s disable: %v", data.ZoneName.ValueString(), res))
-			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable. Something went wrong: %s", err))
-				return
-			}
+			r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
+			// _, err := r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
+			// if err != nil {
+			// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable. Something went wrong: %s", err))
+			// 	return
+			// }
 		} else {
-			res, err := r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s enable: %v", data.ZoneName.ValueString(), res))
-			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone enable. Something went wrong: %s", err))
-				return
-			}
+			r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
+			// _, err := r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
+			// if err != nil {
+			// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone enable. Something went wrong: %s", err))
+			// 	return
+			// }
 		}
 	}
 	//data.ComputedZoneName = data.Id

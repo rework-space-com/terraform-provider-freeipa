@@ -297,10 +297,11 @@ func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r *DNSRecordResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data DNSRecordResourceModel
+	var data, state DNSRecordResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -315,7 +316,7 @@ func (r *DNSRecordResource) Update(ctx context.Context, req resource.UpdateReque
 
 	_type := data.Type.ValueString()
 
-	if len(data.Records.Elements()) > 0 {
+	if !data.Records.Equal(state.Records) {
 		var records []string
 
 		for _, value := range data.Records.Elements() {
@@ -344,7 +345,7 @@ func (r *DNSRecordResource) Update(ctx context.Context, req resource.UpdateReque
 		}
 	}
 
-	if !data.TTL.IsNull() {
+	if !data.TTL.Equal(state.TTL) {
 		ttl := int(data.TTL.ValueInt32())
 		optArgs.Dnsttl = &ttl
 	}

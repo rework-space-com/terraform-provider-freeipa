@@ -174,11 +174,11 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa group returned %d ", gid))
 	}
 
-	if !data.NonPosix.IsUnknown() {
+	if !data.NonPosix.IsNull() {
 		optArgs.Nonposix = data.NonPosix.ValueBoolPointer()
 	}
 
-	if !data.External.IsUnknown() {
+	if !data.External.IsNull() {
 		optArgs.External = data.External.ValueBoolPointer()
 	}
 
@@ -280,10 +280,11 @@ func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data UserGroupResourceModel
+	var data, state UserGroupResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -301,16 +302,16 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 	optArgs := ipa.GroupModOptionalArgs{}
 
-	if !data.Description.IsNull() {
+	if !data.Description.Equal(state.Description) {
 		optArgs.Description = data.Description.ValueStringPointer()
 	}
 
-	if !data.GidNumber.IsNull() {
+	if !data.GidNumber.Equal(state.GidNumber) {
 		gid := int(data.GidNumber.ValueInt64())
 		optArgs.Gidnumber = &gid
 	}
 
-	if len(data.AddAttr.Elements()) > 0 {
+	if !data.AddAttr.Equal(state.AddAttr) {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa group Addattr %s ", data.AddAttr.String()))
 		var v []string
 
@@ -321,7 +322,7 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 		optArgs.Addattr = &v
 	}
 
-	if len(data.SetAttr.Elements()) > 0 {
+	if !data.SetAttr.Equal(state.SetAttr) {
 		var v []string
 		for _, value := range data.SetAttr.Elements() {
 			val, _ := strconv.Unquote(value.String())

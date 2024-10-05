@@ -278,6 +278,7 @@ func (p *freeipaProvider) DataSources(ctx context.Context) []func() datasource.D
 		NewUserGroupDataSource,
 		NewUserDataSource,
 		NewDnsZoneDataSource,
+		NewDnsRecordDataSource,
 	}
 }
 

@@ -9,11 +9,11 @@ import (
 func TestAccFreeIPADNSZone_basic(t *testing.T) {
 	testZone := map[string]string{
 		"index":     "0",
-		"zone_name": "ipa.example.lan",
+		"zone_name": "\"ipa.example.lan\"",
 	}
 	testZoneModified := map[string]string{
 		"index":        "0",
-		"zone_name":    "ipa.example.lan.",
+		"zone_name":    "\"ipa.example.lan.\"",
 		"disable_zone": "true",
 	}
 
@@ -40,12 +40,12 @@ func TestAccFreeIPADNSZone_basic(t *testing.T) {
 func TestAccFreeIPADNSZone_reverse(t *testing.T) {
 	testZone := map[string]string{
 		"index":           "0",
-		"zone_name":       "192.168.23.0",
+		"zone_name":       "\"192.168.23.0\"",
 		"is_reverse_zone": "true",
 	}
 	testDS := map[string]string{
 		"index":     "0",
-		"zone_name": "23.168.192.in-addr.arpa.",
+		"zone_name": "\"23.168.192.in-addr.arpa.\"",
 	}
 
 	resource.Test(t, resource.TestCase{

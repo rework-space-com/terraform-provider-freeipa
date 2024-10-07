@@ -12,6 +12,7 @@ import (
 
 	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -274,7 +275,7 @@ func (r *userGroupMembership) Create(ctx context.Context, req resource.CreateReq
 					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error deleting invalid freeipa user group membership: %s", err))
 					return
 				}
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("external member is not using the correct format. Use the lowercase upn format (ie: 'domain users@domain.net'): %s", data.ExternalMember.ValueString()))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("external member is not using the correct format. Use the lowercase upn format (ie: 'domain users@domain.net'): %s", val))
 				return
 			} else {
 				tflog.Debug(ctx, fmt.Sprintf("[DEBUG] group show %s is %v", data.Name.ValueString(), groupRes.Result.String()))
@@ -345,16 +346,64 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 			data.Id = types.StringValue("")
 		}
 	case "mu":
-		if userId == "users" && res.Result.MemberUser != nil {
-			data.Users, _ = types.ListValueFrom(ctx, types.StringType, res.Result.MemberUser)
+		if !data.Users.IsNull() && res.Result.MemberUser != nil {
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member users %v", *res.Result.MemberUser))
+			var changedVals []string
+			for _, value := range data.Users.Elements() {
+				val, err := strconv.Unquote(value.String())
+				if err != nil {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member users failed with error %s", err))
+				}
+				if slices.Contains(*res.Result.MemberUser, val) {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member users %s is present in results", val))
+					changedVals = append(changedVals, val)
+				}
+			}
+			var diag diag.Diagnostics
+			data.Users, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+			if diag.HasError() {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			}
 		}
 	case "mg":
-		if userId == "groups" && res.Result.MemberGroup != nil {
-			data.Groups, _ = types.ListValueFrom(ctx, types.StringType, res.Result.MemberGroup)
+		if !data.Groups.IsNull() && res.Result.MemberGroup != nil {
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member groups %v", *res.Result.MemberGroup))
+			var changedVals []string
+			for _, value := range data.Groups.Elements() {
+				val, err := strconv.Unquote(value.String())
+				if err != nil {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member groups failed with error %s", err))
+				}
+				if slices.Contains(*res.Result.MemberGroup, val) {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member groups %s is present in results", val))
+					changedVals = append(changedVals, val)
+				}
+			}
+			var diag diag.Diagnostics
+			data.Groups, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+			if diag.HasError() {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			}
 		}
 	case "me":
-		if userId == "external" && res.Result.Ipaexternalmember != nil {
-			data.ExternalMembers, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipaexternalmember)
+		if !data.ExternalMembers.IsNull() && res.Result.Ipaexternalmember != nil {
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member groups %v", *res.Result.Ipaexternalmember))
+			var changedVals []string
+			for _, value := range data.ExternalMembers.Elements() {
+				val, err := strconv.Unquote(value.String())
+				if err != nil {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group external member failed with error %s", err))
+				}
+				if slices.Contains(*res.Result.Ipaexternalmember, val) {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group external member %s is present in results", val))
+					changedVals = append(changedVals, val)
+				}
+			}
+			var diag diag.Diagnostics
+			data.ExternalMembers, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+			if diag.HasError() {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			}
 		}
 	}
 

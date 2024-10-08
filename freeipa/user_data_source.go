@@ -177,7 +177,7 @@ func (r *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				Computed:            true,
 			},
 			"province": schema.StringAttribute{
-				MarkdownDescription: "Province",
+				MarkdownDescription: "Province/State/Country",
 				Computed:            true,
 			},
 			"postal_code": schema.StringAttribute{

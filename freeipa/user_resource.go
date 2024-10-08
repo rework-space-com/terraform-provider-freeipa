@@ -197,7 +197,7 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Optional:            true,
 			},
 			"province": schema.StringAttribute{
-				MarkdownDescription: "Province",
+				MarkdownDescription: "Province/State/Country",
 				Optional:            true,
 			},
 			"postal_code": schema.StringAttribute{
@@ -547,9 +547,9 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if res.Result.Preferredlanguage != nil && !data.PreferredLanguage.IsNull() {
 		data.PreferredLanguage = types.StringValue(*res.Result.Preferredlanguage)
 	}
-	// if res.Result.Nsaccountlock != nil {
-	// 	data.AccountDisabled = types.BoolValue(*res.Result.Nsaccountlock)
-	// }
+	if res.Result.Nsaccountlock != nil && !data.AccountDisabled.IsNull() {
+		data.AccountDisabled = types.BoolValue(*res.Result.Nsaccountlock)
+	}
 	if res.Result.Ipasshpubkey != nil && !data.SshPublicKeys.IsNull() {
 		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
 	}
@@ -606,6 +606,8 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	if !data.UID.Equal(state.UID) {
 		optArgs.UID = data.UID.ValueStringPointer()
+	} else {
+		optArgs.UID = state.UID.ValueStringPointer()
 	}
 	if !data.FullName.Equal(state.FullName) {
 		optArgs.Cn = data.FullName.ValueStringPointer()
@@ -730,13 +732,14 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Krbprincipalexpiration = &timestamp
 	}
-	if !data.KrbPasswordExpiration.Equal(state.KrbPasswordExpiration) {
-		timestamp, err := time.Parse(time.RFC3339, data.KrbPasswordExpiration.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_password_expiration timestamp could not be parsed as RFC3339: %s", err))
-		}
-		optArgs.Krbpasswordexpiration = &timestamp
-	}
+	// Do not update password expiration in the provider.
+	// if !data.KrbPasswordExpiration.Equal(state.KrbPasswordExpiration) {
+	// 	timestamp, err := time.Parse(time.RFC3339, data.KrbPasswordExpiration.ValueString())
+	// 	if err != nil {
+	// 		resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_password_expiration timestamp could not be parsed as RFC3339: %s", err))
+	// 	}
+	// 	optArgs.Krbpasswordexpiration = &timestamp
+	// }
 	if !data.UserClass.Equal(state.UserClass) {
 		var v []string
 		for _, value := range data.UserClass.Elements() {

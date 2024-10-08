@@ -13,7 +13,9 @@ resource freeipa_user "user-1" {
     last_name = "User"
     city = "Brussels"
     login_shell = "/bin/bash"
-    home_directory = "/opt/users/test-user1"
+    home_directory = "/opt/users/test-user-1"
+    employee_type = "Patsy"
+    account_disabled = false
 }
 # data freeipa_user "user-0" {
 #     name = freeipa_user.user-0.name

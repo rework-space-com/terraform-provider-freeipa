@@ -48,6 +48,15 @@ func testAccFreeIPAGroup_resource(dataset map[string]string) string {
 	if dataset["nonposix"] != "" {
 		tf_def += fmt.Sprintf("  nonposix = %s\n", dataset["nonposix"])
 	}
+	if dataset["member_users"] != "" {
+		tf_def += fmt.Sprintf("  member_users = %s\n", dataset["member_users"])
+	}
+	if dataset["member_groups"] != "" {
+		tf_def += fmt.Sprintf("  member_groups = %s\n", dataset["member_groups"])
+	}
+	if dataset["member_external_members"] != "" {
+		tf_def += fmt.Sprintf("  member_external_members = %s\n", dataset["member_external_members"])
+	}
 	if dataset["addattr"] != "" {
 		tf_def += fmt.Sprintf("  addattr = %s\n", dataset["addattr"])
 	}

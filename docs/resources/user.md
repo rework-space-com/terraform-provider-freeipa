@@ -56,7 +56,7 @@ resource "freeipa_user" "user-1" {
 - `organisation_unit` (String) Org. Unit
 - `postal_code` (String) Postal code
 - `preferred_language` (String) Preferred Language
-- `province` (String) Province
+- `province` (String) Province/State/Country
 - `random_password` (Boolean) Generate a random user password
 - `ssh_public_key` (List of String) List of SSH public keys
 - `street_address` (String) Street address

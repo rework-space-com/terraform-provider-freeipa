@@ -27,13 +27,13 @@ resource "freeipa_group" "group-external" {
   external    = true
 }
 
-# data "freeipa_group" "group" {
-#   name = "testgroup1"
-# }
+data "freeipa_group" "group" {
+  name = freeipa_group.group-posix.name
+}
 
-# output "group-test" {
-#   value = data.freeipa_group.group
-# }
+output "group-test" {
+  value = data.freeipa_group.group
+}
 
 # resource freeipa_user_group_membership "member-0" {
 #   name = freeipa_group.group-posix.name

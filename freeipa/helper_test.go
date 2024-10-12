@@ -312,3 +312,72 @@ func testAccFreeIPADNSRecord_resource(dataset map[string]string) string {
 	tf_def += "}\n"
 	return tf_def
 }
+
+func testAccFreeIPAHost_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_host" "host-%s" {
+	  name        = %s
+	  ip_address  = %s
+	`, dataset["index"], dataset["name"], dataset["ip_address"])
+	if dataset["description"] != "" {
+		tf_def += fmt.Sprintf("  description = %s\n", dataset["description"])
+	}
+	if dataset["locality"] != "" {
+		tf_def += fmt.Sprintf("  locality = %s\n", dataset["locality"])
+	}
+	if dataset["location"] != "" {
+		tf_def += fmt.Sprintf("  location = %s\n", dataset["location"])
+	}
+	if dataset["platform"] != "" {
+		tf_def += fmt.Sprintf("  platform = %s\n", dataset["platform"])
+	}
+	if dataset["operating_system"] != "" {
+		tf_def += fmt.Sprintf("  operating_system = %s\n", dataset["operating_system"])
+	}
+	if dataset["user_certificates"] != "" {
+		tf_def += fmt.Sprintf("  user_certificates = %s\n", dataset["user_certificates"])
+	}
+	if dataset["mac_addresses"] != "" {
+		tf_def += fmt.Sprintf("  mac_addresses = %s\n", dataset["mac_addresses"])
+	}
+	if dataset["ipasshpubkeys"] != "" {
+		tf_def += fmt.Sprintf("  ipasshpubkeys = %s\n", dataset["ipasshpubkeys"])
+	}
+	if dataset["userclass"] != "" {
+		tf_def += fmt.Sprintf("  userclass = %s\n", dataset["userclass"])
+	}
+	if dataset["assigned_idview"] != "" {
+		tf_def += fmt.Sprintf("  assigned_idview = %s\n", dataset["assigned_idview"])
+	}
+	if dataset["krb_auth_indicators"] != "" {
+		tf_def += fmt.Sprintf("  krb_auth_indicators = %s\n", dataset["krb_auth_indicators"])
+	}
+	if dataset["krb_preauth"] != "" {
+		tf_def += fmt.Sprintf("  krb_preauth = %s\n", dataset["krb_preauth"])
+	}
+	if dataset["trusted_for_delegation"] != "" {
+		tf_def += fmt.Sprintf("  trusted_for_delegation = %s\n", dataset["trusted_for_delegation"])
+	}
+	if dataset["trusted_to_auth_as_delegate"] != "" {
+		tf_def += fmt.Sprintf("  trusted_to_auth_as_delegate = %s\n", dataset["trusted_to_auth_as_delegate"])
+	}
+	if dataset["force"] != "" {
+		tf_def += fmt.Sprintf("  force = %s\n", dataset["force"])
+	}
+	if dataset["userpassword"] != "" {
+		tf_def += fmt.Sprintf("  userpassword = %s\n", dataset["userpassword"])
+	}
+	if dataset["random_password"] != "" {
+		tf_def += fmt.Sprintf("  random_password = %s\n", dataset["random_password"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPADNSHost_datasource(dataset map[string]string) string {
+	return fmt.Sprintf(`
+	data "freeipa_host" "host-%s" {
+		name = %s
+	}
+	`, dataset["index"], dataset["name"])
+}

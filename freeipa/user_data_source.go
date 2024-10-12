@@ -79,7 +79,7 @@ func (r *UserDataSource) Metadata(ctx context.Context, req datasource.MetadataRe
 func (r *UserDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA User resource",
+		MarkdownDescription: "FreeIPA User data source",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

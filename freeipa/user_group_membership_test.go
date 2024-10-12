@@ -56,7 +56,7 @@ func TestAccFreeIPAUserGroupMembership_posix(t *testing.T) {
 	})
 }
 
-func TestAccFreeIPAUserGroupMembership_multpile_posix(t *testing.T) {
+func TestAccFreeIPAUserGroupMembership_multiple_posix(t *testing.T) {
 	testGroup1 := map[string]string{
 		"index":       "0",
 		"name":        "\"testacc-group-0\"",

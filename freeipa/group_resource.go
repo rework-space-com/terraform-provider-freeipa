@@ -357,7 +357,7 @@ func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 	if res != nil {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group %s", res.Result.String()))
 	} else {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa group %s", data.Id.ValueString()))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa group %s", data.Name.ValueString()))
 		return
 	}
 

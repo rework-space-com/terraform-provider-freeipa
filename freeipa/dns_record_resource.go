@@ -97,6 +97,9 @@ func (r *DNSRecordResource) Schema(ctx context.Context, req resource.SchemaReque
 			"set_identifier": schema.StringAttribute{
 				MarkdownDescription: "Unique identifier to differentiate records with routing policies from one another",
 				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

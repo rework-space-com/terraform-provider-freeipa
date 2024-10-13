@@ -3,6 +3,7 @@ package freeipa
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 func getEnvAsBool(name string, defaultVal bool) bool {
@@ -12,4 +13,13 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 	}
 
 	return defaultVal
+}
+
+// Some resource names are use construct the resource Id (name/cat/value). If they contain a slash, it messes up with the parsing of resources id.
+func encodeSlash(str string) string {
+	return strings.ReplaceAll(str, string('/'), "%2F")
+}
+
+func decodeSlash(str string) string {
+	return strings.ReplaceAll(str, "%2F", string('/'))
 }

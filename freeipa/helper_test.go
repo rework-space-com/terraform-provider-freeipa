@@ -420,3 +420,238 @@ func testAccFreeIPAHostGroupMembership_resource(dataset map[string]string) strin
 	tf_def += "}\n"
 	return tf_def
 }
+
+func testAccFreeIPASudoCmd_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_cmd" "sudocmd-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["description"] != "" {
+		tf_def += fmt.Sprintf("  description = %s\n", dataset["description"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoCmdGrp_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_cmdgroup" "sudocmdgroup-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["description"] != "" {
+		tf_def += fmt.Sprintf("  description = %s\n", dataset["description"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoCmdGrpMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_cmdgroup_membership" "sudocmdgroup-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["sudocmd"] != "" {
+		tf_def += fmt.Sprintf("  sudocmd = %s\n", dataset["sudocmd"])
+	}
+	if dataset["sudocmds"] != "" {
+		tf_def += fmt.Sprintf("  sudocmds = %s\n", dataset["sudocmds"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoCmdGroup_datasource(dataset map[string]string) string {
+	return fmt.Sprintf(`
+	data "freeipa_sudo_cmdgroup" "sudocmdgroup-%s" {
+		name = %s
+	}
+	`, dataset["index"], dataset["name"])
+}
+
+func testAccFreeIPASudoRule_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_rule" "sudorule-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["description"] != "" {
+		tf_def += fmt.Sprintf("  description = %s\n", dataset["description"])
+	}
+	if dataset["enabled"] != "" {
+		tf_def += fmt.Sprintf("  enabled = %s\n", dataset["enabled"])
+	}
+	if dataset["usercategory"] != "" {
+		tf_def += fmt.Sprintf("  usercategory = %s\n", dataset["usercategory"])
+	}
+	if dataset["hostcategory"] != "" {
+		tf_def += fmt.Sprintf("  hostcategory = %s\n", dataset["hostcategory"])
+	}
+	if dataset["commandcategory"] != "" {
+		tf_def += fmt.Sprintf("  commandcategory = %s\n", dataset["commandcategory"])
+	}
+	if dataset["runasusercategory"] != "" {
+		tf_def += fmt.Sprintf("  runasusercategory = %s\n", dataset["runasusercategory"])
+	}
+	if dataset["runasgroupcategory"] != "" {
+		tf_def += fmt.Sprintf("  runasgroupcategory = %s\n", dataset["runasgroupcategory"])
+	}
+	if dataset["order"] != "" {
+		tf_def += fmt.Sprintf("  order = %s\n", dataset["order"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoRuleOption_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_rule_option" "sudorule-option-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["option"] != "" {
+		tf_def += fmt.Sprintf("  option = %s\n", dataset["option"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoRule_datasource(dataset map[string]string) string {
+	return fmt.Sprintf(`
+	data "freeipa_sudo_rule" "sudorule-%s" {
+		name = %s
+	}
+	`, dataset["index"], dataset["name"])
+}
+
+func testAccFreeIPASudoAllowCmdMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_rule_allowcmd_membership" "sudo-allow-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["sudocmd"] != "" {
+		tf_def += fmt.Sprintf("  sudocmd = %s\n", dataset["sudocmd"])
+	}
+	if dataset["sudocmds"] != "" {
+		tf_def += fmt.Sprintf("  sudocmds = %s\n", dataset["sudocmds"])
+	}
+	if dataset["sudocmd_group"] != "" {
+		tf_def += fmt.Sprintf("  sudocmd_group = %s\n", dataset["sudocmd_group"])
+	}
+	if dataset["sudocmd_groups"] != "" {
+		tf_def += fmt.Sprintf("  sudocmd_groups = %s\n", dataset["sudocmd_groups"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoDenyCmdMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_rule_denycmd_membership" "sudo-deny-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["sudocmd"] != "" {
+		tf_def += fmt.Sprintf("  sudocmd = %s\n", dataset["sudocmd"])
+	}
+	if dataset["sudocmds"] != "" {
+		tf_def += fmt.Sprintf("  sudocmds = %s\n", dataset["sudocmds"])
+	}
+	if dataset["sudocmd_group"] != "" {
+		tf_def += fmt.Sprintf("  sudocmd_group = %s\n", dataset["sudocmd_group"])
+	}
+	if dataset["sudocmd_groups"] != "" {
+		tf_def += fmt.Sprintf("  sudocmd_groups = %s\n", dataset["sudocmd_groups"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoRuleHostMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_rule_host_membership" "sudo-host-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["host"] != "" {
+		tf_def += fmt.Sprintf("  host = %s\n", dataset["host"])
+	}
+	if dataset["hosts"] != "" {
+		tf_def += fmt.Sprintf("  hosts = %s\n", dataset["hosts"])
+	}
+	if dataset["hostgroup"] != "" {
+		tf_def += fmt.Sprintf("  hostgroup = %s\n", dataset["hostgroup"])
+	}
+	if dataset["hostgroups"] != "" {
+		tf_def += fmt.Sprintf("  hostgroups = %s\n", dataset["hostgroups"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoRuleUserMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_rule_user_membership" "sudo-user-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["user"] != "" {
+		tf_def += fmt.Sprintf("  user = %s\n", dataset["user"])
+	}
+	if dataset["users"] != "" {
+		tf_def += fmt.Sprintf("  users = %s\n", dataset["users"])
+	}
+	if dataset["group"] != "" {
+		tf_def += fmt.Sprintf("  group = %s\n", dataset["group"])
+	}
+	if dataset["groups"] != "" {
+		tf_def += fmt.Sprintf("  groups = %s\n", dataset["groups"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoRuleRunAsGroupMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_rule_runasgroup_membership" "sudorule-runasgroup-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["runasgroup"] != "" {
+		tf_def += fmt.Sprintf("  runasgroup = %s\n", dataset["runasgroup"])
+	}
+	if dataset["runasgroups"] != "" {
+		tf_def += fmt.Sprintf("  runasgroups = %s\n", dataset["runasgroups"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASudoRuleRunAsUserMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sudo_rule_runasuser_membership" "sudorule-runasuser-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["runasuser"] != "" {
+		tf_def += fmt.Sprintf("  runasuser = %s\n", dataset["runasuser"])
+	}
+	if dataset["runasusers"] != "" {
+		tf_def += fmt.Sprintf("  runasusers = %s\n", dataset["runasusers"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}

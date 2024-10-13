@@ -273,6 +273,17 @@ func (p *freeipaProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewHostGroupMembershipResource,
 		NewDNSZoneResource,
 		NewDNSRecordResource,
+		NewSudoCmdResource,
+		NewSudoCmdGroupResource,
+		NewSudoCmdGroupMembershipResource,
+		NewSudoRuleResource,
+		NewSudoRuleAllowCmdMembershipResource,
+		NewSudoRuleDenyCmdMembershipResource,
+		NewSudoRuleHostMembershipResource,
+		NewSudoRuleOptionResource,
+		NewSudoRuleRunAsGroupMembershipResource,
+		NewSudoRuleRunAsUserMembershipResource,
+		NewSudoRuleUserMembershipResource,
 	}
 }
 
@@ -284,6 +295,8 @@ func (p *freeipaProvider) DataSources(ctx context.Context) []func() datasource.D
 		NewHostGroupDataSource,
 		NewDnsZoneDataSource,
 		NewDnsRecordDataSource,
+		NewSudoCmdGroupDataSource,
+		NewSudoRuleDataSource,
 	}
 }
 

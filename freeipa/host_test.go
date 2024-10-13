@@ -60,7 +60,7 @@ func TestAccFreeIPAHost_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHostModified) + testAccFreeIPADNSHost_datasource(testHostDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHostModified) + testAccFreeIPAHost_datasource(testHostDS),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
 					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),
@@ -85,7 +85,7 @@ func TestAccFreeIPAHost_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHostModified2) + testAccFreeIPADNSHost_datasource(testHostDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHostModified2) + testAccFreeIPAHost_datasource(testHostDS),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
 					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),
@@ -108,7 +108,7 @@ func TestAccFreeIPAHost_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost) + testAccFreeIPADNSHost_datasource(testHostDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost) + testAccFreeIPAHost_datasource(testHostDS),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
 					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),

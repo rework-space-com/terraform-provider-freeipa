@@ -134,7 +134,7 @@ func (r *userGroupMembership) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"user": schema.StringAttribute{
-				MarkdownDescription: "**deprecated** User to add",
+				MarkdownDescription: "**deprecated** User to add. Will be replaced by users.",
 				DeprecationMessage:  "use users instead",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
@@ -142,7 +142,7 @@ func (r *userGroupMembership) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"group": schema.StringAttribute{
-				MarkdownDescription: "**deprecated** User group to add",
+				MarkdownDescription: "**deprecated** User group to add. Will be replaced by groups.",
 				DeprecationMessage:  "use groups instead",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
@@ -150,7 +150,7 @@ func (r *userGroupMembership) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"external_member": schema.StringAttribute{
-				MarkdownDescription: "**deprecated** External member to add. name must refer to an external group. (Requires a valid AD Trust configuration).",
+				MarkdownDescription: "**deprecated** External member to add. name must refer to an external group. (Requires a valid AD Trust configuration).. Will be replaced by external_members.",
 				DeprecationMessage:  "use external_members instead",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{

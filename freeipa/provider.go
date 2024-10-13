@@ -269,6 +269,7 @@ func (p *freeipaProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewUserResource,
 		NewUserGroupMembershipResource,
 		NewHostResource,
+		NewHostGroupResource,
 		NewDNSZoneResource,
 		NewDNSRecordResource,
 	}
@@ -279,6 +280,7 @@ func (p *freeipaProvider) DataSources(ctx context.Context) []func() datasource.D
 		NewUserGroupDataSource,
 		NewUserDataSource,
 		NewHostDataSource,
+		NewHostGroupDataSource,
 		NewDnsZoneDataSource,
 		NewDnsRecordDataSource,
 	}

@@ -11,7 +11,6 @@ import (
 
 	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -20,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"golang.org/x/exp/slices"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -38,17 +36,14 @@ type UserGroupResource struct {
 
 // UserGroupResourceModel describes the resource data model.
 type UserGroupResourceModel struct {
-	Id                    types.String `tfsdk:"id"`
-	Name                  types.String `tfsdk:"name"`
-	Description           types.String `tfsdk:"description"`
-	GidNumber             types.Int64  `tfsdk:"gid_number"`
-	NonPosix              types.Bool   `tfsdk:"nonposix"`
-	External              types.Bool   `tfsdk:"external"`
-	MemberUsers           types.List   `tfsdk:"member_users"`
-	MemberGroups          types.List   `tfsdk:"member_groups"`
-	MemberExternalMembers types.List   `tfsdk:"member_external_members"`
-	AddAttr               types.List   `tfsdk:"addattr"`
-	SetAttr               types.List   `tfsdk:"setattr"`
+	Id          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	GidNumber   types.Int64  `tfsdk:"gid_number"`
+	NonPosix    types.Bool   `tfsdk:"nonposix"`
+	External    types.Bool   `tfsdk:"external"`
+	AddAttr     types.List   `tfsdk:"addattr"`
+	SetAttr     types.List   `tfsdk:"setattr"`
 }
 
 func (r *UserGroupResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -118,21 +113,6 @@ func (r *UserGroupResource) Schema(ctx context.Context, req resource.SchemaReque
 					boolplanmodifier.RequiresReplace(),
 				},
 			},
-			"member_users": schema.ListAttribute{
-				MarkdownDescription: "Users to add as group members",
-				Optional:            true,
-				ElementType:         types.StringType,
-			},
-			"member_groups": schema.ListAttribute{
-				MarkdownDescription: "User groups to add as group members",
-				Optional:            true,
-				ElementType:         types.StringType,
-			},
-			"member_external_members": schema.ListAttribute{
-				MarkdownDescription: "External members to add as group members. name must refer to an external group. (Requires a valid AD Trust configuration).",
-				Optional:            true,
-				ElementType:         types.StringType,
-			},
 			"addattr": schema.ListAttribute{
 				MarkdownDescription: "Add an attribute/value pair. Format is attr=value. The attribute must be part of the schema.",
 				Optional:            true,
@@ -184,14 +164,6 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 	args := ipa.GroupAddArgs{
 		Cn: data.Name.ValueString(),
 	}
-
-	memberOptArgs := ipa.GroupAddMemberOptionalArgs{}
-
-	memberArgs := ipa.GroupAddMemberArgs{
-		Cn: data.Name.ValueString(),
-	}
-
-	hasMembership := false
 	if !data.Description.IsNull() {
 		optArgs.Description = data.Description.ValueStringPointer()
 	}
@@ -209,40 +181,6 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 	if !data.External.IsNull() {
 		optArgs.External = data.External.ValueBoolPointer()
 	}
-	// member users, group and external members are added when all inputs are processed.
-	// This allows to make one single api call for all members.
-	if len(data.MemberUsers.Elements()) > 0 {
-		var v []string
-		for _, value := range data.MemberUsers.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			v = append(v, val)
-		}
-		memberOptArgs.User = &v
-		hasMembership = true
-	}
-	if len(data.MemberGroups.Elements()) > 0 {
-		var v []string
-		for _, value := range data.MemberGroups.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			if val == data.Name.ValueString() {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group membership: %s cannot be membership of itself", data.Name.ValueString()))
-				return
-			}
-			v = append(v, val)
-		}
-		memberOptArgs.Group = &v
-		hasMembership = true
-	}
-	if len(data.MemberExternalMembers.Elements()) > 0 {
-		var v []string
-		for _, value := range data.MemberExternalMembers.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			v = append(v, val)
-		}
-		memberOptArgs.Ipaexternalmember = &v
-		hasMembership = true
-	}
-
 	if len(data.AddAttr.Elements()) > 0 {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa group Addattr %s ", data.AddAttr.String()))
 		var v []string
@@ -273,46 +211,6 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	tflog.Trace(ctx, "created a user group resource")
-
-	// Add membership if any is detected in the resource configuration.
-	if hasMembership {
-		_v, err := r.client.GroupAddMember(&memberArgs, &memberOptArgs)
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error creating freeipa user group membership: %s", _v.String()))
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group membership: %s", err))
-			return
-		}
-		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group membership: %v", _v.Failed))
-			return
-		}
-		// If the external members from configuration are not reported in the list of external members from groupshow
-		// Then FreeIPA transformed the name of the external member during creation.
-		// If group add doesn't fail, remove the external member missing from the list and throw an error.
-		if len(data.MemberExternalMembers.Elements()) > 0 {
-			z := new(bool)
-			*z = true
-			groupRes, err := r.client.GroupShow(&ipa.GroupShowArgs{Cn: data.Name.ValueString()}, &ipa.GroupShowOptionalArgs{All: z})
-			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] group show return is %s", groupRes.Result.String()))
-			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error looking up freeipa user group membership: %s", err))
-			}
-			for _, value := range data.MemberExternalMembers.Elements() {
-				val, _ := strconv.Unquote(value.String())
-				v := []string{val}
-				if !slices.Contains(*groupRes.Result.Ipaexternalmember, val) {
-					_, err = r.client.GroupRemoveMember(&ipa.GroupRemoveMemberArgs{Cn: data.Name.ValueString()}, &ipa.GroupRemoveMemberOptionalArgs{Ipaexternalmember: &v})
-					if err != nil {
-						resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error deleting invalid freeipa user group membership: %s", err))
-					}
-					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("external member is not using the correct format. Use the lowercase upn format (ie: 'domain users@domain.net'): %s", val))
-				} else {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] group show %s is %v", data.Name.ValueString(), groupRes.Result.String()))
-				}
-			}
-		}
-
-	}
 
 	data.Id = types.StringValue(data.Name.ValueString())
 
@@ -370,57 +268,6 @@ func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 	if res.Result.Gidnumber != nil && !data.GidNumber.IsNull() {
 		data.GidNumber = types.Int64Value(int64(*res.Result.Gidnumber))
 	}
-	// This read function will only keep members that are defined in the current state AND in the real member list of the group
-	// This avoids conflicts with membership that would have been set outside of this resource.
-	if !data.MemberExternalMembers.IsNull() && res.Result.Ipaexternalmember != nil {
-		var changedVals []string
-		for _, value := range data.MemberExternalMembers.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			if slices.Contains(*res.Result.Ipaexternalmember, val) {
-				changedVals = append(changedVals, val)
-			}
-		}
-		var diag diag.Diagnostics
-		data.MemberExternalMembers, diag = types.ListValueFrom(ctx, types.StringType, changedVals)
-		if diag.HasError() {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
-		}
-	}
-
-	if !data.MemberUsers.IsNull() && res.Result.MemberUser != nil {
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member users %v", *res.Result.MemberUser))
-		var changedVals []string
-		for _, value := range data.MemberUsers.Elements() {
-			val, err := strconv.Unquote(value.String())
-			if err != nil {
-				tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member users failed with error %s", err))
-			}
-			if slices.Contains(*res.Result.MemberUser, val) {
-				tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member users %s is present in results", val))
-				changedVals = append(changedVals, val)
-			}
-		}
-		var diag diag.Diagnostics
-		data.MemberUsers, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
-		if diag.HasError() {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
-		}
-	}
-
-	if !data.MemberGroups.IsNull() && res.Result.MemberGroup != nil {
-		var changedVals []string
-		for _, value := range data.MemberGroups.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			if slices.Contains(*res.Result.MemberGroup, val) {
-				changedVals = append(changedVals, val)
-			}
-		}
-		var diag diag.Diagnostics
-		data.MemberGroups, diag = types.ListValueFrom(ctx, types.StringType, changedVals)
-		if diag.HasError() {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
-		}
-	}
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group GID %d", data.GidNumber.ValueInt64()))
 
@@ -454,109 +301,15 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 	optArgs := ipa.GroupModOptionalArgs{}
 
-	memberAddOptArgs := ipa.GroupAddMemberOptionalArgs{}
-
-	memberAddArgs := ipa.GroupAddMemberArgs{
-		Cn: data.Name.ValueString(),
-	}
-
-	memberDelOptArgs := ipa.GroupRemoveMemberOptionalArgs{}
-
-	memberDelArgs := ipa.GroupRemoveMemberArgs{
-		Cn: data.Name.ValueString(),
-	}
-	hasGroupMod := false
-	hasMemberAdd := false
-	hasMemberDel := false
 	if !data.Description.Equal(state.Description) {
 		optArgs.Description = data.Description.ValueStringPointer()
-		hasGroupMod = true
 	}
 
 	if !data.GidNumber.Equal(state.GidNumber) {
 		gid := int(data.GidNumber.ValueInt64())
 		optArgs.Gidnumber = &gid
-		hasGroupMod = true
 	}
-	// Memberships can be added or removed, comparing the current state and the plan allows us to define 2 lists of members to add or remove.
-	if !data.MemberUsers.Equal(state.MemberUsers) {
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa group member users %s ", data.MemberUsers.String()))
-		var statearr, planarr, addedUsers, deletedUsers []string
 
-		for _, value := range state.MemberUsers.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			statearr = append(statearr, val)
-		}
-		for _, value := range data.MemberUsers.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			planarr = append(planarr, val)
-			if !slices.Contains(statearr, val) {
-				addedUsers = append(addedUsers, val)
-				memberAddOptArgs.User = &addedUsers
-				hasMemberAdd = true
-			}
-		}
-		for _, value := range statearr {
-			if !slices.Contains(planarr, value) {
-				deletedUsers = append(deletedUsers, value)
-				memberDelOptArgs.User = &deletedUsers
-				hasMemberDel = true
-			}
-		}
-
-	}
-	if !data.MemberGroups.Equal(state.MemberGroups) {
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa group member users %s ", data.MemberGroups.String()))
-		var statearr, planarr, addedGroups, deletedGroups []string
-
-		for _, value := range state.MemberGroups.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			statearr = append(statearr, val)
-		}
-		for _, value := range data.MemberGroups.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			planarr = append(planarr, val)
-			if !slices.Contains(statearr, val) {
-				addedGroups = append(addedGroups, val)
-				memberAddOptArgs.Group = &addedGroups
-				hasMemberAdd = true
-			}
-		}
-		for _, value := range statearr {
-			if !slices.Contains(planarr, value) {
-				deletedGroups = append(deletedGroups, value)
-				memberDelOptArgs.Group = &deletedGroups
-				hasMemberDel = true
-			}
-		}
-
-	}
-	if !data.MemberExternalMembers.Equal(state.MemberExternalMembers) {
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa group member users %s ", data.MemberExternalMembers.String()))
-		var statearr, planarr, addedExt, deletedExt []string
-
-		for _, value := range state.MemberExternalMembers.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			statearr = append(statearr, val)
-		}
-		for _, value := range data.MemberExternalMembers.Elements() {
-			val, _ := strconv.Unquote(value.String())
-			planarr = append(planarr, val)
-			if !slices.Contains(statearr, val) {
-				addedExt = append(addedExt, val)
-				memberAddOptArgs.Ipaexternalmember = &addedExt
-				hasMemberAdd = true
-			}
-		}
-		for _, value := range statearr {
-			if !slices.Contains(planarr, value) {
-				deletedExt = append(deletedExt, value)
-				memberDelOptArgs.Ipaexternalmember = &deletedExt
-				hasMemberAdd = true
-			}
-		}
-
-	}
 	if !data.AddAttr.Equal(state.AddAttr) {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa group Addattr %s ", data.AddAttr.String()))
 		var v []string
@@ -566,7 +319,6 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 			v = append(v, val)
 		}
 		optArgs.Addattr = &v
-		hasGroupMod = true
 	}
 
 	if !data.SetAttr.Equal(state.SetAttr) {
@@ -576,65 +328,14 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 			v = append(v, val)
 		}
 		optArgs.Setattr = &v
-		hasGroupMod = true
 	}
 
-	if hasGroupMod {
-		res, err := r.client.GroupMod(&args, &optArgs)
-		if err != nil {
-			if strings.Contains(err.Error(), "EmptyModlist") {
-				tflog.Debug(ctx, "[DEBUG] EmptyModlist (4202): no modifications to be performed")
-			} else {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", res.Result.Cn, err))
-				return
-			}
-		}
-	}
-
-	// The api provides a add and a remove function for membership. Therefore we need to call the right one when appropriate.
-	if hasMemberAdd {
-		_v, err := r.client.GroupAddMember(&memberAddArgs, &memberAddOptArgs)
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error creating freeipa user group membership: %s", _v.String()))
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group membership: %s", err))
-			return
-		}
-		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group membership: %v", _v.Failed))
-			return
-		}
-		if memberAddOptArgs.Ipaexternalmember != nil {
-			z := new(bool)
-			*z = true
-			groupRes, err := r.client.GroupShow(&ipa.GroupShowArgs{Cn: data.Name.ValueString()}, &ipa.GroupShowOptionalArgs{All: z})
-			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] group show return is %s", groupRes.Result.String()))
-			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error looking up freeipa user group membership: %s", err))
-				return
-			}
-			for _, value := range *memberAddOptArgs.Ipaexternalmember {
-				v := []string{value}
-				if !slices.Contains(*groupRes.Result.Ipaexternalmember, value) {
-					_, err = r.client.GroupRemoveMember(&ipa.GroupRemoveMemberArgs{Cn: data.Name.ValueString()}, &ipa.GroupRemoveMemberOptionalArgs{Ipaexternalmember: &v})
-					if err != nil {
-						resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error deleting invalid freeipa user group membership: %s", err))
-					}
-					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("external member is not using the correct format. Use the lowercase upn format (ie: 'domain users@domain.net'): %s", value))
-				} else {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] group show %s is %v", data.Name.ValueString(), groupRes.Result.String()))
-				}
-			}
-		}
-	}
-	if hasMemberDel {
-		_v, err := r.client.GroupRemoveMember(&memberDelArgs, &memberDelOptArgs)
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error removing freeipa user group membership: %s", _v.String()))
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa user group membership: %s", err))
-			return
-		}
-		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa user group membership: %v", _v.Failed))
+	res, err := r.client.GroupMod(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "EmptyModlist") {
+			tflog.Debug(ctx, "[DEBUG] EmptyModlist (4202): no modifications to be performed")
+		} else {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", res.Result.Cn, err))
 			return
 		}
 	}

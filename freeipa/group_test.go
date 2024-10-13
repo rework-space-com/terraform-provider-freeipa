@@ -23,22 +23,9 @@ func TestAccFreeIPAGroup_posix(t *testing.T) {
 		"addattr":     "[\"owner=uid=test2\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
-	testGroup_GroupMembership := map[string]string{
-		"index":         "1",
-		"name":          "\"testacc-group-1\"",
-		"description":   "\"Test group 1\"",
-		"gid_number":    "10000",
-		"member_groups": "[freeipa_group.group-2.name]",
-		"addattr":       "[\"owner=uid=test\"]",
-		"setattr":       "[\"owner=uid=test\"]",
-	}
 	testGroupDS := map[string]string{
 		"index": "1",
 		"name":  "freeipa_group.group-2.name",
-	}
-	testGroupMembershipDS := map[string]string{
-		"index": "2",
-		"name":  "freeipa_group.group-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -59,16 +46,6 @@ func TestAccFreeIPAGroup_posix(t *testing.T) {
 					resource.TestCheckResourceAttr("data.freeipa_group.group-1", "gid_number", "10002"),
 					resource.TestCheckResourceAttr("freeipa_group.group-2", "description", "User group test 2"),
 					resource.TestCheckResourceAttr("freeipa_group.group-2", "gid_number", "10002"),
-				),
-			},
-			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup_GroupMembership) + testAccFreeIPAGroup_resource(testGroup2) + testAccFreeIPAGroup_datasource(testGroupMembershipDS),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group-2", "description", "User group test 2"),
-					resource.TestCheckResourceAttr("freeipa_group.group-2", "gid_number", "10002"),
-					resource.TestCheckResourceAttr("data.freeipa_group.group-2", "description", "Test group 1"),
-					resource.TestCheckResourceAttr("data.freeipa_group.group-2", "gid_number", "10000"),
-					resource.TestCheckResourceAttr("data.freeipa_group.group-2", "member_group.0", "testacc-grouppos-2"),
 				),
 			},
 		},

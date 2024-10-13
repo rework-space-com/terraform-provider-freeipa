@@ -46,9 +46,6 @@ resource "freeipa_group" "group-external" {
 - `description` (String) Group Description
 - `external` (Boolean) Allow adding external non-IPA members from trusted domains
 - `gid_number` (Number) GID (use this option to set it manually)
-- `member_external_members` (List of String) External members to add as group members. name must refer to an external group. (Requires a valid AD Trust configuration).
-- `member_groups` (List of String) User groups to add as group members
-- `member_users` (List of String) Users to add as group members
 - `nonposix` (Boolean) Create as a non-POSIX group
 - `setattr` (List of String) Set an attribute to a name/value pair. Format is attr=value.
 

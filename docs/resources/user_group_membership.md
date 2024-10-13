@@ -43,6 +43,7 @@ resource "freeipa_user_group_membership" "test-2" {
 - `external_members` (List of String) External members to add as group members. name must refer to an external group. (Requires a valid AD Trust configuration).
 - `group` (String, Deprecated) **deprecated** User group to add
 - `groups` (List of String) User groups to add as group members
+- `identifier` (String) Unique identifier to differentiate multiple user group membership resources on the same group. Manadatory for using users/groups/external_members configurations.
 - `user` (String, Deprecated) **deprecated** User to add
 - `users` (List of String) Users to add as group members
 

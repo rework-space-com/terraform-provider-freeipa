@@ -89,22 +89,26 @@ func TestAccFreeIPAUserGroupMembership_multiple_posix(t *testing.T) {
 		"name":        "freeipa_group.group-0.name",
 		"description": "\"User group test - member of testgroup\"",
 		"groups":      "[freeipa_group.group-1.name]",
+		"identifier":  "\"groups\"",
 	}
 	testMembershipGroups2 := map[string]string{
 		"index":       "0",
 		"name":        "freeipa_group.group-0.name",
 		"description": "\"User group test - member of testgroup\"",
 		"groups":      "[freeipa_group.group-1.name,freeipa_group.group-2.name]",
+		"identifier":  "\"groups\"",
 	}
 	testMembershipUsers1 := map[string]string{
-		"index": "1",
-		"name":  "freeipa_group.group-0.name",
-		"users": "[freeipa_user.user-0.name]",
+		"index":      "1",
+		"name":       "freeipa_group.group-0.name",
+		"users":      "[freeipa_user.user-0.name]",
+		"identifier": "\"users\"",
 	}
 	testMembershipUsers2 := map[string]string{
-		"index": "1",
-		"name":  "freeipa_group.group-0.name",
-		"users": "[freeipa_user.user-0.name,freeipa_user.user-1.name]",
+		"index":      "1",
+		"name":       "freeipa_group.group-0.name",
+		"users":      "[freeipa_user.user-0.name,freeipa_user.user-1.name]",
+		"identifier": "\"users\"",
 	}
 
 	resource.Test(t, resource.TestCase{

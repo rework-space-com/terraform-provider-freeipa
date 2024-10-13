@@ -270,6 +270,7 @@ func (p *freeipaProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewUserGroupMembershipResource,
 		NewHostResource,
 		NewHostGroupResource,
+		NewHostGroupMembershipResource,
 		NewDNSZoneResource,
 		NewDNSRecordResource,
 	}

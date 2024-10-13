@@ -395,3 +395,28 @@ func testAccFreeIPAHostGroup_datasource(dataset map[string]string) string {
 	}
 	`, dataset["index"], dataset["name"])
 }
+
+func testAccFreeIPAHostGroupMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_host_hostgroup_membership" "membership-%s" {
+	  name  = %s
+	`, dataset["index"], dataset["name"])
+
+	if dataset["host"] != "" {
+		tf_def += fmt.Sprintf("  host = %s\n", dataset["host"])
+	}
+	if dataset["hostgroup"] != "" {
+		tf_def += fmt.Sprintf("  hostgroup = %s\n", dataset["hostgroup"])
+	}
+	if dataset["hosts"] != "" {
+		tf_def += fmt.Sprintf("  hosts = %s\n", dataset["hosts"])
+	}
+	if dataset["hostgroups"] != "" {
+		tf_def += fmt.Sprintf("  hostgroups = %s\n", dataset["hostgroups"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}

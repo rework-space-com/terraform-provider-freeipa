@@ -60,7 +60,7 @@ func (r *SudoRuleRunAsGroupMembershipResource) ConfigValidators(ctx context.Cont
 func (r *SudoRuleRunAsGroupMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA Sudo run as group membership resource",
+		MarkdownDescription: "FreeIPA Sudo rule run as group membership resource",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

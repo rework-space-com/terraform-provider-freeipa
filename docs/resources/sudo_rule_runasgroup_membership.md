@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_runasgroup_membership Resource - freeipa"
 description: |-
-FreeIPA Sudo run as group membership resource
+FreeIPA Sudo rule run as group membership resource
 ---
 
 # freeipa_sudo_rule_runasgroup_membership (Resource)

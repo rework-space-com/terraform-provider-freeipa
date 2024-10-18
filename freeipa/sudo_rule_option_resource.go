@@ -49,7 +49,7 @@ func (r *SudoRuleOptionResource) ConfigValidators(ctx context.Context) []resourc
 func (r *SudoRuleOptionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA Sudo option resource",
+		MarkdownDescription: "FreeIPA Sudo rule option resource",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPARule_simple(t *testing.T) {
+func TestAccFreeIPASudoRule_simple(t *testing.T) {
 	testSudoRule := map[string]string{
 		"index":       "1",
 		"name":        "\"testacc-sudorule\"",

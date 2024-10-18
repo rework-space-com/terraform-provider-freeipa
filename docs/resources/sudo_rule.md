@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule Resource - freeipa"
 description: |-
-FreeIPA Sudo command resource
+FreeIPA Sudo rule resource
 ---
 
 # freeipa_sudo_rule (Resource)

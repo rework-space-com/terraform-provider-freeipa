@@ -3,12 +3,7 @@ issues:
   sudo-rule: update rule when order is removed
 
 resource:
-  hbac-policy
-  hbac-policy-host-membership
   hbac-policy-user-membership
   hbac-policy-service-membership
   automember
   automember-condition
-
-datasource:
-  hbac-policy

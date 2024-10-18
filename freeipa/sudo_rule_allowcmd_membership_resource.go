@@ -78,7 +78,7 @@ func (r *SudoRuleAllowCmdMembershipResource) ConfigValidators(ctx context.Contex
 func (r *SudoRuleAllowCmdMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA Sudo allow command membership resource",
+		MarkdownDescription: "FreeIPA Sudo rule allow command membership resource",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

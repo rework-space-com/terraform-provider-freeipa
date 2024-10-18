@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_allowcmd_membership Resource - freeipa"
 description: |-
-FreeIPA Sudo allow command membership resource
+FreeIPA Sudo rule allow command membership resource
 ---
 
 # freeipa_sudo_rule_allowcmd_membership (Resource)

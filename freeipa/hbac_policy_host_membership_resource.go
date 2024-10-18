@@ -23,20 +23,20 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &SudoRuleHostMembershipResource{}
-var _ resource.ResourceWithImportState = &SudoRuleHostMembershipResource{}
+var _ resource.Resource = &HbacPolicyHostMembershipResource{}
+var _ resource.ResourceWithImportState = &HbacPolicyHostMembershipResource{}
 
-func NewSudoRuleHostMembershipResource() resource.Resource {
-	return &SudoRuleHostMembershipResource{}
+func NewHbacPolicyHostMembershipResource() resource.Resource {
+	return &HbacPolicyHostMembershipResource{}
 }
 
-// SudoRuleHostMembershipResource defines the resource implementation.
-type SudoRuleHostMembershipResource struct {
+// HbacPolicyHostMembershipResource defines the resource implementation.
+type HbacPolicyHostMembershipResource struct {
 	client *ipa.Client
 }
 
-// SudoRuleHostMembershipResourceModel describes the resource data model.
-type SudoRuleHostMembershipResourceModel struct {
+// HbacPolicyHostMembershipResourceModel describes the resource data model.
+type HbacPolicyHostMembershipResourceModel struct {
 	Id         types.String `tfsdk:"id"`
 	Name       types.String `tfsdk:"name"`
 	Host       types.String `tfsdk:"host"`
@@ -46,11 +46,11 @@ type SudoRuleHostMembershipResourceModel struct {
 	Identifier types.String `tfsdk:"identifier"`
 }
 
-func (r *SudoRuleHostMembershipResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_sudo_rule_host_membership"
+func (r *HbacPolicyHostMembershipResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_hbac_policy_host_membership"
 }
 
-func (r *SudoRuleHostMembershipResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+func (r *HbacPolicyHostMembershipResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		resourcevalidator.Conflicting(
 			path.MatchRoot("host"),
@@ -75,10 +75,10 @@ func (r *SudoRuleHostMembershipResource) ConfigValidators(ctx context.Context) [
 	}
 }
 
-func (r *SudoRuleHostMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *HbacPolicyHostMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA Sudo rule host membership resource",
+		MarkdownDescription: "FreeIPA HBAC policy host membership resource",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -89,14 +89,14 @@ func (r *SudoRuleHostMembershipResource) Schema(ctx context.Context, req resourc
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Sudo rule name",
+				MarkdownDescription: "HBAC policy name",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"host": schema.StringAttribute{
-				MarkdownDescription: "**deprecated** Host to add to the sudo rule",
+				MarkdownDescription: "**deprecated** Host to add to the HBAC policy",
 				DeprecationMessage:  "use hosts instead",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
@@ -104,12 +104,12 @@ func (r *SudoRuleHostMembershipResource) Schema(ctx context.Context, req resourc
 				},
 			},
 			"hosts": schema.ListAttribute{
-				MarkdownDescription: "List of hosts to add to the sudo rule",
+				MarkdownDescription: "List of hosts to add to the HBAC policy",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
 			"hostgroup": schema.StringAttribute{
-				MarkdownDescription: "**deprecated** Hostgroup to add to the sudo rule",
+				MarkdownDescription: "**deprecated** Hostgroup to add to the HBAC policy",
 				DeprecationMessage:  "use hostgroups instead",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
@@ -117,12 +117,12 @@ func (r *SudoRuleHostMembershipResource) Schema(ctx context.Context, req resourc
 				},
 			},
 			"hostgroups": schema.ListAttribute{
-				MarkdownDescription: "List of hostgroups to add to the sudo rule",
+				MarkdownDescription: "List of hostgroups to add to the HBAC policy",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
 			"identifier": schema.StringAttribute{
-				MarkdownDescription: "Unique identifier to differentiate multiple sudo rule host membership resources on the same sudo rule. Manadatory for using hosts/hostgroups configurations.",
+				MarkdownDescription: "Unique identifier to differentiate multiple HBAC policy host membership resources on the same HBAC policy. Manadatory for using hosts/hostgroups configurations.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -132,7 +132,7 @@ func (r *SudoRuleHostMembershipResource) Schema(ctx context.Context, req resourc
 	}
 }
 
-func (r *SudoRuleHostMembershipResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *HbacPolicyHostMembershipResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -152,8 +152,8 @@ func (r *SudoRuleHostMembershipResource) Configure(ctx context.Context, req reso
 	r.client = client
 }
 
-func (r *SudoRuleHostMembershipResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data SudoRuleHostMembershipResourceModel
+func (r *HbacPolicyHostMembershipResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data HbacPolicyHostMembershipResourceModel
 	var id, cmd_id string
 
 	// Read Terraform plan data into the model
@@ -163,20 +163,20 @@ func (r *SudoRuleHostMembershipResource) Create(ctx context.Context, req resourc
 		return
 	}
 
-	optArgs := ipa.SudoruleAddHostOptionalArgs{}
+	optArgs := ipa.HbacruleAddHostOptionalArgs{}
 
-	args := ipa.SudoruleAddHostArgs{
+	args := ipa.HbacruleAddHostArgs{
 		Cn: data.Name.ValueString(),
 	}
 	if !data.Host.IsNull() {
 		v := []string{data.Host.ValueString()}
 		optArgs.Host = &v
-		cmd_id = "srh"
+		cmd_id = "h"
 	}
 	if !data.HostGroup.IsNull() {
 		v := []string{data.HostGroup.ValueString()}
 		optArgs.Hostgroup = &v
-		cmd_id = "srhg"
+		cmd_id = "hg"
 	}
 	if !data.Hosts.IsNull() || !data.HostGroups.IsNull() {
 		if !data.Hosts.IsNull() {
@@ -195,23 +195,23 @@ func (r *SudoRuleHostMembershipResource) Create(ctx context.Context, req resourc
 			}
 			optArgs.Hostgroup = &v
 		}
-		cmd_id = "msrh"
+		cmd_id = "mh"
 	}
 
-	_, err := r.client.SudoruleAddHost(&args, &optArgs)
+	_, err := r.client.HbacruleAddHost(&args, &optArgs)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule host membership: %s", err))
 		return
 	}
 
 	switch cmd_id {
-	case "srh":
+	case "h":
 		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), cmd_id, data.Host.ValueString())
 		data.Id = types.StringValue(id)
-	case "srhg":
+	case "hg":
 		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), cmd_id, data.HostGroup.ValueString())
 		data.Id = types.StringValue(id)
-	case "msrh":
+	case "mh":
 		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), cmd_id, data.Identifier.ValueString())
 		data.Id = types.StringValue(id)
 	}
@@ -220,8 +220,8 @@ func (r *SudoRuleHostMembershipResource) Create(ctx context.Context, req resourc
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data SudoRuleHostMembershipResourceModel
+func (r *HbacPolicyHostMembershipResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data HbacPolicyHostMembershipResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -230,54 +230,54 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 		return
 	}
 
-	sudoruleId, typeId, cmdId, err := parseSudoRuleHostMembershipID(data.Id.ValueString())
+	hbacpolicyid, typeId, policyId, err := parseHBACPolicyHostMembershipID(data.Id.ValueString())
 
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_sudorule_host_membership: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_hbac_policy_host_membership: %s", err))
 		return
 	}
 
 	all := true
-	optArgs := ipa.SudoruleShowOptionalArgs{
+	optArgs := ipa.HbacruleShowOptionalArgs{
 		All: &all,
 	}
 
-	args := ipa.SudoruleShowArgs{
-		Cn: sudoruleId,
+	args := ipa.HbacruleShowArgs{
+		Cn: hbacpolicyid,
 	}
 
-	res, err := r.client.SudoruleShow(&args, &optArgs)
+	res, err := r.client.HbacruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule not found")
+			resp.Diagnostics.AddError("Client Error", "Hbac policy not found")
 			return
 		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
 			return
 		}
 	}
 
 	switch typeId {
-	case "srh":
-		if res.Result.MemberhostHost == nil || !slices.Contains(*res.Result.MemberhostHost, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule host membership does not exist")
+	case "h":
+		if res.Result.MemberhostHost == nil || !slices.Contains(*res.Result.MemberhostHost, policyId) {
+			resp.Diagnostics.AddError("Client Error", "HBAC policy host membership does not exist")
 			return
 		}
-	case "srhg":
-		if res.Result.MemberhostHostgroup == nil || !slices.Contains(*res.Result.MemberhostHostgroup, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule host group membership does not exist")
+	case "hg":
+		if res.Result.MemberhostHostgroup == nil || !slices.Contains(*res.Result.MemberhostHostgroup, policyId) {
+			resp.Diagnostics.AddError("Client Error", "HBAC policy host group membership does not exist")
 			return
 		}
-	case "msrh":
+	case "mh":
 		if !data.Hosts.IsNull() && res.Result.MemberhostHost == nil {
 			var changedVals []string
 			for _, value := range data.Hosts.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member failed with error %s", err))
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy host member failed with error %s", err))
 				}
 				if slices.Contains(*res.Result.MemberhostHost, val) {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member %s is present in results", val))
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy host member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
 			}
@@ -292,10 +292,10 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 			for _, value := range data.HostGroups.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands failed with error %s", err))
 				}
 				if slices.Contains(*res.Result.MemberhostHostgroup, val) {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
 			}
@@ -314,8 +314,8 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 	}
 }
 
-func (r *SudoRuleHostMembershipResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data, state SudoRuleHostMembershipResourceModel
+func (r *HbacPolicyHostMembershipResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state HbacPolicyHostMembershipResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -325,15 +325,15 @@ func (r *SudoRuleHostMembershipResource) Update(ctx context.Context, req resourc
 		return
 	}
 
-	memberAddOptArgs := ipa.SudoruleAddHostOptionalArgs{}
+	memberAddOptArgs := ipa.HbacruleAddHostOptionalArgs{}
 
-	memberAddArgs := ipa.SudoruleAddHostArgs{
+	memberAddArgs := ipa.HbacruleAddHostArgs{
 		Cn: data.Name.ValueString(),
 	}
 
-	memberDelOptArgs := ipa.SudoruleRemoveHostOptionalArgs{}
+	memberDelOptArgs := ipa.HbacruleRemoveHostOptionalArgs{}
 
-	memberDelArgs := ipa.SudoruleRemoveHostArgs{
+	memberDelArgs := ipa.HbacruleRemoveHostArgs{
 		Cn: data.Name.ValueString(),
 	}
 	hasMemberAdd := false
@@ -391,26 +391,26 @@ func (r *SudoRuleHostMembershipResource) Update(ctx context.Context, req resourc
 	}
 	// The api provides a add and a remove function for membership. Therefore we need to call the right one when appropriate.
 	if hasMemberAdd {
-		_v, err := r.client.SudoruleAddHost(&memberAddArgs, &memberAddOptArgs)
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error creating freeipa sudo rule host membership: %s", _v.String()))
+		_v, err := r.client.HbacruleAddHost(&memberAddArgs, &memberAddOptArgs)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error creating freeipa hbac policy host membership: %s", _v.String()))
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule host membership: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa hbac policy host membership: %s", err))
 			return
 		}
 		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule host membership: %v", _v.Failed))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa hbac policy host membership: %v", _v.Failed))
 			return
 		}
 	}
 	if hasMemberDel {
-		_v, err := r.client.SudoruleRemoveHost(&memberDelArgs, &memberDelOptArgs)
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error removing freeipa sudo command group membership: %s", _v.String()))
+		_v, err := r.client.HbacruleRemoveHost(&memberDelArgs, &memberDelOptArgs)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error removing freeipa hbac policy host membership: %s", _v.String()))
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa sudo rule host membership: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa hbac policy host membership: %s", err))
 			return
 		}
 		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa sudo rule host membership: %v", _v.Failed))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa hbac policy host membership: %v", _v.Failed))
 			return
 		}
 	}
@@ -419,8 +419,8 @@ func (r *SudoRuleHostMembershipResource) Update(ctx context.Context, req resourc
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *SudoRuleHostMembershipResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data SudoRuleHostMembershipResourceModel
+func (r *HbacPolicyHostMembershipResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data HbacPolicyHostMembershipResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -428,27 +428,27 @@ func (r *SudoRuleHostMembershipResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	cmdgrpId, typeId, _, err := parseSudoRuleHostMembershipID(data.Id.ValueString())
+	hbacpolicyId, typeId, _, err := parseHBACPolicyHostMembershipID(data.Id.ValueString())
 
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_sudo_rule_host_membership: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_hbac_policy_host_membership: %s", err))
 		return
 	}
 
-	optArgs := ipa.SudoruleRemoveHostOptionalArgs{}
+	optArgs := ipa.HbacruleRemoveHostOptionalArgs{}
 
-	args := ipa.SudoruleRemoveHostArgs{
-		Cn: cmdgrpId,
+	args := ipa.HbacruleRemoveHostArgs{
+		Cn: hbacpolicyId,
 	}
 
 	switch typeId {
-	case "srh":
+	case "h":
 		v := []string{data.Host.ValueString()}
 		optArgs.Host = &v
-	case "srhg":
+	case "hg":
 		v := []string{data.HostGroup.ValueString()}
 		optArgs.Hostgroup = &v
-	case "msrh":
+	case "mh":
 		if !data.Hosts.IsNull() {
 			var v []string
 			for _, value := range data.Hosts.Elements() {
@@ -467,21 +467,21 @@ func (r *SudoRuleHostMembershipResource) Delete(ctx context.Context, req resourc
 		}
 	}
 
-	_, err = r.client.SudoruleRemoveHost(&args, &optArgs)
+	_, err = r.client.HbacruleRemoveHost(&args, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo host membership: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa hbac policy host membership: %s", err))
 		return
 	}
 }
 
-func (r *SudoRuleHostMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *HbacPolicyHostMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func parseSudoRuleHostMembershipID(id string) (string, string, string, error) {
-	idParts := strings.SplitN(id, "/", 3)
+func parseHBACPolicyHostMembershipID(id string) (string, string, string, error) {
+	idParts := strings.Split(id, "/")
 	if len(idParts) < 3 {
-		return "", "", "", fmt.Errorf("unable to determine sudo rule host membership ID %s", id)
+		return "", "", "", fmt.Errorf("unable to determine host membership ID %s", id)
 	}
 
 	name := decodeSlash(idParts[0])

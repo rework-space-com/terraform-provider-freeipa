@@ -3,6 +3,7 @@ resource "freeipa_dns_zone" "dns_zone-1" {
   skip_overlap_check = true
   disable_zone       = false
   allow_ptr_sync     = true
+  admin_email_address = "admin.testzone.ipatest.lan"
 }
 
 resource "freeipa_dns_zone" "dns_zone-2" {

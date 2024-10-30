@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 	"golang.org/x/exp/slices"
 )
 
@@ -112,7 +112,7 @@ func (r *SudoRuleOptionResource) Create(ctx context.Context, req resource.Create
 
 	args := ipa.SudoruleAddOptionArgs{
 		Cn:         data.Name.ValueString(),
-		Ipasudoopt: data.Option.ValueString(),
+		Ipasudoopt: []string{data.Option.ValueString()},
 	}
 	_, err := r.client.SudoruleAddOption(&args, &optArgs)
 	if err != nil {
@@ -218,7 +218,7 @@ func (r *SudoRuleOptionResource) Delete(ctx context.Context, req resource.Delete
 
 	switch typeId {
 	case "sro":
-		args.Ipasudoopt = optId
+		args.Ipasudoopt = []string{optId}
 	}
 
 	_, err = r.client.SudoruleRemoveOption(&args, &optArgs)

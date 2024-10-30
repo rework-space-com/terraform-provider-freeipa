@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -17,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -130,6 +130,7 @@ func (r *DNSRecordResource) Create(ctx context.Context, req resource.CreateReque
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var zone_name interface{} = data.ZoneName.ValueString()
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -140,7 +141,7 @@ func (r *DNSRecordResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	optArgs := ipa.DnsrecordAddOptionalArgs{
-		Dnszoneidnsname: data.ZoneName.ValueStringPointer(),
+		Dnszoneidnsname: &zone_name,
 	}
 
 	_type := data.Type.ValueString()
@@ -214,6 +215,7 @@ func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	var zone_name interface{} = data.ZoneName.ValueString()
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -225,7 +227,7 @@ func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	all := true
 	optArgs := ipa.DnsrecordShowOptionalArgs{
-		Dnszoneidnsname: data.ZoneName.ValueStringPointer(),
+		Dnszoneidnsname: &zone_name,
 		All:             &all,
 	}
 
@@ -308,13 +310,14 @@ func (r *DNSRecordResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var zone_name interface{} = data.ZoneName.ValueString()
 
 	args := ipa.DnsrecordModArgs{
 		Idnsname: data.Name.ValueString(),
 	}
 
 	optArgs := ipa.DnsrecordModOptionalArgs{
-		Dnszoneidnsname: data.ZoneName.ValueStringPointer(),
+		Dnszoneidnsname: &zone_name,
 	}
 
 	_type := data.Type.ValueString()
@@ -372,6 +375,7 @@ func (r *DNSRecordResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	var zone_name interface{} = data.ZoneName.ValueString()
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -389,7 +393,7 @@ func (r *DNSRecordResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 
 	optArgs := ipa.DnsrecordDelOptionalArgs{
-		Dnszoneidnsname: data.ZoneName.ValueStringPointer(),
+		Dnszoneidnsname: &zone_name,
 	}
 
 	_type := data.Type.ValueString()

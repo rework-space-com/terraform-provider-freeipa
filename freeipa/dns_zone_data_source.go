@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -186,6 +186,7 @@ func (r *dnsZoneDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	var zone_name interface{} = data.ZoneName.ValueString()
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -196,7 +197,7 @@ func (r *dnsZoneDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	optArgs := ipa.DnszoneShowOptionalArgs{
 		All:      &all,
 		Rights:   &all,
-		Idnsname: data.ZoneName.ValueStringPointer(),
+		Idnsname: &zone_name,
 	}
 
 	res, err := r.client.DnszoneShow(&ipa.DnszoneShowArgs{}, &optArgs)
@@ -218,22 +219,30 @@ func (r *dnsZoneDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	data.ZoneName = types.StringValue(res.Result.Idnsname)
+	dnsnames := res.Result.Idnsname.([]interface{})
+	dnsname := dnsnames[0].(map[string]interface{})["__dns_name__"]
+	data.ZoneName = types.StringValue(dnsname.(string))
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa DNS Zone %s", data.ZoneName.ValueString()))
 	if res.Result.Idnszoneactive != nil {
 		data.DisableZone = types.BoolValue(!*res.Result.Idnszoneactive)
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone disable_zone %s", data.DisableZone.String()))
 	}
 	if res.Result.Idnssoamname != nil {
-		data.AuthoritativeNameserver = types.StringValue(*res.Result.Idnssoamname)
+		authnames := (*res.Result.Idnssoamname).([]interface{})
+		authname := authnames[0].(map[string]interface{})["__dns_name__"]
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone authoritative_nameserver %v", *res.Result.Idnssoamname))
+		data.AuthoritativeNameserver = types.StringValue(authname.(string))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone authoritative_nameserver %s", data.AuthoritativeNameserver.ValueString()))
 	}
 	if res.Result.Idnssoarname != "" {
-		data.AdminEmailAddress = types.StringValue(res.Result.Idnssoarname)
+		adminemails := (*res.Result.Idnssoamname).([]interface{})
+		adminemail := adminemails[0].(map[string]interface{})["__dns_name__"]
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone admin_email %v", res.Result.Idnssoarname))
+		data.AdminEmailAddress = types.StringValue(adminemail.(string))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone admin_email_address %s", data.AdminEmailAddress.ValueString()))
 	}
 	//if res.Result.Idnssoaserial != nil {
-	data.SoaSerialNumber = types.Int64Value(int64(res.Result.Idnssoaserial))
+	data.SoaSerialNumber = types.Int64Value(int64(*res.Result.Idnssoaserial))
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_serial_number %d", int(data.SoaSerialNumber.ValueInt64())))
 	//}
 	//if res.Result.Idnssoaretry != nil {

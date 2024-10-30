@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -90,6 +90,7 @@ func (r *dnsRecordDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	var zone_name interface{} = data.ZoneName.ValueString()
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -100,7 +101,7 @@ func (r *dnsRecordDataSource) Read(ctx context.Context, req datasource.ReadReque
 		Idnsname: data.RecordName.ValueString(),
 	}
 	optArgs := ipa.DnsrecordShowOptionalArgs{
-		Dnszoneidnsname: data.ZoneName.ValueStringPointer(),
+		Dnszoneidnsname: &zone_name,
 		Structured:      &structured,
 	}
 

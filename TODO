@@ -1,6 +1,6 @@
 issues:
-  dns-zone: solve the failed error on enable/disable zone
   sudo-rule: update rule when order is removed
+  sudo-rule-option: use arrays also
 
 resource:
   hbac-policy-user-membership

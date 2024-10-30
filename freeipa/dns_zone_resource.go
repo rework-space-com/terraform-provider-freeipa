@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -17,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -218,12 +218,14 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 	args := ipa.DnszoneAddArgs{}
 
 	if !data.SoaSerialNumber.IsNull() {
-		args.Idnssoaserial = int(data.SoaSerialNumber.ValueInt64())
+		serial := int(data.SoaSerialNumber.ValueInt64())
+		optArgs.Idnssoaserial = &serial
 	}
 	if !data.IsReverseZone.IsNull() && data.IsReverseZone.ValueBool() {
 		optArgs.NameFromIP = data.ZoneName.ValueStringPointer()
 	} else {
-		optArgs.Idnsname = data.ZoneName.ValueStringPointer()
+		var zone_name interface{} = data.ZoneName.ValueString()
+		optArgs.Idnsname = &zone_name
 	}
 	if !data.SkipOverlapCheck.IsNull() && data.SkipOverlapCheck.ValueBool() {
 		optArgs.SkipOverlapCheck = data.SkipOverlapCheck.ValueBoolPointer()
@@ -232,10 +234,12 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 		optArgs.SkipNameserverCheck = data.SkipNameserverCheck.ValueBoolPointer()
 	}
 	if !data.AuthoritativeNameserver.IsNull() {
-		optArgs.Idnssoamname = data.AuthoritativeNameserver.ValueStringPointer()
+		var auth_nameserver interface{} = data.AuthoritativeNameserver.ValueString()
+		optArgs.Idnssoamname = &auth_nameserver
 	}
 	if !data.AdminEmailAddress.IsNull() {
-		optArgs.Idnssoarname = data.AdminEmailAddress.ValueStringPointer()
+		var admin_email interface{} = data.AdminEmailAddress.ValueString()
+		optArgs.Idnssoarname = &admin_email
 	}
 	if !data.SoaRefresh.IsNull() {
 		soa_refresh := int(data.SoaRefresh.ValueInt64())
@@ -297,17 +301,21 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 		return
 	}
 
-	data.ComputedZoneName = types.StringValue(res.Result.Idnsname)
-	data.Id = types.StringValue(res.Result.Idnsname)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa dns zone %s result: %v", data.ZoneName.ValueString(), res.Result.Idnsname))
+	dnsnames := res.Result.Idnsname.([]interface{})
+	dnsname := dnsnames[0].(map[string]interface{})["__dns_name__"]
+	data.ComputedZoneName = types.StringValue(dnsname.(string))
+	data.Id = types.StringValue(dnsname.(string))
 
 	if !data.DisableZone.IsNull() && data.DisableZone.ValueBool() {
 		//TODO solve the failed error on enable/dissable zone
-		r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-		// _, err = r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-		// if err != nil {
-		// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
-		// 	return
-		// }
+		var name interface{} = data.Id.ValueString()
+		// r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
+		_, err = r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
+			return
+		}
 	}
 
 	// Save data into Terraform state
@@ -325,10 +333,11 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 	}
 
 	all := true
+	var name interface{} = data.Id.ValueString()
 	optArgs := ipa.DnszoneShowOptionalArgs{
 		All:      &all,
 		Rights:   &all,
-		Idnsname: data.Id.ValueStringPointer(),
+		Idnsname: &name,
 	}
 
 	res, err := r.client.DnszoneShow(&ipa.DnszoneShowArgs{}, &optArgs)
@@ -349,15 +358,15 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone disable_zone %s", data.DisableZone.String()))
 	}
 	if res.Result.Idnssoamname != nil && !data.AuthoritativeNameserver.IsNull() {
-		data.AuthoritativeNameserver = types.StringValue(*res.Result.Idnssoamname)
+		data.AuthoritativeNameserver = types.StringValue((*res.Result.Idnssoamname).(string))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone authoritative_nameserver %s", data.AuthoritativeNameserver.ValueString()))
 	}
 	if res.Result.Idnssoarname != "" && !data.AdminEmailAddress.IsNull() {
-		data.AdminEmailAddress = types.StringValue(res.Result.Idnssoarname)
+		data.AdminEmailAddress = types.StringValue(res.Result.Idnssoarname.(string))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone admin_email_address %s", data.AdminEmailAddress.ValueString()))
 	}
 	if !data.SoaSerialNumber.IsNull() {
-		data.SoaSerialNumber = types.Int64Value(int64(res.Result.Idnssoaserial))
+		data.SoaSerialNumber = types.Int64Value(int64(*res.Result.Idnssoaserial))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_serial_number %d", int(data.SoaSerialNumber.ValueInt64())))
 	}
 	if !data.SoaRetry.IsNull() {
@@ -429,18 +438,21 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 	// }
 
 	hasChange := false
+	var zone_name interface{} = data.ZoneName.ValueString()
 	optArgs := ipa.DnszoneModOptionalArgs{
-		Idnsname: data.ZoneName.ValueStringPointer(),
+		Idnsname: &zone_name,
 	}
 
 	if !data.AuthoritativeNameserver.Equal(state.AuthoritativeNameserver) {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone AuthoritativeNameserver %s: %s", data.ZoneName.ValueString(), data.AuthoritativeNameserver.ValueString()))
-		optArgs.Idnssoamname = data.AuthoritativeNameserver.ValueStringPointer()
+		var auth_nameserver interface{} = data.AuthoritativeNameserver.ValueString()
+		optArgs.Idnssoamname = &auth_nameserver
 		hasChange = true
 	}
 	if !data.AdminEmailAddress.Equal(state.AdminEmailAddress) {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone AdminEmailAddress %s: %s", data.ZoneName.ValueString(), data.AdminEmailAddress.ValueString()))
-		optArgs.Idnssoarname = data.AdminEmailAddress.ValueStringPointer()
+		var admin_email interface{} = data.AdminEmailAddress.ValueString()
+		optArgs.Idnssoarname = &admin_email
 		hasChange = true
 	}
 	if !data.SoaSerialNumber.Equal(state.SoaSerialNumber) {
@@ -550,21 +562,22 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s plan disabled %s - state disabled %s", data.ZoneName.ValueString(), data.DisableZone.String(), state.DisableZone.String()))
 	//TODO solve the failed error on enable/dissable zone
+	var name interface{} = data.Id.ValueString()
 	if !data.DisableZone.Equal(state.DisableZone) {
 		if data.DisableZone.ValueBool() {
-			r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-			// _, err := r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-			// if err != nil {
-			// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable. Something went wrong: %s", err))
-			// 	return
-			// }
+			//r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
+			_, err := r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable. Something went wrong: %s", err))
+				return
+			}
 		} else {
-			r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-			// _, err := r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: data.Id.ValueStringPointer()})
-			// if err != nil {
-			// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone enable. Something went wrong: %s", err))
-			// 	return
-			// }
+			//r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: &name})
+			_, err := r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: &name})
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone enable. Something went wrong: %s", err))
+				return
+			}
 		}
 	}
 	//data.ComputedZoneName = data.Id
@@ -590,7 +603,8 @@ func (r *dnsZone) Delete(ctx context.Context, req resource.DeleteRequest, resp *
 	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
 	//     return
 	// }
-	id := []string{data.Id.ValueString()}
+	var id []interface{}
+	id = append(id, data.Id.ValueString())
 	optArgs := ipa.DnszoneDelOptionalArgs{
 		Idnsname: &id,
 	}

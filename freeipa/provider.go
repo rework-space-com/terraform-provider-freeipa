@@ -286,6 +286,8 @@ func (p *freeipaProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewSudoRuleUserMembershipResource,
 		NewHbacPolicyResource,
 		NewHbacPolicyHostMembershipResource,
+		NewHbacPolicyUserMembershipResource,
+		NewHbacPolicyServiceMembershipResource,
 	}
 }
 

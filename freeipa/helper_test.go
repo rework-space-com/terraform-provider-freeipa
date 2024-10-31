@@ -711,3 +711,51 @@ func testAccFreeIPAHbacPolicyHostMembership_resource(dataset map[string]string) 
 	tf_def += "}\n"
 	return tf_def
 }
+
+func testAccFreeIPAHbacPolicyUserMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_hbac_policy_user_membership" "hbac-user-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["user"] != "" {
+		tf_def += fmt.Sprintf("  user = %s\n", dataset["user"])
+	}
+	if dataset["users"] != "" {
+		tf_def += fmt.Sprintf("  users = %s\n", dataset["users"])
+	}
+	if dataset["group"] != "" {
+		tf_def += fmt.Sprintf("  group = %s\n", dataset["group"])
+	}
+	if dataset["groups"] != "" {
+		tf_def += fmt.Sprintf("  groups = %s\n", dataset["groups"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPAHbacPolicyServiceMembership_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_hbac_policy_service_membership" "hbac-service-membership-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["service"] != "" {
+		tf_def += fmt.Sprintf("  service = %s\n", dataset["service"])
+	}
+	if dataset["services"] != "" {
+		tf_def += fmt.Sprintf("  services = %s\n", dataset["services"])
+	}
+	if dataset["servicegroup"] != "" {
+		tf_def += fmt.Sprintf("  servicegroup = %s\n", dataset["servicegroup"])
+	}
+	if dataset["servicegroups"] != "" {
+		tf_def += fmt.Sprintf("  servicegroups = %s\n", dataset["servicegroups"])
+	}
+	if dataset["identifier"] != "" {
+		tf_def += fmt.Sprintf("  identifier = %s\n", dataset["identifier"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}

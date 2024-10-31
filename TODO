@@ -3,7 +3,5 @@ issues:
   sudo-rule-option: use arrays also
 
 resource:
-  hbac-policy-user-membership
-  hbac-policy-service-membership
   automember
   automember-condition

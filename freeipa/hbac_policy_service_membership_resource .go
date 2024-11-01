@@ -126,6 +126,7 @@ func (r *HbacPolicyServiceMembershipResource) Schema(ctx context.Context, req re
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 		},

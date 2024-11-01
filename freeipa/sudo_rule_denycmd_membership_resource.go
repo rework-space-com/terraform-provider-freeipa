@@ -126,6 +126,7 @@ func (r *SudoRuleDenyCmdMembershipResource) Schema(ctx context.Context, req reso
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 		},

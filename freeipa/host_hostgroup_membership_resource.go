@@ -467,7 +467,9 @@ func (r *HostGroupMembership) Delete(ctx context.Context, req resource.DeleteReq
 		v := []string{userId}
 		optArgs.Host = &v
 	case "m":
-		if !data.Host.IsNull() {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Delete freeipa hostgroup member hosts %v ", data.Hosts))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Delete freeipa hostgroup member hostgroups %v ", data.HostGroups))
+		if !data.Hosts.IsNull() {
 			var v []string
 			for _, value := range data.Hosts.Elements() {
 				val, _ := strconv.Unquote(value.String())

@@ -95,6 +95,7 @@ func (r *SudoRuleRunAsGroupMembershipResource) Schema(ctx context.Context, req r
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 		},

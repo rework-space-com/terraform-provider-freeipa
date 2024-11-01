@@ -48,9 +48,9 @@ resource "freeipa_host" "host-1" {
 - `trusted_to_auth_as_delegate` (Boolean) The service is allowed to authenticate on behalf of a client
 - `user_certificates` (List of String) Base-64 encoded host certificate
 - `userclass` (List of String) Host category (semantics placed on this attribute are for local interpretation)
-- `userpassword` (String) Password used in bulk enrollment
+- `userpassword` (String, Sensitive) Password used in bulk enrollment
 
 ### Read-Only
 
-- `generated_password` (String) Generated random password created at host creation
+- `generated_password` (String, Sensitive) Generated random password created at host creation
 - `id` (String) ID of the resource

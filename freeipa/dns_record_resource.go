@@ -99,6 +99,7 @@ func (r *DNSRecordResource) Schema(ctx context.Context, req resource.SchemaReque
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 		},

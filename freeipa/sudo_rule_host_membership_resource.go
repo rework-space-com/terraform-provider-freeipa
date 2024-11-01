@@ -126,6 +126,7 @@ func (r *SudoRuleHostMembershipResource) Schema(ctx context.Context, req resourc
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 		},
@@ -292,10 +293,10 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 			for _, value := range data.HostGroups.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member commands failed with error %s", err))
 				}
 				if slices.Contains(*res.Result.MemberhostHostgroup, val) {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
 			}
@@ -404,7 +405,7 @@ func (r *SudoRuleHostMembershipResource) Update(ctx context.Context, req resourc
 	}
 	if hasMemberDel {
 		_v, err := r.client.SudoruleRemoveHost(&memberDelArgs, &memberDelOptArgs)
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error removing freeipa sudo command group membership: %s", _v.String()))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error removing freeipa sudo host group membership: %s", _v.String()))
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa sudo rule host membership: %s", err))
 			return

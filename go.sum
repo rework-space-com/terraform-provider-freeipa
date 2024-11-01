@@ -128,8 +128,8 @@ github.com/huandu/xstrings v1.3.3/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq
 github.com/imdario/mergo v0.3.11/go.mod h1:jmQim1M+e3UYxmgPu/WyfjB3N3VflVyUjjjwH0dnCYA=
 github.com/imdario/mergo v0.3.15 h1:M8XP7IuFNsqUx6VPK2P9OSmsYsI/YFaGil0uD21V3dM=
 github.com/imdario/mergo v0.3.15/go.mod h1:WBLT9ZmE3lPoWsEzCh9LPo3TiwVN+ZKEjmz+hD27ysY=
-github.com/infra-monkey/go-freeipa v1.2.1-rc9 h1:UU3LqflmZzjBvXsU1IT6pCEdOS9SA4bAL4qERZ81SaI=
-github.com/infra-monkey/go-freeipa v1.2.1-rc9/go.mod h1:ZSHw8h24FXuWeNLp07Bq2tYVRMpe8kDgB0vCNkGCse8=
+github.com/infra-monkey/go-freeipa v1.2.1-rc12 h1:72Gr9bOF//5rC72/58NPdSxbsbWIwSrdnBg3ME8ZWuM=
+github.com/infra-monkey/go-freeipa v1.2.1-rc12/go.mod h1:A7+XVkwmdg1e2CspeuDyo0PLGlF5qxctNvNDj4/GnLg=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99/go.mod h1:1lJo3i6rXxKeerYnT8Nvf0QmHCRC1n8sfWVwXF2Frvo=
 github.com/jcmturner/aescts/v2 v2.0.0 h1:9YKLH6ey7H4eDBXW8khjYslgyqG2xZikXP0EQFKrle8=

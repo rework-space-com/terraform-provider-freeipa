@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.23.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.10.0
-	github.com/infra-monkey/go-freeipa v1.2.1-rc9
+	github.com/infra-monkey/go-freeipa v1.2.1-rc12
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 )
 

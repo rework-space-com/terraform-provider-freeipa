@@ -95,6 +95,7 @@ func (r *SudoRuleRunAsUserMembershipResource) Schema(ctx context.Context, req re
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 		},
@@ -215,22 +216,30 @@ func (r *SudoRuleRunAsUserMembershipResource) Read(ctx context.Context, req reso
 			return
 		}
 	case "msrrau":
-		if !data.RunAsUsers.IsNull() && res.Result.IpasudorunasUser == nil {
-			var changedVals []string
-			for _, value := range data.RunAsUsers.Elements() {
-				val, err := strconv.Unquote(value.String())
-				if err != nil {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo runasgroup membership failed with error %s", err))
+		if !data.RunAsUsers.IsNull() {
+			if res.Result.IpasudorunasUser != nil {
+				var changedVals []string
+				for _, value := range data.RunAsUsers.Elements() {
+					val, err := strconv.Unquote(value.String())
+					if err != nil {
+						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo runasgroup membership failed with error %s", err))
+					}
+					if slices.Contains(*res.Result.IpasudorunasUser, val) {
+						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo runasgroup membership %s is present in results", val))
+						changedVals = append(changedVals, val)
+					}
 				}
-				if slices.Contains(*res.Result.IpasudorunasUser, val) {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo runasgroup membership %s is present in results", val))
-					changedVals = append(changedVals, val)
+				var diag diag.Diagnostics
+				data.RunAsUsers, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+				if diag.HasError() {
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 				}
-			}
-			var diag diag.Diagnostics
-			data.RunAsUsers, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
-			if diag.HasError() {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			} else {
+				var diag diag.Diagnostics
+				data.RunAsUsers, diag = types.ListValueFrom(ctx, types.StringType, &[]string{})
+				if diag.HasError() {
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+				}
 			}
 		}
 	}

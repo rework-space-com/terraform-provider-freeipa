@@ -675,7 +675,8 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		optArgs.Preferredlanguage = data.PreferredLanguage.ValueStringPointer()
 	}
 	if !data.AccountDisabled.Equal(state.AccountDisabled) {
-		optArgs.Nsaccountlock = data.AccountDisabled.ValueBoolPointer()
+		_v := data.AccountDisabled.ValueBool()
+		optArgs.Nsaccountlock = &_v
 	}
 	if !data.TelephoneNumbers.Equal(state.TelephoneNumbers) {
 		var v []string

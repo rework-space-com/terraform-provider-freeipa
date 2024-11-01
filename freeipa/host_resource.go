@@ -162,6 +162,7 @@ func (r *HostResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"userpassword": schema.StringAttribute{
 				MarkdownDescription: "Password used in bulk enrollment",
 				Optional:            true,
+				Sensitive:           true,
 			},
 			"random_password": schema.BoolAttribute{
 				MarkdownDescription: "Generate a random password to be used in bulk enrollment",
@@ -170,6 +171,7 @@ func (r *HostResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"generated_password": schema.StringAttribute{
 				MarkdownDescription: "Generated random password created at host creation",
 				Computed:            true,
+				Sensitive:           true,
 			},
 		},
 	}

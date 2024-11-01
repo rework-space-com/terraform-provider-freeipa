@@ -126,6 +126,7 @@ func (r *SudoRuleUserMembershipResource) Schema(ctx context.Context, req resourc
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 		},

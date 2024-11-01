@@ -234,7 +234,7 @@ func (r *dnsZoneDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		data.AuthoritativeNameserver = types.StringValue(authname.(string))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone authoritative_nameserver %s", data.AuthoritativeNameserver.ValueString()))
 	}
-	if res.Result.Idnssoarname != "" {
+	if res.Result.Idnssoarname != nil {
 		adminemails := (*res.Result.Idnssoamname).([]interface{})
 		adminemail := adminemails[0].(map[string]interface{})["__dns_name__"]
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone admin_email %v", res.Result.Idnssoarname))

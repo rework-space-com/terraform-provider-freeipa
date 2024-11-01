@@ -358,20 +358,36 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone disable_zone %s", data.DisableZone.String()))
 	}
 	if res.Result.Idnssoamname != nil && !data.AuthoritativeNameserver.IsNull() {
-		data.AuthoritativeNameserver = types.StringValue((*res.Result.Idnssoamname).(string))
+		auth_nameservers := (*res.Result.Idnssoamname).([]interface{})
+		auth_nameserver := auth_nameservers[0].(map[string]interface{})["__dns_name__"]
+		data.AuthoritativeNameserver = types.StringValue(auth_nameserver.(string))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone authoritative_nameserver %s", data.AuthoritativeNameserver.ValueString()))
 	}
-	if res.Result.Idnssoarname != "" && !data.AdminEmailAddress.IsNull() {
-		data.AdminEmailAddress = types.StringValue(res.Result.Idnssoarname.(string))
+	if res.Result.Idnssoarname != nil && !data.AdminEmailAddress.IsNull() {
+		admin_mails := (*res.Result.Idnssoarname).([]interface{})
+		admin_mail := admin_mails[0].(map[string]interface{})["__dns_name__"]
+		data.AdminEmailAddress = types.StringValue(admin_mail.(string))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone admin_email_address %s", data.AdminEmailAddress.ValueString()))
 	}
 	if !data.SoaSerialNumber.IsNull() {
 		data.SoaSerialNumber = types.Int64Value(int64(*res.Result.Idnssoaserial))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_serial_number %d", int(data.SoaSerialNumber.ValueInt64())))
 	}
+	if !data.SoaRefresh.IsNull() {
+		data.SoaRefresh = types.Int64Value(int64(res.Result.Idnssoarefresh))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_refresh %d", int(data.SoaRefresh.ValueInt64())))
+	}
 	if !data.SoaRetry.IsNull() {
 		data.SoaRetry = types.Int64Value(int64(res.Result.Idnssoaretry))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_retry %d", int(data.SoaRetry.ValueInt64())))
+	}
+	if !data.SoaExpire.IsNull() {
+		data.SoaExpire = types.Int64Value(int64(res.Result.Idnssoaexpire))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_expire %d", int(data.SoaExpire.ValueInt64())))
+	}
+	if !data.SoaMinimum.IsNull() {
+		data.SoaMinimum = types.Int64Value(int64(res.Result.Idnssoaminimum))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_minimum %d", int(data.SoaMinimum.ValueInt64())))
 	}
 	if res.Result.Dnsttl != nil && !data.TTL.IsNull() {
 		data.TTL = types.Int64Value(int64(*res.Result.Dnsttl))
@@ -386,7 +402,7 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone bind_update_policy %s", data.BindUpdatePolicy.ValueString()))
 	}
 	if res.Result.Idnsallowdynupdate != nil && !data.DynamicUpdate.IsNull() {
-		data.DynamicUpdate = types.BoolValue(!*res.Result.Idnsallowdynupdate)
+		data.DynamicUpdate = types.BoolValue(*res.Result.Idnsallowdynupdate)
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone dynamic_updates %s", data.DynamicUpdate.String()))
 	}
 	if res.Result.Idnsallowquery != nil && !data.AllowQuery.IsNull() {
@@ -402,7 +418,7 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_ptr_sync %s", data.AllowPtrSync.String()))
 	}
 	if res.Result.Idnssecinlinesigning != nil && !data.AllowInlineDnssecSigning.IsNull() {
-		data.AllowInlineDnssecSigning = types.BoolValue(!*res.Result.Idnssecinlinesigning)
+		data.AllowInlineDnssecSigning = types.BoolValue(*res.Result.Idnssecinlinesigning)
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_inline_dnssec_signing %s", data.AllowInlineDnssecSigning.String()))
 	}
 	if res.Result.Nsec3paramrecord != nil && !data.Nsec3ParamRecord.IsNull() {
@@ -499,17 +515,20 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 	}
 	if !data.DynamicUpdate.Equal(state.DynamicUpdate) {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s DynamicUpdate has change", data.ZoneName.ValueString()))
-		optArgs.Idnsallowdynupdate = data.DynamicUpdate.ValueBoolPointer()
+		_v := data.DynamicUpdate.ValueBool()
+		optArgs.Idnsallowdynupdate = &_v
 		hasChange = true
 	}
 	if !data.AllowPtrSync.Equal(state.AllowPtrSync) {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s AllowPtrSync has change", data.ZoneName.ValueString()))
-		optArgs.Idnsallowsyncptr = data.AllowPtrSync.ValueBoolPointer()
+		_v := data.AllowPtrSync.ValueBool()
+		optArgs.Idnsallowsyncptr = &_v
 		hasChange = true
 	}
 	if !data.AllowInlineDnssecSigning.Equal(state.AllowInlineDnssecSigning) {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s AllowInlineDnssecSigning has change", data.ZoneName.ValueString()))
-		optArgs.Idnssecinlinesigning = data.AllowInlineDnssecSigning.ValueBoolPointer()
+		_v := data.AllowInlineDnssecSigning.ValueBool()
+		optArgs.Idnssecinlinesigning = &_v
 		hasChange = true
 	}
 	if !data.BindUpdatePolicy.Equal(state.BindUpdatePolicy) {
@@ -531,7 +550,7 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 		hasChange = true
 	}
 	if !data.ZoneForwarders.Equal(state.ZoneForwarders) {
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s DynZoneForwardersamicUpdate has change", data.ZoneName.ValueString()))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s ZoneForwarders has change", data.ZoneName.ValueString()))
 		var v []string
 		for _, value := range data.ZoneForwarders.Elements() {
 			val, _ := strconv.Unquote(value.String())
@@ -552,7 +571,6 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 		if err != nil {
 			if strings.Contains(err.Error(), "EmptyModlist") {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
-				return
 			} else {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa dns zone: %s", err))
 				return

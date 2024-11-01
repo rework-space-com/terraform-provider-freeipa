@@ -64,6 +64,7 @@ type UserDataSourceModel struct {
 	SshPublicKeys            types.List   `tfsdk:"ssh_public_key"`
 	CarLicense               types.List   `tfsdk:"car_license"`
 	UserClass                types.List   `tfsdk:"userclass"`
+	UserPassword             types.String `tfsdk:"user_password"`
 	MemberOfGroup            types.List   `tfsdk:"memberof_group"`
 	MemberOfSudoRule         types.List   `tfsdk:"memberof_sudorule"`
 	MemberOfHBACRule         types.List   `tfsdk:"memberof_hbacrule"`
@@ -226,6 +227,11 @@ func (r *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				MarkdownDescription: "User category (semantics placed on this attribute are for local interpretation)",
 				Computed:            true,
 				ElementType:         types.StringType,
+			},
+			"user_password": schema.StringAttribute{
+				MarkdownDescription: "User password",
+				Computed:            true,
+				Sensitive:           true,
 			},
 			"memberof_group": schema.ListAttribute{
 				MarkdownDescription: "List of groups this user is member of.",
@@ -401,6 +407,9 @@ func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			return
 		}
 		data.KrbPasswordExpiration = types.StringValue(timestamp.Format(time.RFC3339))
+	}
+	if res.Result.Userpassword != nil {
+		data.UserPassword = types.StringValue(*res.Result.Userpassword)
 	}
 	if res.Result.Userclass != nil {
 		data.UserClass, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Userclass)

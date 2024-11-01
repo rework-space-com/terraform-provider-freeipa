@@ -1,4 +1,4 @@
-resource freeipa_sudo_cmd "sudo" {
-  name = "sudo"
-  description = "sudo"
+resource "freeipa_hbac_service" "hbac_svc_1" {
+  name        = "mongodb"
+  description = "HBAC Service 1"
 }

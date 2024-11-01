@@ -1,4 +1,4 @@
-resource freeipa_hbac_servicegroup "hbac_svcgroup-1" {
-  name = "hbac_svcgroup-1"
-  description = "Hbacsvc group"
+resource freeipa_hbac_servicegroup "hbac_svcgroup_1" {
+  name = "database_admins"
+  description = "HBAC service group"
 }

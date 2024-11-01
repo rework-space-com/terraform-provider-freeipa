@@ -46,6 +46,7 @@ func Provider() *schema.Provider {
 			"freeipa_dns_record":                      resourceFreeIPADNSRecord(),
 			"freeipa_dns_zone":                        resourceFreeIPADNSZone(),
 			"freeipa_group":                           resourceFreeIPAGroup(),
+			"freeipa_hbac_service":                    resourceFreeIPAHBACService(),
 			"freeipa_hbac_policy":                     resourceFreeIPAHBACPolicy(),
 			"freeipa_hbac_policy_host_membership":     resourceFreeIPAHBACPolicyHostMembership(),
 			"freeipa_hbac_policy_service_membership":  resourceFreeIPAHBACPolicyServiceMembership(),

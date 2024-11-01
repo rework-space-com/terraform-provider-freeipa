@@ -106,7 +106,7 @@ func resourceFreeIPAHBACServiceServiceGroupMembershipRead(ctx context.Context, d
 		if res.Result.MemberHbacsvc == nil || !slices.Contains(*res.Result.MemberHbacsvc, svcId) {
 			log.Printf("[DEBUG] Warning! HBAC service group membership does not exist")
 			d.Set("name", "")
-			d.Set("hbacsvc", "")
+			d.Set("service", "")
 			d.SetId("")
 			return nil
 		}

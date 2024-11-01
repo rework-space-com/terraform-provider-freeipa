@@ -10,14 +10,14 @@ import (
 
 func TestAccFreeIPAHBACServiceGroupMembership(t *testing.T) {
 	testHBACServiceGroupMembership := map[string]string{
-		"name":     "diag",
-		"hbacsvc":  "iftop",
-		"hbacsvc2": "vnstat",
+		"name":     "database_admins",
+		"hbacsvc":  "mongodb",
+		"hbacsvc2": "postgresql",
 	}
 	testHBACServiceGroupMembershipWithSlash := map[string]string{
-		"name":     "category_test/diag",
-		"hbacsvc":  "iftop",
-		"hbacsvc2": "vnstat",
+		"name":     "category/database_admins",
+		"hbacsvc":  "mongodb",
+		"hbacsvc2": "postgresql",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -65,24 +65,20 @@ func testAccFreeIPAHBACServiceGroupMembershipResource_basic(dataset map[string]s
 		password = "%s"
 		insecure = true
 	  }
-	
-	resource "freeipa_hbac_service" "hbacsvc" {
-		name       = "%s"
-	}
 
-	resource "freeipa_hbac_service" "hbacsvc2" {
-		name       = "%s"
+	resource "freeipa_hbac_service" "hbacsvc" {
+		name = "%s"
 	}
 
 	resource "freeipa_hbac_servicegroup" "hbacsvcgroup" {
-		name       = "%s"
+		name = "%s"
 	}
 
 	resource "freeipa_hbac_service_servicegroup_membership" "hbac_svc_member" {
-		name       = freeipa_hbac_servicegroup.hbacsvcgroup.name
-		service    = freeipa_hbac_service.hbacsvc.name
+		name    = freeipa_hbac_servicegroup.hbacsvcgroup.name
+		service = freeipa_hbac_service.hbacsvc.name
 	}
-	`, provider_host, provider_user, provider_pass, dataset["hbacsvc"], dataset["hbacsvc2"], dataset["name"])
+	`, provider_host, provider_user, provider_pass, dataset["hbacsvc"], dataset["name"])
 }
 
 func testAccFreeIPAHBACServiceGroupMembershipResource_full(dataset map[string]string) string {
@@ -96,27 +92,27 @@ func testAccFreeIPAHBACServiceGroupMembershipResource_full(dataset map[string]st
 		password = "%s"
 		insecure = true
 	  }
-	  
+
 	resource "freeipa_hbac_service" "hbacsvc" {
-		name       = "%s"
+		name = "%s"
 	}
 
 	resource "freeipa_hbac_service" "hbacsvc2" {
-		name       = "%s"
+		name = "%s"
 	}
 
 	resource "freeipa_hbac_servicegroup" "hbacsvcgroup" {
-		name       = "%s"
+		name = "%s"
 	}
 
 	resource "freeipa_hbac_service_servicegroup_membership" "hbac_svc_member" {
-		name       = freeipa_hbac_servicegroup.hbacsvcgroup.name
-		service    = freeipa_hbac_service.hbacsvc.name
+		name    = freeipa_hbac_servicegroup.hbacsvcgroup.name
+		service = freeipa_hbac_service.hbacsvc.name
 	}
 
 	resource "freeipa_hbac_service_servicegroup_membership" "hbac_svc_member2" {
-		name       = freeipa_hbac_servicegroup.hbacsvcgroup.id
-		service    = freeipa_hbac_service.hbacsvc2.id
+		name    = freeipa_hbac_servicegroup.hbacsvcgroup.name
+		service = freeipa_hbac_service.hbacsvc2.name
 	}
 	`, provider_host, provider_user, provider_pass, dataset["hbacsvc"], dataset["hbacsvc2"], dataset["name"])
 }

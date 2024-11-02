@@ -1,7 +1,0 @@
-issues:
-  sudo-rule: update rule when order is removed
-  sudo-rule-option: use arrays also
-
-resource:
-  automember
-  automember-condition

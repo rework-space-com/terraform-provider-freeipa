@@ -1,73 +1,105 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPASudoRuleRunAsUser(t *testing.T) {
-	testSudoRuleRunAsUser := map[string]string{
-		"name":      "sudo-rule-test",
-		"user":      "test-user",
-		"firstname": "Test",
-		"lastname":  "User",
+func TestAccFreeIPASudoRuleRunAsUserMembership_simple(t *testing.T) {
+	testUser := map[string]string{
+		"index":     "0",
+		"login":     "\"testacc-user-0\"",
+		"firstname": "\"Test\"",
+		"lastname":  "\"User0\"",
 	}
-	testSudoRuleRunAsUserWithSlash := map[string]string{
-		"name":      "category_test/sudo-rule-test",
-		"user":      "test-user",
-		"firstname": "Test",
-		"lastname":  "User",
+	testSudoRule := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-sudorule\"",
+		"description": "\"A sudo rule for acceptance tests\"",
+	}
+	testSudoRunAsUserMembership := map[string]string{
+		"index":     "1",
+		"name":      "freeipa_sudo_rule.sudorule-1.name",
+		"runasuser": "freeipa_user.user-0.name",
+	}
+	testSudoDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_sudo_rule.sudorule-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPASudoRuleRunAsUserResource_basic(testSudoRuleRunAsUser),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.runasusermember", "runasuser", testSudoRuleRunAsUser["user"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleRunAsUserMembership_resource(testSudoRunAsUserMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.sudorule-runasuser-membership-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.sudorule-runasuser-membership-1", "runasuser", "testacc-user-0"),
 				),
 			},
 			{
-				Config: testAccFreeIPASudoRuleRunAsUserResource_basic(testSudoRuleRunAsUserWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.runasusermember", "runasuser", testSudoRuleRunAsUserWithSlash["user"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleRunAsUserMembership_resource(testSudoRunAsUserMembership) + testAccFreeIPASudoRule_datasource(testSudoDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "runasuser.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "runasuser.0", "testacc-user-0"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPASudoRuleRunAsUserResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-
-	  resource "freeipa_user" "user" {
-		name       = "%s"
-		first_name = "%s"
-		last_name  = "%s"
+func TestAccFreeIPASudoRuleRunAsUserMembership_multiple(t *testing.T) {
+	testUser := map[string]string{
+		"index":     "0",
+		"login":     "\"testacc-user-0\"",
+		"firstname": "\"Test\"",
+		"lastname":  "\"User0\"",
+	}
+	testSudoRule := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-sudorule\"",
+		"description": "\"A sudo rule for acceptance tests\"",
+	}
+	testSudoRunAsUserMembership := map[string]string{
+		"index":      "1",
+		"name":       "freeipa_sudo_rule.sudorule-1.name",
+		"runasusers": "[freeipa_user.user-0.name]",
+		"identifier": "\"runasuser0\"",
+	}
+	testSudoDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_sudo_rule.sudorule-1.name",
 	}
 
-	resource "freeipa_sudo_rule" "test_rule" {
-		name       = "%s"
-	}
-
-	resource freeipa_sudo_rule_runasuser_membership "runasusermember" {
-		name = freeipa_sudo_rule.test_rule.name
-		runasuser = freeipa_user.user.name
-	 }
-
-	`, provider_host, provider_user, provider_pass, dataset["user"], dataset["firstname"], dataset["lastname"], dataset["name"])
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleRunAsUserMembership_resource(testSudoRunAsUserMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.sudorule-runasuser-membership-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.sudorule-runasuser-membership-1", "runasusers.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_runasuser_membership.sudorule-runasuser-membership-1", "runasusers.0", "testacc-user-0"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleRunAsUserMembership_resource(testSudoRunAsUserMembership) + testAccFreeIPASudoRule_datasource(testSudoDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "runasuser.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "runasuser.0", "testacc-user-0"),
+				),
+			},
+		},
+	})
 }

@@ -1,320 +1,439 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package freeipa
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"strconv"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
-func resourceFreeIPADNSRecord() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceFreeIPADNSDNSRecordCreate,
-		ReadContext:   resourceFreeIPADNSDNSRecordRead,
-		UpdateContext: resourceFreeIPADNSDNSRecordUpdate,
-		DeleteContext: resourceFreeIPADNSDNSRecordDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &DNSRecordResource{}
+var _ resource.ResourceWithImportState = &DNSRecordResource{}
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Record name",
+func NewDNSRecordResource() resource.Resource {
+	return &DNSRecordResource{}
+}
+
+// DNSRecordResource defines the resource implementation.
+type DNSRecordResource struct {
+	client *ipa.Client
+}
+
+// DNSRecordResourceModel describes the resource data model.
+type DNSRecordResourceModel struct {
+	Id            types.String `tfsdk:"id"`
+	Name          types.String `tfsdk:"name"`
+	ZoneName      types.String `tfsdk:"zone_name"`
+	Type          types.String `tfsdk:"type"`
+	Records       types.List   `tfsdk:"records"`
+	TTL           types.Int32  `tfsdk:"ttl"`
+	SetIdentifier types.String `tfsdk:"set_identifier"`
+}
+
+func (r *DNSRecordResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_dns_record"
+}
+
+func (r *DNSRecordResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{}
+}
+
+func (r *DNSRecordResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "FreeIPA DNS Record resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"zone_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Zone name (FQDN)",
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Record name",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"type": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The record type",
+			"zone_name": schema.StringAttribute{
+				MarkdownDescription: "Zone name (FQDN)",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"records": {
-				Type:        schema.TypeSet,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-				Required:    true,
-				Description: "A string list of records",
+			"type": schema.StringAttribute{
+				MarkdownDescription: "The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHP)",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"ttl": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Time to live",
+			"records": schema.ListAttribute{
+				MarkdownDescription: "A string list of records",
+				Required:            true,
+				ElementType:         types.StringType,
 			},
-			"set_identifier": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Unique identifier to differentiate records with routing policies from one another",
+			"ttl": schema.Int32Attribute{
+				MarkdownDescription: "Time to live",
+				Optional:            true,
+			},
+			"set_identifier": schema.StringAttribute{
+				MarkdownDescription: "Unique identifier to differentiate records with routing policies from one another",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
 }
 
-func resourceFreeIPADNSDNSRecordCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa dns record")
-
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+func (r *DNSRecordResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	name := d.Get("name").(string)
-	zone_name := d.Get("zone_name").(string)
+	client, ok := req.ProviderData.(*ipa.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
+}
+
+func (r *DNSRecordResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data DNSRecordResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var zone_name interface{} = data.ZoneName.ValueString()
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	args := ipa.DnsrecordAddArgs{
-		Idnsname: name,
+		Idnsname: data.Name.ValueString(),
 	}
 
 	optArgs := ipa.DnsrecordAddOptionalArgs{
 		Dnszoneidnsname: &zone_name,
 	}
 
-	_type := d.Get("type").(string)
-	_records := d.Get("records").(*schema.Set).List()
-	records := make([]string, len(_records))
-	for i, d := range _records {
-		records[i] = d.(string)
-	}
-	switch _type {
-	case "A":
-		optArgs.Arecord = &records
-	case "AAAA":
-		optArgs.Aaaarecord = &records
-	case "CNAME":
-		optArgs.Cnamerecord = &records
-	case "MX":
-		optArgs.Mxrecord = &records
-	case "NS":
-		optArgs.Nsrecord = &records
-	case "PTR":
-		optArgs.Ptrrecord = &records
-	case "SRV":
-		optArgs.Srvrecord = &records
-	case "TXT":
-		optArgs.Txtrecord = &records
-	case "SSHFP":
-		optArgs.Sshfprecord = &records
+	_type := data.Type.ValueString()
+
+	if len(data.Records.Elements()) > 0 {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa dns record %s ", data.Name.String()))
+		var records []string
+
+		for _, value := range data.Records.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			records = append(records, val)
+		}
+		switch _type {
+		case "A":
+			optArgs.Arecord = &records
+		case "AAAA":
+			optArgs.Aaaarecord = &records
+		case "CNAME":
+			optArgs.Cnamerecord = &records
+		case "MX":
+			optArgs.Mxrecord = &records
+		case "NS":
+			optArgs.Nsrecord = &records
+		case "PTR":
+			optArgs.Ptrrecord = &records
+		case "SRV":
+			optArgs.Srvrecord = &records
+		case "TXT":
+			optArgs.Txtrecord = &records
+		case "SSHFP":
+			optArgs.Sshfprecord = &records
+		}
 	}
 
-	if _v, ok := d.GetOkExists("ttl"); ok {
-		v := _v.(int)
-		optArgs.Dnsttl = &v
+	if !data.TTL.IsNull() {
+		ttl := int(data.TTL.ValueInt32())
+		optArgs.Dnsttl = &ttl
 	}
 
-	_, err = client.DnsrecordAdd(&args, &optArgs)
+	_, err := r.client.DnsrecordAdd(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "EmptyModlist") {
-			log.Printf("[DEBUG] EmptyModlist (4202): no modifications to be performed")
+			tflog.Debug(ctx, "[DEBUG] EmptyModlist (4202): no modifications to be performed")
 		} else {
-			return diag.Errorf("Error creating freeipa dns record: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa dns record: %s", err))
 		}
 	}
 
 	// Generate an ID
 	vars := []string{
-		zone_name,
-		strings.ToLower(name),
+		data.ZoneName.ValueString(),
+		strings.ToLower(data.Name.ValueString()),
 		_type,
 	}
-	if v, ok := d.GetOk("set_identifier"); ok {
-		vars = append(vars, v.(string))
+	if !data.SetIdentifier.IsNull() {
+		vars = append(vars, data.SetIdentifier.ValueString())
 	}
 
-	d.SetId(strings.Join(vars, "_"))
+	data.Id = types.StringValue(strings.Join(vars, "_"))
 
-	return resourceFreeIPADNSDNSRecordRead(ctx, d, meta)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPADNSDNSRecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa dns record")
+func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data DNSRecordResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	var zone_name interface{} = data.ZoneName.ValueString()
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	args := ipa.DnsrecordShowArgs{
-		Idnsname: d.Get("name").(string),
+		Idnsname: data.Name.ValueString(),
 	}
 
-	zone_name := d.Get("zone_name").(string)
 	all := true
 	optArgs := ipa.DnsrecordShowOptionalArgs{
 		Dnszoneidnsname: &zone_name,
 		All:             &all,
 	}
 
-	res, err := client.DnsrecordShow(&args, &optArgs)
+	res, err := r.client.DnsrecordShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			d.SetId("")
-			log.Printf("[DEBUG] DNS record not found")
-			return nil
+			tflog.Debug(ctx, "[DEBUG] DNS record not found")
+			return
 		} else {
-			return diag.Errorf("Error reading freeipa DNS record: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa DNS record: %s", err))
+			return
 		}
 	}
-	_type := d.Get("type")
+	_type := data.Type.ValueString()
 
 	switch _type {
 	case "A":
 		if res.Result.Arecord != nil {
-			d.Set("records", *res.Result.Arecord)
+			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Arecord)
 		}
 	case "AAAA":
 		if res.Result.Aaaarecord != nil {
-			d.Set("records", *res.Result.Aaaarecord)
+			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Aaaarecord)
 		}
 	case "MX":
 		if res.Result.Mxrecord != nil {
-			d.Set("records", *res.Result.Mxrecord)
+			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Mxrecord)
 		}
 	case "NS":
 		if res.Result.Nsrecord != nil {
-			d.Set("records", *res.Result.Nsrecord)
+			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Nsrecord)
 		}
 	case "PTR":
 		if res.Result.Ptrrecord != nil {
-			d.Set("records", *res.Result.Ptrrecord)
+			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ptrrecord)
 		}
 	case "SRV":
 		if res.Result.Srvrecord != nil {
-			d.Set("records", *res.Result.Srvrecord)
+			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Srvrecord)
 		}
 	case "TXT":
 		if res.Result.Txtrecord != nil {
-			d.Set("records", *res.Result.Txtrecord)
+			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Txtrecord)
 		}
 	case "SSHFP":
 		if res.Result.Sshfprecord != nil {
-			d.Set("records", *res.Result.Sshfprecord)
+			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Sshfprecord)
 		}
 	}
 
-	if res.Result.Dnsttl != nil {
-		d.Set("ttl", *res.Result.Dnsttl)
+	if res.Result.Dnsttl != nil && !data.TTL.IsNull() {
+		data.TTL = types.Int32Value(int32(*res.Result.Dnsttl))
 	}
 
-	return nil
+	// Generate an ID
+	vars := []string{
+		data.ZoneName.ValueString(),
+		strings.ToLower(data.Name.ValueString()),
+		_type,
+	}
+	if !data.SetIdentifier.IsNull() {
+		vars = append(vars, data.SetIdentifier.ValueString())
+	}
+
+	data.Id = types.StringValue(strings.Join(vars, "_"))
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func resourceFreeIPADNSDNSRecordUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Update freeipa dns record")
+func (r *DNSRecordResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state DNSRecordResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
+	var zone_name interface{} = data.ZoneName.ValueString()
 
 	args := ipa.DnsrecordModArgs{
-		Idnsname: d.Get("name").(string),
+		Idnsname: data.Name.ValueString(),
 	}
 
-	zone_name := d.Get("zone_name").(string)
 	optArgs := ipa.DnsrecordModOptionalArgs{
 		Dnszoneidnsname: &zone_name,
 	}
 
-	_type := d.Get("type")
-	_records := d.Get("records").(*schema.Set).List()
-	records := make([]string, len(_records))
-	for i, d := range _records {
-		records[i] = d.(string)
-	}
-	switch _type {
-	case "A":
-		optArgs.Arecord = &records
-	case "AAAA":
-		optArgs.Aaaarecord = &records
-	case "CNAME":
-		optArgs.Cnamerecord = &records
-	case "MX":
-		optArgs.Mxrecord = &records
-	case "NS":
-		optArgs.Nsrecord = &records
-	case "PTR":
-		optArgs.Ptrrecord = &records
-	case "SRV":
-		optArgs.Srvrecord = &records
-	case "TXT":
-		optArgs.Txtrecord = &records
-	case "SSHFP":
-		optArgs.Sshfprecord = &records
-	}
+	_type := data.Type.ValueString()
 
-	if _v, ok := d.GetOkExists("ttl"); ok {
-		v := _v.(int)
-		optArgs.Dnsttl = &v
-	}
+	if !data.Records.Equal(state.Records) {
+		var records []string
 
-	_, err = client.DnsrecordMod(&args, &optArgs)
-	if err != nil {
-		if strings.Contains(err.Error(), "EmptyModlist") {
-			log.Printf("[DEBUG] EmptyModlist (4202): no modifications to be performed")
-		} else {
-			return diag.Errorf("Error update freeipa dns record: %s", err)
+		for _, value := range data.Records.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			records = append(records, val)
+		}
+		switch _type {
+		case "A":
+			optArgs.Arecord = &records
+		case "AAAA":
+			optArgs.Aaaarecord = &records
+		case "CNAME":
+			optArgs.Cnamerecord = &records
+		case "MX":
+			optArgs.Mxrecord = &records
+		case "NS":
+			optArgs.Nsrecord = &records
+		case "PTR":
+			optArgs.Ptrrecord = &records
+		case "SRV":
+			optArgs.Srvrecord = &records
+		case "TXT":
+			optArgs.Txtrecord = &records
+		case "SSHFP":
+			optArgs.Sshfprecord = &records
 		}
 	}
-	return resourceFreeIPADNSDNSRecordRead(ctx, d, meta)
+
+	if !data.TTL.Equal(state.TTL) {
+		ttl := int(data.TTL.ValueInt32())
+		optArgs.Dnsttl = &ttl
+	}
+
+	_, err := r.client.DnsrecordMod(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "EmptyModlist") {
+			tflog.Debug(ctx, "[DEBUG] EmptyModlist (4202): no modifications to be performed")
+		} else {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa dns record: %s", err))
+
+		}
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPADNSDNSRecordDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa dns record")
+func (r *DNSRecordResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data DNSRecordResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	var zone_name interface{} = data.ZoneName.ValueString()
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
+
+	// If applicable, this is a great opportunity to initialize any necessary
+	// provider client data and make a call using it.
+	// httpResp, err := r.client.Do(httpReq)
+	// if err != nil {
+	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
+	//     return
+	// }
 	args := ipa.DnsrecordDelArgs{
-		Idnsname: d.Get("name").(string),
+		Idnsname: data.Name.ValueString(),
 	}
 
-	zone_name := d.Get("zone_name").(string)
 	optArgs := ipa.DnsrecordDelOptionalArgs{
 		Dnszoneidnsname: &zone_name,
 	}
 
-	_type := d.Get("type")
-	_records := d.Get("records").(*schema.Set).List()
-	records := make([]string, len(_records))
-	for i, d := range _records {
-		records[i] = d.(string)
-	}
-	switch _type {
-	case "A":
-		optArgs.Arecord = &records
-	case "AAAA":
-		optArgs.Aaaarecord = &records
-	case "CNAME":
-		optArgs.Cnamerecord = &records
-	case "MX":
-		optArgs.Mxrecord = &records
-	case "NS":
-		optArgs.Nsrecord = &records
-	case "PTR":
-		optArgs.Ptrrecord = &records
-	case "SRV":
-		optArgs.Srvrecord = &records
-	case "TXT":
-		optArgs.Txtrecord = &records
-	case "SSHFP":
-		optArgs.Sshfprecord = &records
+	_type := data.Type.ValueString()
+	if len(data.Records.Elements()) > 0 {
+		var records []string
+
+		for _, value := range data.Records.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			records = append(records, val)
+		}
+		switch _type {
+		case "A":
+			optArgs.Arecord = &records
+		case "AAAA":
+			optArgs.Aaaarecord = &records
+		case "CNAME":
+			optArgs.Cnamerecord = &records
+		case "MX":
+			optArgs.Mxrecord = &records
+		case "NS":
+			optArgs.Nsrecord = &records
+		case "PTR":
+			optArgs.Ptrrecord = &records
+		case "SRV":
+			optArgs.Srvrecord = &records
+		case "TXT":
+			optArgs.Txtrecord = &records
+		case "SSHFP":
+			optArgs.Sshfprecord = &records
+		}
 	}
 
-	_, err = client.DnsrecordDel(&args, &optArgs)
+	_, err := r.client.DnsrecordDel(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error delete freeipa dns record: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa dns record: %s", err))
+		return
 	}
+}
 
-	d.SetId("")
-	return nil
+func (r *DNSRecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

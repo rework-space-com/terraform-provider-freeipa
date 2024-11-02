@@ -1,156 +1,254 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package freeipa
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
-func resourceFreeIPAHostGroup() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceFreeIPADNSHostGroupCreate,
-		ReadContext:   resourceFreeIPADNSHostGroupRead,
-		UpdateContext: resourceFreeIPADNSHostGroupUpdate,
-		DeleteContext: resourceFreeIPADNSHostGroupDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &HostGroupResource{}
+var _ resource.ResourceWithImportState = &HostGroupResource{}
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Hostgroup's name",
+func NewHostGroupResource() resource.Resource {
+	return &HostGroupResource{}
+}
+
+// HostGroupResource defines the resource implementation.
+type HostGroupResource struct {
+	client *ipa.Client
+}
+
+// HostGroupResourceModel describes the resource data model.
+type HostGroupResourceModel struct {
+	Id          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+}
+
+func (r *HostGroupResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_hostgroup"
+}
+
+func (r *HostGroupResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{}
+}
+
+func (r *HostGroupResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "FreeIPA User Group resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"description": {
-				Type:        schema.TypeString,
-				Required:    false,
-				Optional:    true,
-				Description: "A description of this hostgroup",
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Hostgroup name",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"description": schema.StringAttribute{
+				MarkdownDescription: "Hostgroup Description",
+				Optional:            true,
 			},
 		},
 	}
 }
 
-func resourceFreeIPADNSHostGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa hostgroup")
+func (r *HostGroupResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	client, ok := req.ProviderData.(*ipa.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
+}
+
+func (r *HostGroupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data HostGroupResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	optArgs := ipa.HostgroupAddOptionalArgs{}
 
 	args := ipa.HostgroupAddArgs{
-		Cn: d.Get("name").(string),
+		Cn: data.Name.ValueString(),
 	}
+	if !data.Description.IsNull() {
+		optArgs.Description = data.Description.ValueStringPointer()
+	}
+	tflog.Trace(ctx, "created a host group resource")
 
-	if _v, ok := d.GetOkExists("description"); ok {
-		v := _v.(string)
-		optArgs.Description = &v
-	}
-	_, err = client.HostgroupAdd(&args, &optArgs)
+	data.Id = types.StringValue(data.Name.ValueString())
+
+	_, err := r.client.HostgroupAdd(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error creating freeipa hostgroup: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa host group: %s", err))
 	}
 
-	d.SetId(d.Get("name").(string))
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return resourceFreeIPADNSHostGroupRead(ctx, d, meta)
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPADNSHostGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa hostgroup")
+func (r *HostGroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data HostGroupResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	all := true
-	args := ipa.HostgroupShowArgs{
-		Cn: d.Get("name").(string),
-	}
 	optArgs := ipa.HostgroupShowOptionalArgs{
 		All: &all,
 	}
 
-	res, err := client.HostgroupShow(&args, &optArgs)
+	args := ipa.HostgroupShowArgs{
+		Cn: data.Id.ValueString(),
+	}
+
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup %s", data.Id.ValueString()))
+	res, err := r.client.HostgroupShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			d.SetId("")
-			log.Printf("[DEBUG] Hostgroup not found")
-			return nil
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Hostgroup %s not found", data.Id.ValueString()))
+			return
 		} else {
-			return diag.Errorf("Error reading freeipa hostgroup: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("[DEBUG] Hostgroup %s not found: %s", data.Id.ValueString(), err))
 		}
 	}
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup %v", res))
+	if res != nil {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup %s", res.Result.String()))
+	} else {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hostgroup %s", data.Name.ValueString()))
+		return
+	}
 
-	log.Printf("[DEBUG] Read freeipa hostgroup %s", res.Result.Cn)
+	data.Name = types.StringValue(res.Result.Cn)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup Cn %s", data.Name.ValueString()))
+	if res.Result.Description != nil && !data.Description.IsNull() {
+		data.Description = types.StringValue(*res.Result.Description)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup Description %s", data.Description.ValueString()))
+	}
 
-	return nil
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func resourceFreeIPADNSHostGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Update freeipa hostgroup")
+func (r *HostGroupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state HostGroupResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	var hasChange = false
+
+	// If applicable, this is a great opportunity to initialize any necessary
+	// provider client data and make a call using it.
+	// httpResp, err := r.client.Do(httpReq)
+	// if err != nil {
+	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
+	//     return
+	// }
 	args := ipa.HostgroupModArgs{
-		Cn: d.Get("name").(string),
+		Cn: data.Name.ValueString(),
 	}
 	optArgs := ipa.HostgroupModOptionalArgs{}
 
-	if d.HasChange("description") {
-		if _v, ok := d.GetOkExists("description"); ok {
-			v := _v.(string)
-			if v != "" {
-				optArgs.Description = &v
-				hasChange = true
-			}
-		}
+	if !data.Description.Equal(state.Description) {
+		optArgs.Description = data.Description.ValueStringPointer()
 	}
-	if hasChange {
-		_, err = client.HostgroupMod(&args, &optArgs)
-		if err != nil {
-			if strings.Contains(err.Error(), "EmptyModlist") {
-				log.Printf("[DEBUG] EmptyModlist (4202): no modifications to be performed")
-			} else {
-				return diag.Errorf("Error update freeipa hostgroup: %s", err)
-			}
+	res, err := r.client.HostgroupMod(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "EmptyModlist") {
+			tflog.Debug(ctx, "[DEBUG] EmptyModlist (4202): no modifications to be performed")
+		} else {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", res.Result.Cn, err))
+			return
 		}
 	}
 
-	return resourceFreeIPADNSHostGroupRead(ctx, d, meta)
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPADNSHostGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa hostgroup")
+func (r *HostGroupResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data HostGroupResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
+
+	// If applicable, this is a great opportunity to initialize any necessary
+	// provider client data and make a call using it.
+	// httpResp, err := r.client.Do(httpReq)
+	// if err != nil {
+	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
+	//     return
+	// }
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Delete freeipa hostgroup Id %s", data.Id.ValueString()))
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Delete freeipa hostgroup Name %s", data.Name.ValueString()))
 	args := ipa.HostgroupDelArgs{
-		Cn: []string{d.Get("name").(string)},
+		Cn: []string{data.Name.ValueString()},
 	}
-	optArgs := ipa.HostgroupDelOptionalArgs{}
-
-	_, err = client.HostgroupDel(&args, &optArgs)
+	_, err := r.client.HostgroupDel(&args, &ipa.HostgroupDelOptionalArgs{})
 	if err != nil {
-		return diag.Errorf("Error delete freeipa host: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("[DEBUG] Hostgroup %s deletion failed: %s", data.Id.ValueString(), err))
+		return
 	}
+}
 
-	d.SetId("")
-
-	return nil
+func (r *HostGroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

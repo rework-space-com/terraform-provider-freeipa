@@ -1,117 +1,173 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package freeipa
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
-func resourceFreeIPAHBACPolicy() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceFreeIPADNSHBACPolicyCreate,
-		ReadContext:   resourceFreeIPADNSHBACPolicyRead,
-		UpdateContext: resourceFreeIPADNSHBACPolicyUpdate,
-		DeleteContext: resourceFreeIPADNSHBACPolicyDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &HbacPolicyResource{}
+var _ resource.ResourceWithImportState = &HbacPolicyResource{}
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "HBAC policy name",
+func NewHbacPolicyResource() resource.Resource {
+	return &HbacPolicyResource{}
+}
+
+// HbacPolicyResource defines the resource implementation.
+type HbacPolicyResource struct {
+	client *ipa.Client
+}
+
+// HbacPolicyResourceModel describes the resource data model.
+type HbacPolicyResourceModel struct {
+	Id              types.String `tfsdk:"id"`
+	Name            types.String `tfsdk:"name"`
+	Description     types.String `tfsdk:"description"`
+	Enabled         types.Bool   `tfsdk:"enabled"`
+	UserCategory    types.String `tfsdk:"usercategory"`
+	HostCategory    types.String `tfsdk:"hostcategory"`
+	ServiceCategory types.String `tfsdk:"servicecategory"`
+}
+
+func (r *HbacPolicyResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_hbac_policy"
+}
+
+func (r *HbacPolicyResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{}
+}
+
+func (r *HbacPolicyResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "FreeIPA HBAC policy resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "HBAC policy description",
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Name of the hbac policy",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				ForceNew:    false,
-				Description: "Enable this policy (Defaults to `true`)",
+			"description": schema.StringAttribute{
+				MarkdownDescription: "HBAC policy description",
+				Optional:            true,
 			},
-			"usercategory": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "User category the policy is applied to (allowed value: `all`)",
+			"enabled": schema.BoolAttribute{
+				MarkdownDescription: "Enable this hbac policy",
+				Optional:            true,
 			},
-			"hostcategory": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "Host category the policy is applied to (allowed value: `all`)",
+			"usercategory": schema.StringAttribute{
+				MarkdownDescription: "User category the hbac policy is applied to (allowed value: all)",
+				Optional:            true,
 			},
-			"servicecategory": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "Service category the policy is applied to (allowed value: `all`)",
+			"hostcategory": schema.StringAttribute{
+				MarkdownDescription: "Host category the hbac policy is applied to (allowed value: all)",
+				Optional:            true,
+			},
+			"servicecategory": schema.StringAttribute{
+				MarkdownDescription: "Service category the hbac policy is applied to (allowed value: all)",
+				Optional:            true,
 			},
 		},
 	}
 }
 
-func resourceFreeIPADNSHBACPolicyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa the HBAC policy")
+func (r *HbacPolicyResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	client, ok := req.ProviderData.(*ipa.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
+}
+
+func (r *HbacPolicyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data HbacPolicyResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	optArgs := ipa.HbacruleAddOptionalArgs{}
 
 	args := ipa.HbacruleAddArgs{
-		Cn: d.Get("name").(string),
+		Cn: data.Name.ValueString(),
 	}
-	if _v, ok := d.GetOkExists("description"); ok {
-		v := _v.(string)
-		optArgs.Description = &v
+	if !data.Description.IsNull() {
+		optArgs.Description = data.Description.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("enabled"); ok {
-		v := _v.(bool)
+	if !data.Enabled.IsNull() {
+		v := data.Enabled.ValueBool()
 		optArgs.Ipaenabledflag = &v
 	}
-	if _v, ok := d.GetOkExists("usercategory"); ok {
-		v := _v.(string)
-		optArgs.Usercategory = &v
+	if !data.UserCategory.IsNull() {
+		optArgs.Usercategory = data.UserCategory.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("hostcategory"); ok {
-		v := _v.(string)
-		optArgs.Hostcategory = &v
+	if !data.HostCategory.IsNull() {
+		optArgs.Hostcategory = data.HostCategory.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("servicecategory"); ok {
-		v := _v.(string)
-		optArgs.Servicecategory = &v
+	if !data.ServiceCategory.IsNull() {
+		optArgs.Servicecategory = data.ServiceCategory.ValueStringPointer()
 	}
-
-	_, err = client.HbacruleAdd(&args, &optArgs)
+	_, err := r.client.HbacruleAdd(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error creating freeipa the HBAC policy: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa hbac policy: %s", err))
+		return
 	}
 
-	d.SetId(d.Get("name").(string))
+	data.Id = data.Name
 
-	return resourceFreeIPADNSHBACPolicyRead(ctx, d, meta)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPADNSHBACPolicyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa the HBAC policy")
+func (r *HbacPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data HbacPolicyResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	all := true
@@ -120,108 +176,147 @@ func resourceFreeIPADNSHBACPolicyRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	args := ipa.HbacruleShowArgs{
-		Cn: d.Id(),
+		Cn: data.Id.ValueString(),
 	}
 
-	res, err := client.HbacruleShow(&args, &optArgs)
+	res, err := r.client.HbacruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			d.SetId("")
-			log.Printf("[DEBUG] HBAC policy not found")
-			return nil
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
+			return
 		} else {
-			return diag.Errorf("Error reading freeipa HBAC policy: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
+			return
 		}
 	}
 
-	log.Printf("[DEBUG] Read freeipa HBAC policy %s", res.Result.Cn)
-	return nil
+	if res.Result.Description != nil && !data.Description.IsNull() {
+		data.Description = types.StringValue(*res.Result.Description)
+	}
+	if res.Result.Ipaenabledflag != nil && !data.Enabled.IsNull() {
+		data.Enabled = types.BoolValue(*res.Result.Ipaenabledflag)
+	}
+	if res.Result.Usercategory != nil && !data.UserCategory.IsNull() {
+		data.UserCategory = types.StringValue(*res.Result.Usercategory)
+	}
+	if res.Result.Hostcategory != nil && !data.HostCategory.IsNull() {
+		data.HostCategory = types.StringValue(*res.Result.Hostcategory)
+	}
+	if res.Result.Servicecategory != nil && !data.ServiceCategory.IsNull() {
+		data.ServiceCategory = types.StringValue(*res.Result.Servicecategory)
+	}
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func resourceFreeIPADNSHBACPolicyUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Update freeipa HBAC policy")
+func (r *HbacPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state HbacPolicyResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	args := ipa.HbacruleModArgs{
-		Cn: d.Id(),
+		Cn: data.Id.ValueString(),
 	}
 	optArgs := ipa.HbacruleModOptionalArgs{}
 
 	var hasChange = false
 
-	if d.HasChange("description") {
-		if _v, ok := d.GetOkExists("description"); ok {
-			v := _v.(string)
-			optArgs.Description = &v
-			hasChange = true
+	if !data.Description.Equal(state.Description) {
+		optArgs.Description = data.Description.ValueStringPointer()
+		hasChange = true
+	}
+	if !data.Enabled.Equal(state.Enabled) {
+		if !data.Enabled.ValueBool() {
+			_, err := r.client.HbacruleDisable(&ipa.HbacruleDisableArgs{Cn: data.Id.ValueString()}, &ipa.HbacruleDisableOptionalArgs{})
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error disabling freeipa hbac policy: %s", err))
+			}
+		} else {
+			_, err := r.client.HbacruleEnable(&ipa.HbacruleEnableArgs{Cn: data.Id.ValueString()}, &ipa.HbacruleEnableOptionalArgs{})
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error enabling freeipa hbac policy: %s", err))
+			}
 		}
 	}
-	if d.HasChange("enabled") {
-		if _v, ok := d.GetOkExists("enabled"); ok {
-			v := _v.(bool)
-			optArgs.Ipaenabledflag = &v
-			hasChange = true
-		}
-	}
-	if d.HasChange("usercategory") {
-		if _v, ok := d.GetOkExists("usercategory"); ok {
-			v := _v.(string)
+	if !data.UserCategory.Equal(state.UserCategory) {
+		if data.UserCategory.ValueStringPointer() == nil {
+			v := ""
 			optArgs.Usercategory = &v
-			hasChange = true
+		} else {
+			optArgs.Usercategory = data.UserCategory.ValueStringPointer()
 		}
+		hasChange = true
 	}
-	if d.HasChange("hostcategory") {
-		if _v, ok := d.GetOkExists("hostcategory"); ok {
-			v := _v.(string)
+	if !data.HostCategory.Equal(state.HostCategory) {
+		if data.HostCategory.ValueStringPointer() == nil {
+			v := ""
 			optArgs.Hostcategory = &v
-			hasChange = true
+		} else {
+			optArgs.Hostcategory = data.HostCategory.ValueStringPointer()
 		}
+		hasChange = true
 	}
-	if d.HasChange("servicecategory") {
-		if _v, ok := d.GetOkExists("servicecategory"); ok {
-			v := _v.(string)
+	if !data.ServiceCategory.Equal(state.ServiceCategory) {
+		if data.ServiceCategory.ValueStringPointer() == nil {
+			v := ""
 			optArgs.Servicecategory = &v
-			hasChange = true
+		} else {
+			optArgs.Servicecategory = data.ServiceCategory.ValueStringPointer()
 		}
+		hasChange = true
 	}
 
 	if hasChange {
-		_, err = client.HbacruleMod(&args, &optArgs)
+		_, err := r.client.HbacruleMod(&args, &optArgs)
 		if err != nil {
 			if strings.Contains(err.Error(), "EmptyModlist") {
-				log.Printf("[DEBUG] EmptyModlist (4202): no modifications to be performed")
+				resp.Diagnostics.AddError("Client Error", "EmptyModlist (4202): no modifications to be performed")
 			} else {
-				return diag.Errorf("Error update freeipa HBAC policy: %s", err)
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa hbac policy: %s", err))
+				return
 			}
 		}
 	}
 
-	d.SetId(d.Get("name").(string))
+	data.Id = data.Name
 
-	return resourceFreeIPADNSHBACPolicyRead(ctx, d, meta)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPADNSHBACPolicyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa the HBAC policy")
+func (r *HbacPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data HbacPolicyResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	args := ipa.HbacruleDelArgs{
-		Cn: []string{d.Id()},
+		Cn: []string{data.Id.ValueString()},
 	}
-	_, err = client.HbacruleDel(&args, &ipa.HbacruleDelOptionalArgs{})
+	_, err := r.client.HbacruleDel(&args, &ipa.HbacruleDelOptionalArgs{})
 	if err != nil {
-		return diag.Errorf("Error delete freeipa the HBAC policy: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa hbac policy: %s", err))
+		return
 	}
+}
 
-	d.SetId("")
-
-	return nil
+func (r *HbacPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

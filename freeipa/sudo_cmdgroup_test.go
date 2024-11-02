@@ -1,100 +1,29 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPASudocmdgroup(t *testing.T) {
-	testSudocmdgroup := map[string]string{
-		"name":         "services",
-		"description":  "Service management related sudo commands",
-		"description2": "Service management related sudo commands but not the same",
+func TestAccFreeIPASudoCmdGrp_simple(t *testing.T) {
+	testSudoCmdGrp := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-command-group-1\"",
+		"description": "\"A set of commands\"",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPASudocmdgroupResource_basic(testSudocmdgroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.cmdgroup", "name", testSudocmdgroup["name"]),
-				),
-			},
-			{
-				Config: testAccFreeIPASudocmdgroupResource_full(testSudocmdgroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.cmdgroup", "name", testSudocmdgroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.cmdgroup", "description", testSudocmdgroup["description"]),
-				),
-			},
-			{
-				Config: testAccFreeIPASudocmdgroupResource_update(testSudocmdgroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.cmdgroup", "name", testSudocmdgroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.cmdgroup", "description", testSudocmdgroup["description2"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoCmdGrp_resource(testSudoCmdGrp),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.sudocmdgroup-1", "name", "testacc-command-group-1"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.sudocmdgroup-1", "description", "A set of commands"),
 				),
 			},
 		},
 	})
-}
-
-func testAccFreeIPASudocmdgroupResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_sudo_cmdgroup" "cmdgroup" {
-		name       = "%s"
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"])
-}
-
-func testAccFreeIPASudocmdgroupResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_sudo_cmdgroup" "cmdgroup" {
-		name        = "%s"
-		description  = "%s"
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"])
-}
-
-func testAccFreeIPASudocmdgroupResource_update(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_sudo_cmdgroup" "cmdgroup" {
-		name        = "%s"
-		description  = "%s"
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description2"])
 }

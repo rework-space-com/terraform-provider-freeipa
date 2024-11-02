@@ -1,154 +1,138 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPADNSHBACHostMembership(t *testing.T) {
-	var testHbacHost map[string]string
-	testHbacHost = map[string]string{
-		"name":     "hbac_test",
-		"hostname": "test-host.testacc.ipatest.lan",
-		"ip":       "192.168.1.52",
+func TestAccFreeIPAHbacPolicyHostMembership_simple(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
 	}
-	var testHbacHostWithSlash map[string]string
-	testHbacHostWithSlash = map[string]string{
-		"name":     "category_test/hbac_test",
-		"hostname": "test-host.testacc.ipatest.lan",
-		"ip":       "192.168.1.52",
+	testMemberHost := map[string]string{
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
 	}
-	var testHbacHostgroup map[string]string
-	testHbacHostgroup = map[string]string{
-		"name":      "hbac_test",
-		"hostgroup": "test-hostgroup",
+	testHostGroup := map[string]string{
+		"index": "0",
+		"name":  "\"testacc-hostgroup\"",
 	}
-	var testHbacHostgroupWithSlash map[string]string
-	testHbacHostgroupWithSlash = map[string]string{
-		"name":      "category_test/hbac_test",
-		"hostgroup": "test-hostgroup",
+	testHbacPolicy := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-hbac-policy\"",
+		"description": "\"A hbac policy for acceptance tests\"",
+	}
+	testHbacHostMembership := map[string]string{
+		"index": "1",
+		"name":  "freeipa_hbac_policy.hbacpolicy-1.name",
+		"host":  "freeipa_host.host-0.name",
+	}
+	testHbacHostGrpMembership := map[string]string{
+		"index":     "2",
+		"name":      "freeipa_hbac_policy.hbacpolicy-1.name",
+		"hostgroup": "freeipa_hostgroup.hostgroup-0.name",
+	}
+	testHbacDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_hbac_policy.hbacpolicy-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSHBACHostMembership_host(testHbacHost),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_host", "name", testHbacHost["name"]),
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_host", "host", testHbacHost["hostname"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyHostMembership_resource(testHbacHostMembership) + testAccFreeIPAHbacPolicyHostMembership_resource(testHbacHostGrpMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hbac_policy.hbacpolicy-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy.hbacpolicy-1", "description", "A hbac policy for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-1", "host", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-2", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-2", "hostgroup", "testacc-hostgroup"),
 				),
 			},
 			{
-				Config: testAccFreeIPADNSHBACHostMembership_hostgroup(testHbacHostgroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_hostgroup", "name", testHbacHostgroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_hostgroup", "hostgroup", testHbacHostgroup["hostgroup"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSHBACHostMembership_host(testHbacHostWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_host", "name", testHbacHostWithSlash["name"]),
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_host", "host", testHbacHostWithSlash["hostname"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSHBACHostMembership_hostgroup(testHbacHostgroupWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_hostgroup", "name", testHbacHostgroupWithSlash["name"]),
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac_hostgroup", "hostgroup", testHbacHostgroupWithSlash["hostgroup"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyHostMembership_resource(testHbacHostMembership) + testAccFreeIPAHbacPolicyHostMembership_resource(testHbacHostGrpMembership) + testAccFreeIPAHbacPolicy_datasource(testHbacDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "description", "A hbac policy for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_host.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_host.0", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_hostgroup.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_hostgroup.0", "testacc-hostgroup"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPADNSHBACHostMembership_host(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_hbac_policy" "hbac_policy" {
-		name       = "%s"
+func TestAccFreeIPAHbacPolicyHostMembership_mutiple(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
 	}
-
-	resource "freeipa_dns_zone" "testacc_ipatest_lan" {
-		zone_name          = "testacc.ipatest.lan"
-		skip_overlap_check = true
-		disable_zone       = false
-		dynamic_updates    = true
-	  
+	testMemberHost := map[string]string{
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
 	}
-
-	resource "freeipa_dns_zone" "reverse_192_168_1_0" {
-		zone_name          = "192.168.1.0/24"
-		is_reverse_zone = true
-		skip_overlap_check = true
-		disable_zone       = false
-		dynamic_updates    = true
-	  }
-	  
-	  
-	resource "freeipa_host" "host-0" {
-		name       = "%s"
-		ip_address = "%s"
-		depends_on = [
-			freeipa_dns_zone.testacc_ipatest_lan,
-			freeipa_dns_zone.reverse_192_168_1_0
-		]
+	testHostGroup := map[string]string{
+		"index": "0",
+		"name":  "\"testacc-hostgroup\"",
 	}
-
-	resource "freeipa_hbac_policy_host_membership" "hbac_host" {
-		name = freeipa_hbac_policy.hbac_policy.name
-		host = freeipa_host.host-0.name
-		depends_on = [
-			freeipa_host.host-0,
-			freeipa_hbac_policy.hbac_policy
-		]
+	testHbacPolicy := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-hbac-policy\"",
+		"description": "\"A hbac policy for acceptance tests\"",
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["hostname"], dataset["ip"])
-}
-
-func testAccFreeIPADNSHBACHostMembership_hostgroup(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_hbac_policy" "hbac_policy" {
-		name       = "%s"
+	testHbacHostMembership := map[string]string{
+		"index":      "1",
+		"name":       "freeipa_hbac_policy.hbacpolicy-1.name",
+		"hosts":      "[freeipa_host.host-0.name]",
+		"identifier": "\"hbac-host-1\"",
 	}
-
-	  
-	resource "freeipa_hostgroup" "hostgroup" {
-		name       = "%s"
+	testHbacHostGrpMembership := map[string]string{
+		"index":      "2",
+		"name":       "freeipa_hbac_policy.hbacpolicy-1.name",
+		"hostgroups": "[freeipa_hostgroup.hostgroup-0.name]",
+		"identifier": "\"hbac-hostgrp-2\"",
 	}
-
-	resource "freeipa_hbac_policy_host_membership" "hbac_hostgroup" {
-		name = freeipa_hbac_policy.hbac_policy.name
-		hostgroup = freeipa_hostgroup.hostgroup.name
-		depends_on = [
-			freeipa_hbac_policy.hbac_policy,
-			freeipa_hostgroup.hostgroup
-		]
+	testHbacDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_hbac_policy.hbacpolicy-1.name",
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["hostgroup"])
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyHostMembership_resource(testHbacHostMembership) + testAccFreeIPAHbacPolicyHostMembership_resource(testHbacHostGrpMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hbac_policy.hbacpolicy-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy.hbacpolicy-1", "description", "A hbac policy for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-1", "hosts.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-1", "hosts.0", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-2", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-2", "hostgroups.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_host_membership.hbac-host-membership-2", "hostgroups.0", "testacc-hostgroup"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyHostMembership_resource(testHbacHostMembership) + testAccFreeIPAHbacPolicyHostMembership_resource(testHbacHostGrpMembership) + testAccFreeIPAHbacPolicy_datasource(testHbacDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "description", "A hbac policy for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_host.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_host.0", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_hostgroup.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_hostgroup.0", "testacc-hostgroup"),
+				),
+			},
+		},
+	})
 }

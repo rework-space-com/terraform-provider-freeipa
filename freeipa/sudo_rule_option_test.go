@@ -1,62 +1,47 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPASudoRuleOption(t *testing.T) {
-	testSudoRuleOption := map[string]string{
-		"name":   "sudo-rule-test",
-		"option": "!authenticate",
+func TestAccFreeIPASudoRuleOption_simple(t *testing.T) {
+	testSudoRule := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-sudorule\"",
+		"description": "\"A sudo rule for acceptance tests\"",
 	}
-	testSudoRuleOptionWithSlash := map[string]string{
-		"name":   "category_test/sudo-rule-test",
-		"option": "!authenticate",
+	testSudoRuleOption := map[string]string{
+		"index":  "1",
+		"name":   "freeipa_sudo_rule.sudorule-1.name",
+		"option": "\"!authenticate\"",
+	}
+	testSudoDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_sudo_rule.sudorule-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPASudoRuleOptionResource_basic(testSudoRuleOption),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_rule_option.sudoopt", "option", testSudoRuleOption["option"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleOption_resource(testSudoRuleOption),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_option.sudorule-option-1", "option", "!authenticate"),
 				),
 			},
 			{
-				Config: testAccFreeIPASudoRuleOptionResource_basic(testSudoRuleOptionWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_rule_option.sudoopt", "option", testSudoRuleOptionWithSlash["option"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleOption_resource(testSudoRuleOption) + testAccFreeIPASudoRule_datasource(testSudoDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "option.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "option.0", "!authenticate"),
 				),
 			},
 		},
 	})
-}
-
-func testAccFreeIPASudoRuleOptionResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-
-	resource "freeipa_sudo_rule" "test_rule" {
-		name       = "%s"
-	}
-
-	 resource freeipa_sudo_rule_option "sudoopt" {
-		name = freeipa_sudo_rule.test_rule.name
-		option = "%s"
-	 }
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["option"])
 }

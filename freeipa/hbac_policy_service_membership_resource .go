@@ -1,183 +1,488 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package freeipa
 
 import (
 	"context"
 	"fmt"
-	"log"
+	"strconv"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 	"golang.org/x/exp/slices"
 )
 
-func resourceFreeIPAHBACPolicyServiceMembership() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceFreeIPADNSHBACPolicyServiceMembershipCreate,
-		ReadContext:   resourceFreeIPADNSHBACPolicyServiceMembershipRead,
-		DeleteContext: resourceFreeIPADNSHBACPolicyServiceMembershipDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &HbacPolicyServiceMembershipResource{}
+var _ resource.ResourceWithImportState = &HbacPolicyServiceMembershipResource{}
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "HBAC policy name",
+func NewHbacPolicyServiceMembershipResource() resource.Resource {
+	return &HbacPolicyServiceMembershipResource{}
+}
+
+// HbacPolicyServiceMembershipResource defines the resource implementation.
+type HbacPolicyServiceMembershipResource struct {
+	client *ipa.Client
+}
+
+// HbacPolicyServiceMembershipResourceModel describes the resource data model.
+type HbacPolicyServiceMembershipResourceModel struct {
+	Id            types.String `tfsdk:"id"`
+	Name          types.String `tfsdk:"name"`
+	Service       types.String `tfsdk:"service"`
+	Services      types.List   `tfsdk:"services"`
+	ServiceGroup  types.String `tfsdk:"servicegroup"`
+	ServiceGroups types.List   `tfsdk:"servicegroups"`
+	Identifier    types.String `tfsdk:"identifier"`
+}
+
+func (r *HbacPolicyServiceMembershipResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_hbac_policy_service_membership"
+}
+
+func (r *HbacPolicyServiceMembershipResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.Conflicting(
+			path.MatchRoot("service"),
+			path.MatchRoot("services"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("service"),
+			path.MatchRoot("servicegroup"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("service"),
+			path.MatchRoot("servicegroups"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("servicegroup"),
+			path.MatchRoot("services"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("servicegroup"),
+			path.MatchRoot("servicegroups"),
+		),
+	}
+}
+
+func (r *HbacPolicyServiceMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "FreeIPA HBAC policy service membership resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"service": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"servicegroup"},
-				Description:   "Service name the policy is applied to",
+			"name": schema.StringAttribute{
+				MarkdownDescription: "HBAC policy name",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"servicegroup": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"service"},
-				Description:   "Service group name the policy is applied to",
+			"service": schema.StringAttribute{
+				MarkdownDescription: "**deprecated** Service name the policy is applied t",
+				DeprecationMessage:  "use services instead",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"services": schema.ListAttribute{
+				MarkdownDescription: "List of service name the policy is applied t",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"servicegroup": schema.StringAttribute{
+				MarkdownDescription: "**deprecated** Service group name the policy is applied to",
+				DeprecationMessage:  "use servicegroups instead",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"servicegroups": schema.ListAttribute{
+				MarkdownDescription: "List of service group name the policy is applied to",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"identifier": schema.StringAttribute{
+				MarkdownDescription: "Unique identifier to differentiate multiple HBAC policy service membership resources on the same HBAC policy. Manadatory for using services/servicegroups configurations.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
 }
 
-func resourceFreeIPADNSHBACPolicyServiceMembershipCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa the HBAC policy service membership")
-
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+func (r *HbacPolicyServiceMembershipResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	svcmember_id := "s"
+	client, ok := req.ProviderData.(*ipa.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
+}
+
+func (r *HbacPolicyServiceMembershipResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data HbacPolicyServiceMembershipResourceModel
+	var id, user_id string
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	optArgs := ipa.HbacruleAddServiceOptionalArgs{}
 
 	args := ipa.HbacruleAddServiceArgs{
-		Cn: d.Get("name").(string),
+		Cn: data.Name.ValueString(),
 	}
-
-	if _v, ok := d.GetOkExists("service"); ok {
-		v := []string{_v.(string)}
+	if !data.Service.IsNull() {
+		v := []string{data.Service.ValueString()}
 		optArgs.Hbacsvc = &v
-		svcmember_id = "s"
+		user_id = "s"
 	}
-	if _v, ok := d.GetOkExists("servicegroup"); ok {
-		v := []string{_v.(string)}
+	if !data.ServiceGroup.IsNull() {
+		v := []string{data.ServiceGroup.ValueString()}
 		optArgs.Hbacsvcgroup = &v
-		svcmember_id = "sg"
+		user_id = "sg"
+	}
+	if !data.Services.IsNull() || !data.ServiceGroups.IsNull() {
+		if !data.Services.IsNull() {
+			var v []string
+			for _, value := range data.Services.Elements() {
+				val, _ := strconv.Unquote(value.String())
+				v = append(v, val)
+			}
+			optArgs.Hbacsvc = &v
+		}
+		if !data.ServiceGroups.IsNull() {
+			var v []string
+			for _, value := range data.ServiceGroups.Elements() {
+				val, _ := strconv.Unquote(value.String())
+				v = append(v, val)
+			}
+			optArgs.Hbacsvcgroup = &v
+		}
+		user_id = "ms"
 	}
 
-	_, err = client.HbacruleAddService(&args, &optArgs)
+	_, err := r.client.HbacruleAddService(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error creating freeipa the HBAC policy service membership: %s", err)
-	}
-	switch svcmember_id {
-	case "sg":
-		id := fmt.Sprintf("%s/sg/%s", encodeSlash(d.Get("name").(string)), d.Get("servicegroup").(string))
-		d.SetId(id)
-	case "s":
-		id := fmt.Sprintf("%s/s/%s", encodeSlash(d.Get("name").(string)), d.Get("service").(string))
-		d.SetId(id)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule service membership: %s", err))
+		return
 	}
 
-	return resourceFreeIPADNSHBACPolicyServiceMembershipRead(ctx, d, meta)
+	switch user_id {
+	case "s":
+		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), user_id, data.Service.ValueString())
+		data.Id = types.StringValue(id)
+	case "sg":
+		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), user_id, data.ServiceGroup.ValueString())
+		data.Id = types.StringValue(id)
+	case "ms":
+		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), user_id, data.Identifier.ValueString())
+		data.Id = types.StringValue(id)
+	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPADNSHBACPolicyServiceMembershipRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa the HBAC policy service membership")
+func (r *HbacPolicyServiceMembershipResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data HbacPolicyServiceMembershipResourceModel
+
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	hbacpolicyid, typeId, policyId, err := parseHBACPolicyServiceMembershipID(data.Id.ValueString())
+
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_hbac_policy_service_membership: %s", err))
+		return
+	}
 
 	all := true
-	name, typeId, svcId, err := parseHBACPolicyServiceMembershipID(d.Id())
-
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
-	}
-
-	args := ipa.HbacruleShowArgs{
-		Cn: name,
-	}
 	optArgs := ipa.HbacruleShowOptionalArgs{
 		All: &all,
 	}
-	res, err := client.HbacruleShow(&args, &optArgs)
+
+	args := ipa.HbacruleShowArgs{
+		Cn: hbacpolicyid,
+	}
+
+	res, err := r.client.HbacruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			d.Set("service", "")
-			d.Set("servicegroup", "")
-			d.SetId("")
-			log.Printf("[DEBUG] HBAC policy not found")
-			return nil
+			resp.Diagnostics.AddError("Client Error", "Hbac policy not found")
+			return
 		} else {
-			return diag.Errorf("Error reading freeipa HBAC policy: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
+			return
 		}
 	}
 
 	switch typeId {
-	case "sg":
-		if res.Result.MemberserviceHbacsvcgroup == nil || !slices.Contains(*res.Result.MemberserviceHbacsvcgroup, svcId) {
-			log.Printf("[DEBUG] Warning! Servicegroup membership does not exist")
-			d.Set("service", "")
-			d.Set("servicegroup", "")
-			d.SetId("")
-			return nil
-		}
 	case "s":
-		if res.Result.MemberserviceHbacsvc == nil || !slices.Contains(*res.Result.MemberserviceHbacsvc, svcId) {
-			log.Printf("[DEBUG] Warning! Service membership does not exist")
-			d.Set("service", "")
-			d.Set("servicegroup", "")
-			d.SetId("")
-			return nil
+		if res.Result.MemberserviceHbacsvc == nil || !slices.Contains(*res.Result.MemberserviceHbacsvc, policyId) {
+			resp.Diagnostics.AddError("Client Error", "HBAC policy service membership does not exist")
+			return
+		}
+	case "sg":
+		if res.Result.MemberserviceHbacsvcgroup == nil || !slices.Contains(*res.Result.MemberserviceHbacsvcgroup, policyId) {
+			resp.Diagnostics.AddError("Client Error", "HBAC policy service group membership does not exist")
+			return
+		}
+	case "ms":
+		if !data.Services.IsNull() && res.Result.MemberserviceHbacsvc == nil {
+			var changedVals []string
+			for _, value := range data.Services.Elements() {
+				val, err := strconv.Unquote(value.String())
+				if err != nil {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy service member failed with error %s", err))
+				}
+				if slices.Contains(*res.Result.MemberserviceHbacsvc, val) {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy service member %s is present in results", val))
+					changedVals = append(changedVals, val)
+				}
+			}
+			var diag diag.Diagnostics
+			data.Services, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+			if diag.HasError() {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			}
+		}
+		if !data.ServiceGroups.IsNull() && res.Result.MemberserviceHbacsvcgroup == nil {
+			var changedVals []string
+			for _, value := range data.ServiceGroups.Elements() {
+				val, err := strconv.Unquote(value.String())
+				if err != nil {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy service member failed with error %s", err))
+				}
+				if slices.Contains(*res.Result.MemberserviceHbacsvcgroup, val) {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy service member %s is present in results", val))
+					changedVals = append(changedVals, val)
+				}
+			}
+			var diag diag.Diagnostics
+			data.ServiceGroups, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+			if diag.HasError() {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			}
 		}
 	}
 
-	return nil
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func resourceFreeIPADNSHBACPolicyServiceMembershipDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa the HBAC policy service membership")
+func (r *HbacPolicyServiceMembershipResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state HbacPolicyServiceMembershipResourceModel
 
-	name, typeId, svcId, err := parseHBACPolicyServiceMembershipID(d.Id())
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
-	client, err := meta.(*Config).Client()
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	memberAddOptArgs := ipa.HbacruleAddServiceOptionalArgs{}
+
+	memberAddArgs := ipa.HbacruleAddServiceArgs{
+		Cn: data.Name.ValueString(),
+	}
+
+	memberDelOptArgs := ipa.HbacruleRemoveServiceOptionalArgs{}
+
+	memberDelArgs := ipa.HbacruleRemoveServiceArgs{
+		Cn: data.Name.ValueString(),
+	}
+	hasMemberAdd := false
+	hasMemberDel := false
+	// Memberships can be added or removed, comparing the current state and the plan allows us to define 2 lists of members to add or remove.
+	if !data.Services.Equal(state.Services) {
+		var statearr, planarr, addedSvc, deletedSvc []string
+
+		for _, value := range state.Services.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			statearr = append(statearr, val)
+		}
+		for _, value := range data.Services.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			planarr = append(planarr, val)
+			if !slices.Contains(statearr, val) {
+				addedSvc = append(addedSvc, val)
+				memberAddOptArgs.Hbacsvc = &addedSvc
+				hasMemberAdd = true
+			}
+		}
+		for _, value := range statearr {
+			if !slices.Contains(planarr, value) {
+				deletedSvc = append(deletedSvc, value)
+				memberDelOptArgs.Hbacsvc = &deletedSvc
+				hasMemberDel = true
+			}
+		}
+
+	}
+	if !data.ServiceGroups.Equal(state.ServiceGroups) {
+		var statearr, planarr, addedGroups, deletedGroups []string
+
+		for _, value := range state.ServiceGroups.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			statearr = append(statearr, val)
+		}
+		for _, value := range data.ServiceGroups.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			planarr = append(planarr, val)
+			if !slices.Contains(statearr, val) {
+				addedGroups = append(addedGroups, val)
+				memberAddOptArgs.Hbacsvcgroup = &addedGroups
+				hasMemberAdd = true
+			}
+		}
+		for _, value := range statearr {
+			if !slices.Contains(planarr, value) {
+				deletedGroups = append(deletedGroups, value)
+				memberDelOptArgs.Hbacsvcgroup = &deletedGroups
+				hasMemberDel = true
+			}
+		}
+
+	}
+	// The api provides a add and a remove function for membership. Therefore we need to call the right one when appropriate.
+	if hasMemberAdd {
+		_v, err := r.client.HbacruleAddService(&memberAddArgs, &memberAddOptArgs)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error creating freeipa hbac policy service membership: %s", _v.String()))
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa hbac policy service membership: %s", err))
+			return
+		}
+		if _v.Completed == 0 {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa hbac policy service membership: %v", _v.Failed))
+			return
+		}
+	}
+	if hasMemberDel {
+		_v, err := r.client.HbacruleRemoveService(&memberDelArgs, &memberDelOptArgs)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error removing freeipa hbac policy service membership: %s", _v.String()))
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa hbac policy service membership: %s", err))
+			return
+		}
+		if _v.Completed == 0 {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa hbac policy service membership: %v", _v.Failed))
+			return
+		}
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *HbacPolicyServiceMembershipResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data HbacPolicyServiceMembershipResourceModel
+
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	hbacpolicyId, typeId, _, err := parseHBACPolicyServiceMembershipID(data.Id.ValueString())
+
 	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_hbac_policy_user_membership: %s", err))
+		return
 	}
 
-	args := ipa.HbacruleRemoveServiceArgs{
-		Cn: name,
-	}
 	optArgs := ipa.HbacruleRemoveServiceOptionalArgs{}
 
-	if typeId == "s" {
-		v := []string{svcId}
+	args := ipa.HbacruleRemoveServiceArgs{
+		Cn: hbacpolicyId,
+	}
+
+	switch typeId {
+	case "s":
+		v := []string{data.Service.ValueString()}
 		optArgs.Hbacsvc = &v
-	}
-	if typeId == "sg" {
-		v := []string{svcId}
+	case "sg":
+		v := []string{data.ServiceGroup.ValueString()}
 		optArgs.Hbacsvcgroup = &v
+	case "ms":
+		if !data.Services.IsNull() {
+			var v []string
+			for _, value := range data.Services.Elements() {
+				val, _ := strconv.Unquote(value.String())
+				v = append(v, val)
+			}
+			optArgs.Hbacsvc = &v
+		}
+		if !data.ServiceGroups.IsNull() {
+			var v []string
+			for _, value := range data.ServiceGroups.Elements() {
+				val, _ := strconv.Unquote(value.String())
+				v = append(v, val)
+			}
+			optArgs.Hbacsvcgroup = &v
+		}
 	}
 
-	_, err = client.HbacruleRemoveService(&args, &optArgs)
+	_, err = r.client.HbacruleRemoveService(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error delete freeipa the HBAC policy service membership: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa hbac policy servie membership: %s", err))
+		return
 	}
+}
 
-	d.SetId("")
-
-	return nil
+func (r *HbacPolicyServiceMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseHBACPolicyServiceMembershipID(id string) (string, string, string, error) {
 	idParts := strings.Split(id, "/")
 	if len(idParts) < 3 {
-		return "", "", "", fmt.Errorf("Unable to determine service membership ID %s", id)
+		return "", "", "", fmt.Errorf("unable to determine service membership ID %s", id)
 	}
 
 	name := decodeSlash(idParts[0])

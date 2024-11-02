@@ -1,112 +1,119 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPADNSHost(t *testing.T) {
+func TestAccFreeIPAHost_full(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
+	}
 	testHost := map[string]string{
-		"name":                        "testhost.testacc.ipatest.lan",
-		"description":                 "Host test",
-		"ip_address":                  "192.168.1.10",
-		"locality":                    "Vienna",
-		"location":                    "L3",
-		"platform":                    "vSphere 7.0.3",
-		"operating_system":            "Debian 11",
-		"mac_addresses":               "00:00:00:00:00:00",
-		"ipasshpubkeys":               "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDDmMkNHn3R+DzSamQDSW60a0iVlAvzbuC3auu8lNoi3u6lvMemsZqPTuvfY4Xlf7uzm+dya3fTRdPKn8sYgPwQ4saUpCSlegN44PjJMhonR1a7FbpHLWj8CRRfzdUSznQhzFcFff0wMBYAklXlyjvdFM8ahl7zHO08HR6469XOVwO1Tb3OGPrXB2lzStK5PKfk5DO/IKl4vHSKhVNVnsZe52rHiZrxOqdGyCijtvwmW2YfIAGc1k4Seqn/Nn7NxKIFBH3hxaUDqgpZneXzuw9GI/F0M8phnHxXNFVZvIWZVcanEeXtH9Z+vVx1ujNcB2QhiPfLMqkNl9db7uykSGKFM4jD0UjGj5kJ8TOC39Safk7XzpQTnrqvIi158zBHVSgugth+QsE1I9/PL2wlzx1qWV2991JKIOc8m52Iwq02tyO8JaSssFTk9szkLTAHedPnZeBbdnlRYcHqX+NPaUh3hqRTZBIR79Ruk6WAliFkED1L0SgwDfGFlevn1Kde9ok=",
-		"userclass":                   "testhost",
-		"krb_auth_indicators":         "otp",
-		"krb_preauth":                 "false",
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
+	}
+	testHostModified := map[string]string{
+		"index":                       "0",
+		"name":                        "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address":                  "\"192.168.10.65\"",
+		"description":                 "\"FreeIPA client in testacc.ipatest.lan domain\"",
+		"locality":                    "\"Some City\"",
+		"location":                    "\"lab\"",
+		"operating_system":            "\"Fedora 40\"",
+		"mac_addresses":               "[\"00:00:00:AA:AA:AA\", \"00:00:00:BB:BB:BB\"]",
+		"trusted_for_delegation":      "true",
+		"trusted_to_auth_as_delegate": "true",
+	}
+	testHostModified2 := map[string]string{
+		"index":                       "0",
+		"name":                        "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address":                  "\"192.168.10.65\"",
+		"description":                 "\"FreeIPA client in testacc.ipatest.lan domain\"",
+		"locality":                    "\"Some New City\"",
+		"location":                    "\"dc1\"",
+		"operating_system":            "\"RHEL 9\"",
+		"mac_addresses":               "[\"00:00:00:CC:CC:CC\"]",
 		"trusted_for_delegation":      "false",
 		"trusted_to_auth_as_delegate": "false",
-		"userpassword":                "P@ssword",
-		"random_password":             "false",
+	}
+	testHostDS := map[string]string{
+		"index": "0",
+		"name":  "freeipa_host.host-0.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSHostResource_basic(testHost),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_host.host", "name", testHost["name"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),
 				),
 			},
 			{
-				Config: testAccFreeIPADNSHostResource_full(testHost),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_host.host", "name", testHost["name"]),
-					resource.TestCheckResourceAttr("freeipa_host.host", "description", testHost["description"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHostModified) + testAccFreeIPAHost_datasource(testHostDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "description", "FreeIPA client in testacc.ipatest.lan domain"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "locality", "Some City"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "location", "lab"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "operating_system", "Fedora 40"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "mac_addresses.#", "2"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "mac_addresses.0", "00:00:00:AA:AA:AA"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "mac_addresses.1", "00:00:00:BB:BB:BB"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "trusted_for_delegation", "true"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "trusted_to_auth_as_delegate", "true"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "description", "FreeIPA client in testacc.ipatest.lan domain"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "locality", "Some City"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "location", "lab"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "operating_system", "Fedora 40"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "mac_addresses.#", "2"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "mac_addresses.0", "00:00:00:AA:AA:AA"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "mac_addresses.1", "00:00:00:BB:BB:BB"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "trusted_for_delegation", "true"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "trusted_to_auth_as_delegate", "true"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHostModified2) + testAccFreeIPAHost_datasource(testHostDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "description", "FreeIPA client in testacc.ipatest.lan domain"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "locality", "Some New City"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "location", "dc1"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "operating_system", "RHEL 9"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "mac_addresses.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "mac_addresses.0", "00:00:00:CC:CC:CC"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "trusted_for_delegation", "false"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "trusted_to_auth_as_delegate", "false"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "description", "FreeIPA client in testacc.ipatest.lan domain"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "locality", "Some New City"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "location", "dc1"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "operating_system", "RHEL 9"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "mac_addresses.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "mac_addresses.0", "00:00:00:CC:CC:CC"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "trusted_for_delegation", "false"),
+					resource.TestCheckResourceAttr("data.freeipa_host.host-0", "trusted_to_auth_as_delegate", "false"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost) + testAccFreeIPAHost_datasource(testHostDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),
 				),
 			},
 		},
 	})
-}
-
-func testAccFreeIPADNSHostResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	}
-
-	resource "freeipa_dns_zone" "testacc_ipatest_lan" {
-		zone_name          = "testacc.ipatest.lan"
-	}
-	
-	  
-	resource "freeipa_host" "host" {
-		name       = "%s"
-		ip_address = "%s"
-		depends_on = [
-			freeipa_dns_zone.testacc_ipatest_lan
-		]
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["ip_address"])
-}
-
-func testAccFreeIPADNSHostResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	}
-	  
-	resource "freeipa_host" "host" {
-		name        = "%s"
-		description  = "%s"
-		ip_address = "%s"
-		locality = "%s"
-		location = "%s"
-		platform = "%s"
-		operating_system = "%s"
-		mac_addresses = ["%s"]
-		ipasshpubkeys = ["%s"]
-		userclass = ["%s"]
-		krb_auth_indicators = ["%s"]
-		krb_preauth = %s
-		trusted_for_delegation = %s
-		trusted_to_auth_as_delegate = %s
-		userpassword = "%s"
-		random_password = %s
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["ip_address"], dataset["locality"],
-		dataset["location"], dataset["platform"], dataset["operating_system"], dataset["mac_addresses"], dataset["ipasshpubkeys"], dataset["userclass"],
-		dataset["krb_auth_indicators"], dataset["krb_preauth"], dataset["trusted_for_delegation"], dataset["trusted_to_auth_as_delegate"], dataset["userpassword"], dataset["random_password"])
 }

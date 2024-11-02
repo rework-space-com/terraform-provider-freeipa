@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_hbac_policy_service_membership Resource - freeipa"
 description: |-
-
+FreeIPA HBAC policy service membership resource
 ---
 
 # freeipa_hbac_policy_service_membership (Resource)
@@ -20,13 +20,25 @@ resource "freeipa_hbac_policy" "hbac-0" {
 }
 
 resource "freeipa_hbac_policy_service_membership" "hbac-svc-1" {
-  name      = "test-hbac"
-  service   = "sshd"
+  name    = "test-hbac"
+  service = "sshd"
+}
+
+resource "freeipa_hbac_policy_service_membership" "hbac-svc-2" {
+  name       = "test-hbac"
+  services   = ["sshd"]
+  identifier = "hbac-svc-2"
 }
 
 resource "freeipa_hbac_policy_service_membership" "hbac-svcgrp-1" {
   name         = "test-hbac"
   servicegroup = "Sudo"
+}
+
+resource "freeipa_hbac_policy_service_membership" "hbac-svcgrp-2" {
+  name          = "test-hbac"
+  servicegroups = ["Sudo","ftp"]
+  identifier    = "hbac-svcgrp-2"
 }
 ```
 
@@ -42,9 +54,12 @@ resource "freeipa_hbac_policy_service_membership" "hbac-svcgrp-1" {
 
 ### Optional
 
-- `service` (String) Service name the policy is applied to
-- `servicegroup` (String) Service group name the policy is applied to
+- `identifier` (String) Unique identifier to differentiate multiple HBAC policy service membership resources on the same HBAC policy. Manadatory for using services/servicegroups configurations.
+- `service` (String, Deprecated) **deprecated** Service name the policy is applied t
+- `servicegroup` (String, Deprecated) **deprecated** Service group name the policy is applied to
+- `servicegroups` (List of String) List of service group name the policy is applied to
+- `services` (List of String) List of service name the policy is applied t
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

@@ -1,73 +1,44 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPADNSHostgroup(t *testing.T) {
+func TestAccFreeIPAHostgroup_posix(t *testing.T) {
 	testHostgroup := map[string]string{
-		"name":        "testhostgroup",
-		"description": "Host group test",
+		"index":       "1",
+		"name":        "\"testacc-group-1\"",
+		"description": "\"Test hostgroup 1\"",
+	}
+	testHostgroupModified := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-grouppos-1\"",
+		"description": "\"Modified description\"",
+	}
+	testHostgroupDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_hostgroup.hostgroup-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSHostgroupResource_basic(testHostgroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hostgroup.hostgroup", "name", testHostgroup["name"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAHostGroup_resource(testHostgroup),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hostgroup.hostgroup-1", "description", "Test hostgroup 1"),
 				),
 			},
 			{
-				Config: testAccFreeIPADNSHostgroupResource_full(testHostgroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hostgroup.hostgroup", "name", testHostgroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_hostgroup.hostgroup", "description", testHostgroup["description"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAHostGroup_resource(testHostgroupModified) + testAccFreeIPAHostGroup_datasource(testHostgroupDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hostgroup.hostgroup-1", "description", "Modified description"),
+					resource.TestCheckResourceAttr("data.freeipa_hostgroup.hostgroup-1", "description", "Modified description"),
 				),
 			},
 		},
 	})
-}
-
-func testAccFreeIPADNSHostgroupResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_hostgroup" "hostgroup" {
-		name       = "%s"
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"])
-}
-
-func testAccFreeIPADNSHostgroupResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_hostgroup" "hostgroup" {
-		name        = "%s"
-		description  = "%s"
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"])
 }

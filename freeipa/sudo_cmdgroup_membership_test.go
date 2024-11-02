@@ -1,122 +1,112 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPASudocmdgroupMembership(t *testing.T) {
-	testSudocmdgroupMembership := map[string]string{
-		"name":     "terminals",
-		"sudocmd":  "/bin/bash",
-		"sudocmd2": "/bin/fish",
+func TestAccFreeIPASudoCmdGrpMembership_simple(t *testing.T) {
+	testSudoCmd1 := map[string]string{
+		"index":       "1",
+		"name":        "\"/usr/bin/testacc-bash\"",
+		"description": "\"The bash shell\"",
 	}
-	testSudocmdgroupMembershipWithSlash := map[string]string{
-		"name":     "category_test/terminals",
-		"sudocmd":  "/bin/bash",
-		"sudocmd2": "/bin/fish",
+	testSudoCmdGrp := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-terminals\"",
+		"description": "\"A set of terminals\"",
+	}
+	testSudoCmdGrpMembership := map[string]string{
+		"index":   "1",
+		"name":    "freeipa_sudo_cmdgroup.sudocmdgroup-1.name",
+		"sudocmd": "freeipa_sudo_cmd.sudocmd-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPASudocmdgroupMembershipResource_basic(testSudocmdgroupMembership),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member", "name", testSudocmdgroupMembership["name"]),
-				),
-			},
-			{
-				Config: testAccFreeIPASudocmdgroupMembershipResource_full(testSudocmdgroupMembership),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member", "name", testSudocmdgroupMembership["name"]),
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member2", "name", testSudocmdgroupMembership["name"]),
-				),
-			},
-			{
-				Config: testAccFreeIPASudocmdgroupMembershipResource_basic(testSudocmdgroupMembershipWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member", "name", testSudocmdgroupMembershipWithSlash["name"]),
-				),
-			},
-			{
-				Config: testAccFreeIPASudocmdgroupMembershipResource_full(testSudocmdgroupMembershipWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member", "name", testSudocmdgroupMembershipWithSlash["name"]),
-					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.cmdgroup_member2", "name", testSudocmdgroupMembershipWithSlash["name"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoCmd_resource(testSudoCmd1) + testAccFreeIPASudoCmdGrp_resource(testSudoCmdGrp) + testAccFreeIPASudoCmdGrpMembership_resource(testSudoCmdGrpMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_cmd.sudocmd-1", "name", "/usr/bin/testacc-bash"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmd.sudocmd-1", "description", "The bash shell"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.sudocmdgroup-1", "name", "testacc-terminals"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.sudocmdgroup-1", "description", "A set of terminals"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.sudocmdgroup-membership-1", "name", "testacc-terminals"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.sudocmdgroup-membership-1", "sudocmd", "/usr/bin/testacc-bash"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPASudocmdgroupMembershipResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	
-	resource "freeipa_sudo_cmd" "cmd" {
-		name       = "%s"
+func TestAccFreeIPASudoCmdGrpMembership_mutiple(t *testing.T) {
+	testSudoCmd1 := map[string]string{
+		"index":       "1",
+		"name":        "\"/usr/bin/testacc-bash\"",
+		"description": "\"The bash shell\"",
+	}
+	testSudoCmd2 := map[string]string{
+		"index":       "2",
+		"name":        "\"/usr/bin/testacc-fish\"",
+		"description": "\"The fish shell\"",
+	}
+	testSudoCmd3 := map[string]string{
+		"index":       "3",
+		"name":        "\"/usr/bin/testacc-zsh\"",
+		"description": "\"The zsh shell\"",
+	}
+	testSudoCmdGrp := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-terminals\"",
+		"description": "\"A set of terminals\"",
+	}
+	testSudoCmdGrpMembership := map[string]string{
+		"index":       "1",
+		"name":        "freeipa_sudo_cmdgroup.sudocmdgroup-1.name",
+		"sudocmds":    "[freeipa_sudo_cmd.sudocmd-1.name,freeipa_sudo_cmd.sudocmd-2.name,freeipa_sudo_cmd.sudocmd-3.name]",
+		"indentifier": "multiplecmds",
+	}
+	testSudoCmdGrpDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_sudo_cmdgroup.sudocmdgroup-1.name",
 	}
 
-	resource "freeipa_sudo_cmd" "cmd2" {
-		name       = "%s"
-	}
-
-	resource "freeipa_sudo_cmdgroup" "cmdgroup" {
-		name       = "%s"
-	}
-
-	resource "freeipa_sudo_cmdgroup_membership" "cmdgroup_member" {
-		name       = freeipa_sudo_cmdgroup.cmdgroup.name
-		sudocmd    = freeipa_sudo_cmd.cmd.name
-	}
-	`, provider_host, provider_user, provider_pass, dataset["sudocmd"], dataset["sudocmd2"], dataset["name"])
-}
-
-func testAccFreeIPASudocmdgroupMembershipResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	  resource "freeipa_sudo_cmd" "cmd" {
-		name       = "%s"
-	}
-
-	resource "freeipa_sudo_cmd" "cmd2" {
-		name       = "%s"
-	}
-
-	resource "freeipa_sudo_cmdgroup" "cmdgroup" {
-		name       = "%s"
-	}
-
-	resource "freeipa_sudo_cmdgroup_membership" "cmdgroup_member" {
-		name       = freeipa_sudo_cmdgroup.cmdgroup.name
-		sudocmd    = freeipa_sudo_cmd.cmd.name
-	}
-
-	resource "freeipa_sudo_cmdgroup_membership" "cmdgroup_member2" {
-		name       = freeipa_sudo_cmdgroup.cmdgroup.id
-		sudocmd    = freeipa_sudo_cmd.cmd2.id
-	}
-	`, provider_host, provider_user, provider_pass, dataset["sudocmd"], dataset["sudocmd2"], dataset["name"])
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoCmd_resource(testSudoCmd1) + testAccFreeIPASudoCmd_resource(testSudoCmd2) + testAccFreeIPASudoCmd_resource(testSudoCmd3) + testAccFreeIPASudoCmdGrp_resource(testSudoCmdGrp) + testAccFreeIPASudoCmdGrpMembership_resource(testSudoCmdGrpMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_cmd.sudocmd-1", "name", "/usr/bin/testacc-bash"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmd.sudocmd-1", "description", "The bash shell"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmd.sudocmd-2", "name", "/usr/bin/testacc-fish"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmd.sudocmd-2", "description", "The fish shell"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmd.sudocmd-3", "name", "/usr/bin/testacc-zsh"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmd.sudocmd-3", "description", "The zsh shell"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.sudocmdgroup-1", "name", "testacc-terminals"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup.sudocmdgroup-1", "description", "A set of terminals"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.sudocmdgroup-membership-1", "name", "testacc-terminals"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.sudocmdgroup-membership-1", "sudocmds.#", "3"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.sudocmdgroup-membership-1", "sudocmds.0", "/usr/bin/testacc-bash"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.sudocmdgroup-membership-1", "sudocmds.1", "/usr/bin/testacc-fish"),
+					resource.TestCheckResourceAttr("freeipa_sudo_cmdgroup_membership.sudocmdgroup-membership-1", "sudocmds.2", "/usr/bin/testacc-zsh"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoCmd_resource(testSudoCmd1) + testAccFreeIPASudoCmd_resource(testSudoCmd2) + testAccFreeIPASudoCmd_resource(testSudoCmd3) + testAccFreeIPASudoCmdGrp_resource(testSudoCmdGrp) + testAccFreeIPASudoCmdGrpMembership_resource(testSudoCmdGrpMembership) + testAccFreeIPASudoCmdGroup_datasource(testSudoCmdGrpDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_sudo_cmdgroup.sudocmdgroup-1", "name", "testacc-terminals"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_cmdgroup.sudocmdgroup-1", "description", "A set of terminals"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_cmdgroup.sudocmdgroup-1", "member_sudocmd.#", "3"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_cmdgroup.sudocmdgroup-1", "member_sudocmd.0", "/usr/bin/testacc-bash"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_cmdgroup.sudocmdgroup-1", "member_sudocmd.1", "/usr/bin/testacc-fish"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_cmdgroup.sudocmdgroup-1", "member_sudocmd.2", "/usr/bin/testacc-zsh"),
+				),
+			},
+		},
+	})
 }

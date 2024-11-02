@@ -1,113 +1,112 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPADNSHBACServiceMembership(t *testing.T) {
-	var testHbacSvc map[string]string
-	testHbacSvc = map[string]string{
-		"name":    "hbac_test",
-		"service": "sshd",
+func TestAccFreeIPAHbacPolicyServiceMembership_simple(t *testing.T) {
+	testHbacPolicy := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-hbac-policy\"",
+		"description": "\"A hbac policy for acceptance tests\"",
 	}
-	var testHbacSvcWithSlash map[string]string
-	testHbacSvcWithSlash = map[string]string{
-		"name":    "category_test/hbac_test",
-		"service": "sshd",
+	testHbacServiceMembership := map[string]string{
+		"index":   "1",
+		"name":    "freeipa_hbac_policy.hbacpolicy-1.name",
+		"service": "\"sshd\"",
 	}
-	var testHbacSvcGroup map[string]string
-	testHbacSvcGroup = map[string]string{
-		"name":         "hbac_test",
-		"servicegroup": "Sudo",
+	testHbacServiceGroupMembership := map[string]string{
+		"index":        "2",
+		"name":         "freeipa_hbac_policy.hbacpolicy-1.name",
+		"servicegroup": "\"Sudo\"",
 	}
-	var testHbacSvcGroupWithSlash map[string]string
-	testHbacSvcGroupWithSlash = map[string]string{
-		"name":         "category_test/hbac_test",
-		"servicegroup": "Sudo",
+	testHbacDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_hbac_policy.hbacpolicy-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSHBACServiceMembershipResource_service(testHbacSvc),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svc", "name", testHbacSvc["name"]),
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svc", "service", testHbacSvc["service"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceMembership) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceGroupMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hbac_policy.hbacpolicy-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy.hbacpolicy-1", "description", "A hbac policy for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-1", "service", "sshd"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-2", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-2", "servicegroup", "Sudo"),
 				),
 			},
 			{
-				Config: testAccFreeIPADNSHBACServiceMembershipResource_servicegroup(testHbacSvcGroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svcgrp", "name", testHbacSvcGroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svcgrp", "servicegroup", testHbacSvcGroup["servicegroup"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSHBACServiceMembershipResource_service(testHbacSvcWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svc", "name", testHbacSvcWithSlash["name"]),
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svc", "service", testHbacSvcWithSlash["service"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSHBACServiceMembershipResource_servicegroup(testHbacSvcGroupWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svcgrp", "name", testHbacSvcGroupWithSlash["name"]),
-					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac_svcgrp", "servicegroup", testHbacSvcGroupWithSlash["servicegroup"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceMembership) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceGroupMembership) + testAccFreeIPAHbacPolicy_datasource(testHbacDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "description", "A hbac policy for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_service.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_service.0", "sshd"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_servicegroup.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_servicegroup.0", "Sudo"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPADNSHBACServiceMembershipResource_service(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_hbac_policy" "hbac_policy" {
-		name       = "%s"
+func TestAccFreeIPAHbacPolicyServiceMembership_mutiple(t *testing.T) {
+	testHbacPolicy := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-hbac-policy\"",
+		"description": "\"A hbac policy for acceptance tests\"",
 	}
-
-	resource "freeipa_hbac_policy_service_membership" "hbac_svc" {
-		name = freeipa_hbac_policy.hbac_policy.name
-		service = "%s"
+	testHbacServiceMembership := map[string]string{
+		"index":      "1",
+		"name":       "freeipa_hbac_policy.hbacpolicy-1.name",
+		"services":   "[\"sshd\"]",
+		"identifier": "\"service-1\"",
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["service"])
-}
-
-func testAccFreeIPADNSHBACServiceMembershipResource_servicegroup(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_hbac_policy" "hbac_policy" {
-		name       = "%s"
+	testHbacServiceGroupMembership := map[string]string{
+		"index":         "2",
+		"name":          "freeipa_hbac_policy.hbacpolicy-1.name",
+		"servicegroups": "[\"Sudo\"]",
+		"identifier":    "\"servicegroup-2\"",
 	}
-
-	resource "freeipa_hbac_policy_service_membership" "hbac_svcgrp" {
-		name = freeipa_hbac_policy.hbac_policy.name
-		servicegroup = "%s"
+	testHbacDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_hbac_policy.hbacpolicy-1.name",
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["servicegroup"])
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceMembership) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceGroupMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_hbac_policy.hbacpolicy-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy.hbacpolicy-1", "description", "A hbac policy for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-1", "services.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-1", "services.0", "sshd"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-2", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-2", "servicegroups.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_hbac_policy_service_membership.hbac-service-membership-2", "servicegroups.0", "Sudo"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceMembership) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceGroupMembership) + testAccFreeIPAHbacPolicy_datasource(testHbacDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "name", "testacc-hbac-policy"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "description", "A hbac policy for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_service.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_service.0", "sshd"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_servicegroup.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_servicegroup.0", "Sudo"),
+				),
+			},
+		},
+	})
 }

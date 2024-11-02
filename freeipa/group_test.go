@@ -1,261 +1,103 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPADNSGroup_posix(t *testing.T) {
+func TestAccFreeIPAGroup_posix(t *testing.T) {
 	testGroup := map[string]string{
-		"name":        "testgrouppos",
-		"description": "User group test",
-		"gid_number":  "10001",
-		"addattr":     "owner=uid=test",
+		"index":       "1",
+		"name":        "\"testacc-group-1\"",
+		"description": "\"Test group 1\"",
+		"gid_number":  "10000",
+		"addattr":     "[\"owner=uid=test\"]",
+		"setattr":     "[\"owner=uid=test\"]",
 	}
 	testGroup2 := map[string]string{
-		"name":        "testgrouppos2",
-		"description": "User group test 2",
+		"index":       "2",
+		"name":        "\"testacc-grouppos-2\"",
+		"description": "\"User group test 2\"",
 		"gid_number":  "10002",
-		"addattr":     "owner=uid=test",
+		"addattr":     "[\"owner=uid=test2\"]",
+		"setattr":     "[\"owner=uid=test\"]",
+	}
+	testGroupDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_group.group-2.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSGroupResource_basic(testGroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup["name"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_group.group-1", "description", "Test group 1"),
+					resource.TestCheckResourceAttr("freeipa_group.group-1", "gid_number", "10000"),
 				),
 			},
 			{
-				Config: testAccFreeIPADNSGroupResource_full(testGroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup["description"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "gid_number", testGroup["gid_number"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "addattr.0", testGroup["addattr"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSGroupResource_full(testGroup2),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup2["name"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup2["description"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "gid_number", testGroup2["gid_number"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "addattr.0", testGroup2["addattr"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup) + testAccFreeIPAGroup_resource(testGroup2) + testAccFreeIPAGroup_datasource(testGroupDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_group.group-1", "description", "User group test 2"),
+					resource.TestCheckResourceAttr("data.freeipa_group.group-1", "gid_number", "10002"),
+					resource.TestCheckResourceAttr("freeipa_group.group-2", "description", "User group test 2"),
+					resource.TestCheckResourceAttr("freeipa_group.group-2", "gid_number", "10002"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPADNSGroupResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_group" "group" {
-		name       = "%s"
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"])
-}
-
-func testAccFreeIPADNSGroupResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_group" "group" {
-		name        = "%s"
-		description  = "%s"
-		gid_number = %s
-                addattr = ["%s"]
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["gid_number"], dataset["addattr"])
-}
-
-func TestAccFreeIPADNSGroup_noposix(t *testing.T) {
+func TestAccFreeIPAGroup_noposix(t *testing.T) {
 	testGroup := map[string]string{
-		"name":        "testgroupnonpos",
-		"description": "User group test",
+		"index":       "1",
+		"name":        "\"testacc-groupnonpos\"",
+		"description": "\"User group test\"",
 		"nonposix":    "true",
-		"addattr":     "owner=uid=test",
-	}
-	testGroup2 := map[string]string{
-		"name":        "testgroupnonpos2",
-		"description": "User group test 2",
-		"nonposix":    "true",
-		"addattr":     "owner=uid=test",
+		"addattr":     "[\"owner=uid=test\"]",
+		"setattr":     "[\"owner=uid=test\"]",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSGroupResource_nonposix_basic(testGroup),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup["name"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSGroupResource_nonposix_full(testGroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup["description"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "nonposix", "true"),
-					resource.TestCheckResourceAttr("freeipa_group.group", "addattr.0", testGroup["addattr"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSGroupResource_nonposix_full(testGroup2),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup2["name"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup2["description"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "nonposix", "true"),
-					resource.TestCheckResourceAttr("freeipa_group.group", "addattr.0", testGroup2["addattr"]),
+					resource.TestCheckResourceAttr("freeipa_group.group-1", "name", "testacc-groupnonpos"),
+					resource.TestCheckResourceAttr("freeipa_group.group-1", "description", "User group test"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPADNSGroupResource_nonposix_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_group" "group" {
-		name       = "%s"
-		nonposix = %s
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["nonposix"])
-}
-
-func testAccFreeIPADNSGroupResource_nonposix_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_group" "group" {
-		name        = "%s"
-		description  = "%s"
-		nonposix = %s
-		addattr = ["%s"]
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["nonposix"], dataset["addattr"])
-}
-
-func TestAccFreeIPADNSGroup_external(t *testing.T) {
+func TestAccFreeIPAGroup_external(t *testing.T) {
 	testGroup := map[string]string{
-		"name":        "testgroupext",
-		"description": "User group test",
+		"index":       "1",
+		"name":        "\"testacc-groupext\"",
+		"description": "\"External user group test\"",
 		"external":    "true",
-	}
-	testGroup2 := map[string]string{
-		"name":        "testgroupext2",
-		"description": "User group test 2",
-		"external":    "true",
+		"addattr":     "[\"owner=uid=test\"]",
+		"setattr":     "[\"owner=uid=test\"]",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSGroupResource_external_basic(testGroup),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup["name"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSGroupResource_external_full(testGroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup["description"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "external", "true"),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSGroupResource_external_full(testGroup2),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_group.group", "name", testGroup2["name"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "description", testGroup2["description"]),
-					resource.TestCheckResourceAttr("freeipa_group.group", "external", "true"),
+					resource.TestCheckResourceAttr("freeipa_group.group-1", "name", "testacc-groupext"),
+					resource.TestCheckResourceAttr("freeipa_group.group-1", "description", "External user group test"),
 				),
 			},
 		},
 	})
-}
-
-func testAccFreeIPADNSGroupResource_external_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_group" "group" {
-		name       = "%s"
-		external = %s
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["external"])
-}
-
-func testAccFreeIPADNSGroupResource_external_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_group" "group" {
-		name        = "%s"
-		description  = "%s"
-		external = %s
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["external"])
 }

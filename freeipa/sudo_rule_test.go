@@ -1,88 +1,80 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPASudoRule(t *testing.T) {
+func TestAccFreeIPASudoRule_simple(t *testing.T) {
 	testSudoRule := map[string]string{
-		"name":               "sudo-rule-test",
-		"description":        "Test sudo rule",
-		"enabled":            "true",
-		"usercategory":       "all",
-		"hostcategory":       "all",
-		"commandcategory":    "all",
-		"runasusercategory":  "all",
-		"runasgroupcategory": "all",
-		"order":              "2",
+		"index":       "1",
+		"name":        "\"testacc-sudorule\"",
+		"description": "\"A sudo rule for acceptance tests\"",
+	}
+	testSudoRuleModified := map[string]string{
+		"index":              "1",
+		"name":               "\"testacc-sudorule\"",
+		"description":        "\"A new sudo rule for acceptance tests\"",
+		"enabled":            "false",
+		"usercategory":       "\"all\"",
+		"hostcategory":       "\"all\"",
+		"commandcategory":    "\"all\"",
+		"runasusercategory":  "\"all\"",
+		"runasgroupcategory": "\"all\"",
+		"order":              "5",
+	}
+	testSudoDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_sudo_rule.sudorule-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPASudoRuleResource_basic(testSudoRule),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_rule.test_rule", "name", testSudoRule["name"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoRule_resource(testSudoRule),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
 				),
 			},
 			{
-				Config: testAccFreeIPASudoRuleResource_full(testSudoRule),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_rule.test_rule", "name", testSudoRule["name"]),
-					resource.TestCheckResourceAttr("freeipa_sudo_rule.test_rule", "description", testSudoRule["description"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRule_datasource(testSudoDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoRule_resource(testSudoRuleModified),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "description", "A new sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "enabled", "false"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "usercategory", "all"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "hostcategory", "all"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "commandcategory", "all"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "runasusercategory", "all"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "runasgroupcategory", "all"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "order", "5"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPASudoRule_resource(testSudoRuleModified) + testAccFreeIPASudoRule_datasource(testSudoDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "description", "A new sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "enabled", "false"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "usercategory", "all"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "hostcategory", "all"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "commandcategory", "all"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "runasusercategory", "all"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "runasgroupcategory", "all"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "order", "5"),
 				),
 			},
 		},
 	})
-}
-
-func testAccFreeIPASudoRuleResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_sudo_rule" "test_rule" {
-		name       = "%s"
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"])
-}
-
-func testAccFreeIPASudoRuleResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_sudo_rule" "test_rule" {
-		name        = "%s"
-		description  = "%s"
-		enabled = %s
-		usercategory = "%s"
-		hostcategory = "%s"
-		commandcategory = "%s"
-		runasusercategory = "%s"
-		runasgroupcategory = "%s"
-		order = %s
-	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["enabled"], dataset["usercategory"], dataset["hostcategory"],
-		dataset["commandcategory"], dataset["runasusercategory"], dataset["runasgroupcategory"], dataset["order"])
 }

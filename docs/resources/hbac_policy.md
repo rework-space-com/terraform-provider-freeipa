@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_hbac_policy Resource - freeipa"
 description: |-
-
+FreeIPA HBAC policy resource
 ---
 
 # freeipa_hbac_policy (Resource)
@@ -28,16 +28,16 @@ resource "freeipa_hbac_policy" "hbac-0" {
 
 ### Required
 
-- `name` (String) HBAC policy name
+- `name` (String) Name of the hbac policy
 
 ### Optional
 
 - `description` (String) HBAC policy description
-- `enabled` (Boolean) Enable this policy (Defaults to `true`)
-- `hostcategory` (String) Host category the policy is applied to (allowed value: `all`)
-- `servicecategory` (String) Service category the policy is applied to (allowed value: `all`)
-- `usercategory` (String) User category the policy is applied to (allowed value: `all`)
+- `enabled` (Boolean) Enable this hbac policy
+- `hostcategory` (String) Host category the hbac policy is applied to (allowed value: all)
+- `servicecategory` (String) Service category the hbac policy is applied to (allowed value: all)
+- `usercategory` (String) User category the hbac policy is applied to (allowed value: all)
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

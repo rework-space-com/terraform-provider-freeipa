@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_cmdgroup Resource - freeipa"
 description: |-
-
+FreeIPA Sudo command group resource
 ---
 
 # freeipa_sudo_cmdgroup (Resource)
@@ -11,8 +11,8 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_cmdgroup "service_management" {
-  name = "service-management"
+resource "freeipa_sudo_cmdgroup" "service_management" {
+  name        = "service-management"
   description = "Service management related sudo commands"
 }
 ```
@@ -33,4 +33,4 @@ resource freeipa_sudo_cmdgroup "service_management" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

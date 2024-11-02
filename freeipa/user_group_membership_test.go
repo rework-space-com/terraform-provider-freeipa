@@ -1,101 +1,150 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPADNSUserGroupMembership(t *testing.T) {
-	testDatasetUser := map[string]string{
-		"login":     "testuser",
-		"firstname": "Test",
-		"lastname":  "User",
+func TestAccFreeIPAUserGroupMembership_posix(t *testing.T) {
+	testGroup := map[string]string{
+		"index":       "0",
+		"name":        "\"testacc-group\"",
+		"description": "\"User group test\"",
 	}
-	testDatasetGroup := map[string]string{
-		"name": "testgroup",
+	testMemberUser := map[string]string{
+		"index":     "0",
+		"login":     "\"testacc-user\"",
+		"firstname": "\"Test\"",
+		"lastname":  "\"User\"",
 	}
-	testDatasetGroup2 := map[string]string{
-		"name": "testgroup-2",
+	testMemberGroup := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-groupmember\"",
+		"description": "\"User group test - member of testgroup\"",
 	}
-	testDatasetGroup3 := map[string]string{
-		"name": "testgroup-3",
+	testMembershipUser := map[string]string{
+		"index": "0",
+		"name":  "freeipa_group.group-0.name",
+		"user":  "freeipa_user.user-0.name",
+	}
+	testMembershipGroup := map[string]string{
+		"index": "1",
+		"name":  "freeipa_group.group-0.name",
+		"group": "freeipa_group.group-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSUserGroupMembershipResource_user(testDatasetUser, testDatasetGroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership", "name", testDatasetGroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership", "user", testDatasetUser["login"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSUserGroupMembershipResource_group(testDatasetGroup3, testDatasetGroup2),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership2", "name", testDatasetGroup3["name"]),
-					resource.TestCheckResourceAttr("freeipa_user_group_membership.groupmembership2", "group", testDatasetGroup2["name"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup) + testAccFreeIPAGroup_resource(testMemberGroup) + testAccFreeIPAUser_resource(testMemberUser) + testAccFreeIPAUserGroupMembership_resource(testMembershipUser) + testAccFreeIPAUserGroupMembership_resource(testMembershipGroup),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_group.group-0", "description", "User group test"),
+					resource.TestCheckResourceAttr("freeipa_group.group-0", "name", "testacc-group"),
+					resource.TestCheckResourceAttr("freeipa_group.group-1", "description", "User group test - member of testgroup"),
+					resource.TestCheckResourceAttr("freeipa_group.group-1", "name", "testacc-groupmember"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "name", "testacc-group"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "user", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "name", "testacc-group"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "group", "testacc-groupmember"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPADNSUserGroupMembershipResource_user(dataset_user map[string]string, dataset_group map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	resource "freeipa_user" "user" {
-		name       = "%s"
-		first_name = "%s"
-		last_name  = "%s"
+func TestAccFreeIPAUserGroupMembership_multiple_posix(t *testing.T) {
+	testGroup1 := map[string]string{
+		"index":       "0",
+		"name":        "\"testacc-group-0\"",
+		"description": "\"User group test 0\"",
+	}
+	testGroup2 := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-group-1\"",
+		"description": "\"User group test 1\"",
+	}
+	testGroup3 := map[string]string{
+		"index":       "2",
+		"name":        "\"testacc-group-2\"",
+		"description": "\"User group test 2\"",
+	}
+	testMemberUser1 := map[string]string{
+		"index":     "0",
+		"login":     "\"testacc-user-0\"",
+		"firstname": "\"Test\"",
+		"lastname":  "\"User0\"",
+	}
+	testMemberUser2 := map[string]string{
+		"index":     "1",
+		"login":     "\"testacc-user-1\"",
+		"firstname": "\"Test\"",
+		"lastname":  "\"User1\"",
+	}
+	testMembershipGroups1 := map[string]string{
+		"index":       "0",
+		"name":        "freeipa_group.group-0.name",
+		"description": "\"User group test - member of testgroup\"",
+		"groups":      "[freeipa_group.group-1.name]",
+		"identifier":  "\"groups\"",
+	}
+	testMembershipGroups2 := map[string]string{
+		"index":       "0",
+		"name":        "freeipa_group.group-0.name",
+		"description": "\"User group test - member of testgroup\"",
+		"groups":      "[freeipa_group.group-1.name,freeipa_group.group-2.name]",
+		"identifier":  "\"groups\"",
+	}
+	testMembershipUsers1 := map[string]string{
+		"index":      "1",
+		"name":       "freeipa_group.group-0.name",
+		"users":      "[freeipa_user.user-0.name]",
+		"identifier": "\"users\"",
+	}
+	testMembershipUsers2 := map[string]string{
+		"index":      "1",
+		"name":       "freeipa_group.group-0.name",
+		"users":      "[freeipa_user.user-0.name,freeipa_user.user-1.name]",
+		"identifier": "\"users\"",
 	}
 
-	resource "freeipa_group" "group" {
-		name       = "%s"
-	}
-	resource freeipa_user_group_membership "groupmembership" {
-	   name = resource.freeipa_group.group.id
-	   user = resource.freeipa_user.user.id
-	}
-	`, provider_host, provider_user, provider_pass, dataset_user["login"], dataset_user["firstname"], dataset_user["lastname"], dataset_group["name"])
-}
-
-func testAccFreeIPADNSUserGroupMembershipResource_group(dataset_group map[string]string, dataset_group2 map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	
-	resource "freeipa_group" "group2" {
-		name       = "%s"
-	}
-	resource "freeipa_group" "subgroup" {
-		name       = "%s"
-	}
-
-	resource freeipa_user_group_membership "groupmembership2" {
-	   name = resource.freeipa_group.group2.id
-	   group = resource.freeipa_group.subgroup.id
-	}
-	`, provider_host, provider_user, provider_pass, dataset_group["name"], dataset_group2["name"])
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup1) + testAccFreeIPAGroup_resource(testGroup2) + testAccFreeIPAGroup_resource(testGroup3) + testAccFreeIPAUser_resource(testMemberUser1) + testAccFreeIPAUser_resource(testMemberUser2) + testAccFreeIPAUserGroupMembership_resource(testMembershipGroups1) + testAccFreeIPAUserGroupMembership_resource(testMembershipUsers1),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_group.group-0", "description", "User group test 0"),
+					resource.TestCheckResourceAttr("freeipa_group.group-0", "name", "testacc-group-0"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "testacc-user-0"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "name", "testacc-group-0"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "groups.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "groups.0", "testacc-group-1"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "name", "testacc-group-0"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "users.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "users.0", "testacc-user-0"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAGroup_resource(testGroup1) + testAccFreeIPAGroup_resource(testGroup2) + testAccFreeIPAGroup_resource(testGroup3) + testAccFreeIPAUser_resource(testMemberUser1) + testAccFreeIPAUser_resource(testMemberUser2) + testAccFreeIPAUserGroupMembership_resource(testMembershipGroups2) + testAccFreeIPAUserGroupMembership_resource(testMembershipUsers2),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_group.group-0", "description", "User group test 0"),
+					resource.TestCheckResourceAttr("freeipa_group.group-0", "name", "testacc-group-0"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "testacc-user-0"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "name", "testacc-group-0"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "groups.#", "2"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "groups.0", "testacc-group-1"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-0", "groups.1", "testacc-group-2"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "name", "testacc-group-0"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "users.#", "2"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "users.0", "testacc-user-0"),
+					resource.TestCheckResourceAttr("freeipa_user_group_membership.membership-1", "users.1", "testacc-user-1"),
+				),
+			},
+		},
+	})
 }

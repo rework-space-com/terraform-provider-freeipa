@@ -1,7 +1,17 @@
-resource freeipa_group "group-0" {
-  name = "test-group"
+resource "freeipa_group" "group-posix" {
+  name        = "test-group"
   description = "Test group"
-  # gid_number = "123457"
-  # nonposix = true
-  # external = true
+  gid_number  = "12345789"
+}
+
+resource "freeipa_group" "group-nonposix" {
+  name        = "test-group"
+  description = "Test group"
+  nonposix    = true
+}
+
+resource "freeipa_group" "group-external" {
+  name        = "test-group"
+  description = "Test group"
+  external    = true
 }

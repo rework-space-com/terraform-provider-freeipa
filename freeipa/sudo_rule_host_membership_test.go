@@ -1,95 +1,139 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPASudoRuleHost(t *testing.T) {
-	testSudoRuleHost := map[string]string{
-		"name":      "sudo-rule-test",
-		"host":      "host.testacc.ipatest.lan",
-		"hostip":    "192.168.10.1",
-		"hostgroup": "test-hosts",
+func TestAccFreeIPASudoRuleHostMembership_simple(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
 	}
-	testSudoRuleHostWithSlash := map[string]string{
-		"name":      "category_test/sudo-rule-test",
-		"host":      "host.testacc.ipatest.lan",
-		"hostip":    "192.168.10.1",
-		"hostgroup": "test-hosts",
+	testMemberHost := map[string]string{
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
+	}
+	testHostGroup := map[string]string{
+		"index": "0",
+		"name":  "\"testacc-hostgroup\"",
+	}
+	testSudoRule := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-sudorule\"",
+		"description": "\"A sudo rule for acceptance tests\"",
+	}
+	testSudoHostMembership := map[string]string{
+		"index": "1",
+		"name":  "freeipa_sudo_rule.sudorule-1.name",
+		"host":  "freeipa_host.host-0.name",
+	}
+	testSudoHostGrpMembership := map[string]string{
+		"index":     "2",
+		"name":      "freeipa_sudo_rule.sudorule-1.name",
+		"hostgroup": "freeipa_hostgroup.hostgroup-0.name",
+	}
+	testSudoDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_sudo_rule.sudorule-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPASudoRuleHostResource_basic(testSudoRuleHost),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.hostmember", "name", testSudoRuleHost["name"]),
-					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.hostmember", "host", testSudoRuleHost["host"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleHostMembership_resource(testSudoHostMembership) + testAccFreeIPASudoRuleHostMembership_resource(testSudoHostGrpMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-1", "host", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-2", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-2", "hostgroup", "testacc-hostgroup"),
 				),
 			},
 			{
-				Config: testAccFreeIPASudoRuleHostResource_basic(testSudoRuleHostWithSlash),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.hostmember", "name", testSudoRuleHostWithSlash["name"]),
-					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.hostmember", "host", testSudoRuleHostWithSlash["host"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleHostMembership_resource(testSudoHostMembership) + testAccFreeIPASudoRuleHostMembership_resource(testSudoHostGrpMembership) + testAccFreeIPASudoRule_datasource(testSudoDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "member_host.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "member_host.0", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "member_hostgroup.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "member_hostgroup.0", "testacc-hostgroup"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPASudoRuleHostResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-	  resource "freeipa_dns_zone" "testacc_ipatest_lan" {
-		zone_name          = "testacc.ipatest.lan"
+func TestAccFreeIPASudoRuleHostMembership_mutiple(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
 	}
-	
-	  
-	resource "freeipa_host" "host" {
-		name       = "%s"
-		ip_address = "%s"
-		depends_on = [
-			freeipa_dns_zone.testacc_ipatest_lan
-		]
+	testMemberHost := map[string]string{
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
 	}
-
-	resource "freeipa_hostgroup" "hostgroup" {
-		name       = "%s"
+	testHostGroup := map[string]string{
+		"index": "0",
+		"name":  "\"testacc-hostgroup\"",
 	}
-	
-	resource freeipa_host_hostgroup_membership "groupmembership" {
-	   name = freeipa_hostgroup.hostgroup.id
-	   host = freeipa_host.host.id
+	testSudoRule := map[string]string{
+		"index":       "1",
+		"name":        "\"testacc-sudorule\"",
+		"description": "\"A sudo rule for acceptance tests\"",
 	}
-
-	resource "freeipa_sudo_rule" "test_rule" {
-		name       = "%s"
+	testSudoHostMembership := map[string]string{
+		"index":      "1",
+		"name":       "freeipa_sudo_rule.sudorule-1.name",
+		"hosts":      "[freeipa_host.host-0.name]",
+		"identifier": "\"hostmembers-1\"",
+	}
+	testSudoHostGrpMembership := map[string]string{
+		"index":      "2",
+		"name":       "freeipa_sudo_rule.sudorule-1.name",
+		"hostgroups": "[freeipa_hostgroup.hostgroup-0.name]",
+		"identifier": "\"hostgroupmembers-2\"",
+	}
+	testSudoDS := map[string]string{
+		"index": "1",
+		"name":  "freeipa_sudo_rule.sudorule-1.name",
 	}
 
-	resource freeipa_sudo_rule_host_membership "hostmember" {
-		name = freeipa_sudo_rule.test_rule.name
-		host = freeipa_host.host.name
-	 }
-
-	 resource freeipa_sudo_rule_host_membership "hostgroupmember" {
-		name = freeipa_sudo_rule.test_rule.name
-		hostgroup = freeipa_hostgroup.hostgroup.name
-	 }
-	`, provider_host, provider_user, provider_pass, dataset["host"], dataset["hostip"], dataset["hostgroup"], dataset["name"])
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleHostMembership_resource(testSudoHostMembership) + testAccFreeIPASudoRuleHostMembership_resource(testSudoHostGrpMembership),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-1", "hosts.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-1", "hosts.0", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-2", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-2", "hostgroups.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_sudo_rule_host_membership.sudo-host-membership-2", "hostgroups.0", "testacc-hostgroup"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPASudoRule_resource(testSudoRule) + testAccFreeIPASudoRuleHostMembership_resource(testSudoHostMembership) + testAccFreeIPASudoRuleHostMembership_resource(testSudoHostGrpMembership) + testAccFreeIPASudoRule_datasource(testSudoDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "name", "testacc-sudorule"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "description", "A sudo rule for acceptance tests"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "member_host.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "member_host.0", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "member_hostgroup.#", "1"),
+					resource.TestCheckResourceAttr("data.freeipa_sudo_rule.sudorule-1", "member_hostgroup.0", "testacc-hostgroup"),
+				),
+			},
+		},
+	})
 }

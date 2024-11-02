@@ -1,145 +1,198 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package freeipa
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
-func resourceFreeIPASudoRule() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceFreeIPASudoRuleCreate,
-		ReadContext:   resourceFreeIPASudoRuleRead,
-		UpdateContext: resourceFreeIPASudoRuleUpdate,
-		DeleteContext: resourceFreeIPASudoRuleDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &SudoRuleResource{}
+var _ resource.ResourceWithImportState = &SudoRuleResource{}
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Name of the sudo rule",
+func NewSudoRuleResource() resource.Resource {
+	return &SudoRuleResource{}
+}
+
+// SudoRuleResource defines the resource implementation.
+type SudoRuleResource struct {
+	client *ipa.Client
+}
+
+// SudoRuleResourceModel describes the resource data model.
+type SudoRuleResourceModel struct {
+	Id                 types.String `tfsdk:"id"`
+	Name               types.String `tfsdk:"name"`
+	Description        types.String `tfsdk:"description"`
+	Enabled            types.Bool   `tfsdk:"enabled"`
+	UserCategory       types.String `tfsdk:"usercategory"`
+	HostCategory       types.String `tfsdk:"hostcategory"`
+	CommandCategory    types.String `tfsdk:"commandcategory"`
+	RunAsUserCategory  types.String `tfsdk:"runasusercategory"`
+	RunAsGroupCategory types.String `tfsdk:"runasgroupcategory"`
+	Order              types.Int32  `tfsdk:"order"`
+}
+
+func (r *SudoRuleResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_sudo_rule"
+}
+
+func (r *SudoRuleResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{}
+}
+
+func (r *SudoRuleResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "FreeIPA Sudo rule resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Sudo rule description",
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Name of the sudo rule",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				ForceNew:    false,
-				Description: "Enable this sudo rule",
+			"description": schema.StringAttribute{
+				MarkdownDescription: "Sudo rule description",
+				Optional:            true,
 			},
-			"usercategory": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "User category the sudo rule is applied to (allowed value: all)",
+			"enabled": schema.BoolAttribute{
+				MarkdownDescription: "Enable this sudo rule",
+				Optional:            true,
 			},
-			"hostcategory": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "Host category the sudo rule is applied to (allowed value: all)",
+			"usercategory": schema.StringAttribute{
+				MarkdownDescription: "User category the sudo rule is applied to (allowed value: all)",
+				Optional:            true,
 			},
-			"commandcategory": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "Command category the sudo rule is applied to (allowed value: all)",
+			"hostcategory": schema.StringAttribute{
+				MarkdownDescription: "Host category the sudo rule is applied to (allowed value: all)",
+				Optional:            true,
 			},
-			"runasusercategory": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "Run as user category the sudo rule is applied to (allowed value: all)",
+			"commandcategory": schema.StringAttribute{
+				MarkdownDescription: "Command category the sudo rule is applied to (allowed value: all)",
+				Optional:            true,
 			},
-			"runasgroupcategory": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "Run as group category the sudo rule is applied to (allowed value: all)",
+			"runasusercategory": schema.StringAttribute{
+				MarkdownDescription: "Run as user category the sudo rule is applied to (allowed value: all)",
+				Optional:            true,
 			},
-			"order": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "Sudo rule order (must be unique)",
+			"runasgroupcategory": schema.StringAttribute{
+				MarkdownDescription: "Run as group category the sudo rule is applied to (allowed value: all)",
+				Optional:            true,
+			},
+			"order": schema.Int32Attribute{
+				MarkdownDescription: "Sudo rule order (must be unique)",
+				Optional:            true,
 			},
 		},
 	}
 }
 
-func resourceFreeIPASudoRuleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa sudo rule")
+func (r *SudoRuleResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	client, ok := req.ProviderData.(*ipa.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
+}
+
+func (r *SudoRuleResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data SudoRuleResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	optArgs := ipa.SudoruleAddOptionalArgs{}
 
 	args := ipa.SudoruleAddArgs{
-		Cn: d.Get("name").(string),
+		Cn: data.Name.ValueString(),
 	}
-	if _v, ok := d.GetOkExists("description"); ok {
-		v := _v.(string)
-		optArgs.Description = &v
+	if !data.Description.IsNull() {
+		optArgs.Description = data.Description.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("enabled"); ok {
-		v := _v.(bool)
+	if !data.Enabled.IsNull() {
+		v := data.Enabled.ValueBool()
 		optArgs.Ipaenabledflag = &v
 	}
-	if _v, ok := d.GetOkExists("usercategory"); ok {
-		v := _v.(string)
-		optArgs.Usercategory = &v
+	if !data.UserCategory.IsNull() {
+		optArgs.Usercategory = data.UserCategory.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("hostcategory"); ok {
-		v := _v.(string)
-		optArgs.Hostcategory = &v
+	if !data.HostCategory.IsNull() {
+		optArgs.Hostcategory = data.HostCategory.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("runasusercategory"); ok {
-		v := _v.(string)
-		optArgs.Ipasudorunasusercategory = &v
+	if !data.RunAsUserCategory.IsNull() {
+		optArgs.Ipasudorunasusercategory = data.RunAsUserCategory.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("commandcategory"); ok {
-		v := _v.(string)
-		optArgs.Cmdcategory = &v
+	if !data.CommandCategory.IsNull() {
+		optArgs.Cmdcategory = data.CommandCategory.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("runasgroupcategory"); ok {
-		v := _v.(string)
-		optArgs.Ipasudorunasgroupcategory = &v
+	if !data.RunAsGroupCategory.IsNull() {
+		optArgs.Ipasudorunasgroupcategory = data.RunAsGroupCategory.ValueStringPointer()
 	}
-	if _v, ok := d.GetOkExists("order"); ok {
-		v := _v.(int)
+	if !data.Order.IsNull() {
+		v := int(data.Order.ValueInt32())
 		optArgs.Sudoorder = &v
 	}
-	_, err = client.SudoruleAdd(&args, &optArgs)
+	_, err := r.client.SudoruleAdd(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error creating freeipa sudo rule: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule: %s", err))
+		return
 	}
 
-	d.SetId(d.Get("name").(string))
+	data.Id = data.Name
 
-	return resourceFreeIPASudoRuleRead(ctx, d, meta)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPASudoRuleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa sudo rule")
+func (r *SudoRuleResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data SudoRuleResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	all := true
@@ -148,129 +201,185 @@ func resourceFreeIPASudoRuleRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	args := ipa.SudoruleShowArgs{
-		Cn: d.Id(),
+		Cn: data.Id.ValueString(),
 	}
 
-	res, err := client.SudoruleShow(&args, &optArgs)
+	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			d.SetId("")
-			log.Printf("[DEBUG] Sudo rule not found")
-			return nil
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+			return
 		} else {
-			return diag.Errorf("Error reading freeipa sudo rule: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+			return
 		}
 	}
 
-	log.Printf("[DEBUG] Read freeipa sudo rule %s", res.Result.Cn)
-	return nil
+	if res.Result.Description != nil && !data.Description.IsNull() {
+		data.Description = types.StringValue(*res.Result.Description)
+	}
+	if res.Result.Ipaenabledflag != nil && !data.Enabled.IsNull() {
+		data.Enabled = types.BoolValue(*res.Result.Ipaenabledflag)
+	}
+	if res.Result.Usercategory != nil && !data.UserCategory.IsNull() {
+		data.UserCategory = types.StringValue(*res.Result.Usercategory)
+	}
+	if res.Result.Hostcategory != nil && !data.HostCategory.IsNull() {
+		data.HostCategory = types.StringValue(*res.Result.Hostcategory)
+	}
+	if res.Result.Cmdcategory != nil && !data.CommandCategory.IsNull() {
+		data.CommandCategory = types.StringValue(*res.Result.Cmdcategory)
+	}
+	if res.Result.Ipasudorunasusercategory != nil && !data.RunAsUserCategory.IsNull() {
+		data.RunAsUserCategory = types.StringValue(*res.Result.Ipasudorunasusercategory)
+	}
+	if res.Result.Ipasudorunasgroupcategory != nil && !data.RunAsUserCategory.IsNull() {
+		data.RunAsUserCategory = types.StringValue(*res.Result.Ipasudorunasgroupcategory)
+	}
+	if res.Result.Sudoorder != nil && !data.Order.IsNull() {
+		data.Order = types.Int32Value(int32(*res.Result.Sudoorder))
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func resourceFreeIPASudoRuleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Update freeipa sudo rule")
+func (r *SudoRuleResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state SudoRuleResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	args := ipa.SudoruleModArgs{
-		Cn: d.Id(),
+		Cn: data.Id.ValueString(),
 	}
 	optArgs := ipa.SudoruleModOptionalArgs{}
 
 	var hasChange = false
 
-	if d.HasChange("description") {
-		if _v, ok := d.GetOkExists("description"); ok {
-			v := _v.(string)
-			optArgs.Description = &v
-			hasChange = true
+	if !data.Description.Equal(state.Description) {
+		optArgs.Description = data.Description.ValueStringPointer()
+		hasChange = true
+	}
+	if !data.Enabled.Equal(state.Enabled) {
+		if !data.Enabled.ValueBool() {
+			_, err := r.client.SudoruleDisable(&ipa.SudoruleDisableArgs{Cn: data.Id.ValueString()}, &ipa.SudoruleDisableOptionalArgs{})
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error disabling freeipa sudo rule: %s", err))
+			}
+		} else {
+			_, err := r.client.SudoruleEnable(&ipa.SudoruleEnableArgs{Cn: data.Id.ValueString()}, &ipa.SudoruleEnableOptionalArgs{})
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error enabling freeipa sudo rule: %s", err))
+			}
 		}
 	}
-	if d.HasChange("enabled") {
-		if _v, ok := d.GetOkExists("enabled"); ok {
-			v := _v.(bool)
-			optArgs.Ipaenabledflag = &v
-			hasChange = true
-		}
-	}
-	if d.HasChange("usercategory") {
-		if _v, ok := d.GetOkExists("usercategory"); ok {
-			v := _v.(string)
+	if !data.UserCategory.Equal(state.UserCategory) {
+		if data.UserCategory.ValueStringPointer() == nil {
+			v := ""
 			optArgs.Usercategory = &v
-			hasChange = true
+		} else {
+			optArgs.Usercategory = data.UserCategory.ValueStringPointer()
 		}
+		hasChange = true
 	}
-	if d.HasChange("hostcategory") {
-		if _v, ok := d.GetOkExists("hostcategory"); ok {
-			v := _v.(string)
+	if !data.HostCategory.Equal(state.HostCategory) {
+		if data.HostCategory.ValueStringPointer() == nil {
+			v := ""
 			optArgs.Hostcategory = &v
-			hasChange = true
+		} else {
+			optArgs.Hostcategory = data.HostCategory.ValueStringPointer()
 		}
+		hasChange = true
 	}
-	if d.HasChange("runasusercategory") {
-		if _v, ok := d.GetOkExists("runasusercategory"); ok {
-			v := _v.(string)
+	if !data.RunAsUserCategory.Equal(state.RunAsUserCategory) {
+		if data.RunAsUserCategory.ValueStringPointer() == nil {
+			v := ""
 			optArgs.Ipasudorunasusercategory = &v
-			hasChange = true
+		} else {
+			optArgs.Ipasudorunasusercategory = data.RunAsUserCategory.ValueStringPointer()
 		}
+		hasChange = true
 	}
-	if d.HasChange("commandcategory") {
-		if _v, ok := d.GetOkExists("commandcategory"); ok {
-			v := _v.(string)
+	if !data.CommandCategory.Equal(state.CommandCategory) {
+		if data.CommandCategory.ValueStringPointer() == nil {
+			v := ""
 			optArgs.Cmdcategory = &v
-			hasChange = true
+		} else {
+			optArgs.Cmdcategory = data.CommandCategory.ValueStringPointer()
 		}
+		hasChange = true
 	}
-	if d.HasChange("runasgroupcategory") {
-		if _v, ok := d.GetOkExists("runasgroupcategory"); ok {
-			v := _v.(string)
+	if !data.RunAsGroupCategory.Equal(state.RunAsGroupCategory) {
+		if data.RunAsGroupCategory.ValueStringPointer() == nil {
+			v := ""
 			optArgs.Ipasudorunasgroupcategory = &v
-			hasChange = true
+		} else {
+			optArgs.Ipasudorunasgroupcategory = data.RunAsGroupCategory.ValueStringPointer()
 		}
+		hasChange = true
 	}
-	if d.HasChange("order") {
-		if _v, ok := d.GetOkExists("order"); ok {
-			v := _v.(int)
+	// TODO update rule when order is removed
+	if !data.Order.Equal(state.Order) {
+		if data.Order.ValueInt32Pointer() != nil {
+			v := int(data.Order.ValueInt32())
 			optArgs.Sudoorder = &v
-			hasChange = true
+		} else {
+			optArgs.Sudoorder = nil
 		}
+		hasChange = true
 	}
-
-	// TODO: Change No-Posix, Posix, External
 
 	if hasChange {
-		_, err = client.SudoruleMod(&args, &optArgs)
+		_, err := r.client.SudoruleMod(&args, &optArgs)
 		if err != nil {
 			if strings.Contains(err.Error(), "EmptyModlist") {
-				log.Printf("[DEBUG] EmptyModlist (4202): no modifications to be performed")
+				resp.Diagnostics.AddError("Client Error", "EmptyModlist (4202): no modifications to be performed")
 			} else {
-				return diag.Errorf("Error update freeipa sudo rule: %s", err)
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa sudo rule: %s", err))
+				return
 			}
 		}
 	}
 
-	d.SetId(d.Get("name").(string))
+	data.Id = data.Name
 
-	return resourceFreeIPASudoRuleRead(ctx, d, meta)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPASudoRuleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa sudo rule")
+func (r *SudoRuleResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data SudoRuleResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
+
 	args := ipa.SudoruleDelArgs{
-		Cn: []string{d.Id()},
+		Cn: []string{data.Id.ValueString()},
 	}
-	_, err = client.SudoruleDel(&args, &ipa.SudoruleDelOptionalArgs{})
+	_, err := r.client.SudoruleDel(&args, &ipa.SudoruleDelOptionalArgs{})
 	if err != nil {
-		return diag.Errorf("Error delete freeipa sudo rule: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo rule: %s", err))
+		return
 	}
+}
 
-	d.SetId("")
-	return nil
+func (r *SudoRuleResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

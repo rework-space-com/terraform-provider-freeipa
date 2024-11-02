@@ -1,81 +1,147 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package freeipa
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 	"golang.org/x/exp/slices"
 )
 
-func resourceFreeIPASudoRuleOption() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceFreeIPASudoRuleOptionCreate,
-		ReadContext:   resourceFreeIPASudoRuleOptionRead,
-		DeleteContext: resourceFreeIPASudoRuleOptionDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &SudoRuleOptionResource{}
+var _ resource.ResourceWithImportState = &SudoRuleOptionResource{}
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Sudo rule name",
+func NewSudoRuleOptionResource() resource.Resource {
+	return &SudoRuleOptionResource{}
+}
+
+// SudoRuleOptionResource defines the resource implementation.
+type SudoRuleOptionResource struct {
+	client *ipa.Client
+}
+
+// SudoRuleOptionResourceModel describes the resource data model.
+type SudoRuleOptionResourceModel struct {
+	Id     types.String `tfsdk:"id"`
+	Name   types.String `tfsdk:"name"`
+	Option types.String `tfsdk:"option"`
+}
+
+func (r *SudoRuleOptionResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_sudo_rule_option"
+}
+
+func (r *SudoRuleOptionResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{}
+}
+
+func (r *SudoRuleOptionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "FreeIPA Sudo rule option resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"option": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Sudo option to add to the sudo rule.",
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Sudo rule name",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"option": schema.StringAttribute{
+				MarkdownDescription: "Sudo option to add to the sudo rule.",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
 }
 
-func resourceFreeIPASudoRuleOptionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa sudo rule option")
+func (r *SudoRuleOptionResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	client, ok := req.ProviderData.(*ipa.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
+}
+
+func (r *SudoRuleOptionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data SudoRuleOptionResourceModel
+	var id string
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	optArgs := ipa.SudoruleAddOptionOptionalArgs{}
 
 	args := ipa.SudoruleAddOptionArgs{
-		Cn:         d.Get("name").(string),
-		Ipasudoopt: d.Get("option").(string),
+		Cn:         data.Name.ValueString(),
+		Ipasudoopt: []string{data.Option.ValueString()},
 	}
-
-	_, err = client.SudoruleAddOption(&args, &optArgs)
+	_, err := r.client.SudoruleAddOption(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error creating freeipa sudo rule option: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule option: %s", err))
+		return
 	}
 
-	id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), "sro", d.Get("option").(string))
-	d.SetId(id)
+	id = fmt.Sprintf("%s/sro/%s", encodeSlash(data.Name.ValueString()), data.Option.ValueString())
+	data.Id = types.StringValue(id)
 
-	return resourceFreeIPASudoRuleOptionRead(ctx, d, meta)
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPASudoRuleOptionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa sudo rule user membership")
+func (r *SudoRuleOptionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data SudoRuleOptionResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	sudoruleId, typeId, opt_id, err := parseSudoRuleOptionID(d.Id())
+	sudoruleId, typeId, optId, err := parseSudoRuleOptionID(data.Id.ValueString())
 
 	if err != nil {
-		return diag.Errorf("Error parsing ID of freeipa_sudo_rule_option: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_sudorule_host_membership: %s", err))
+		return
 	}
 
 	all := true
@@ -87,70 +153,89 @@ func resourceFreeIPASudoRuleOptionRead(ctx context.Context, d *schema.ResourceDa
 		Cn: sudoruleId,
 	}
 
-	res, err := client.SudoruleShow(&args, &optArgs)
+	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			d.SetId("")
-			log.Printf("[DEBUG] Sudo rule not found")
-			return nil
+			resp.Diagnostics.AddError("Client Error", "Sudo rule not found")
+			return
 		} else {
-			return diag.Errorf("Error reading freeipa sudo rule: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+			return
 		}
 	}
 
 	switch typeId {
 	case "sro":
-		if res.Result.Ipasudoopt == nil || !slices.Contains(*res.Result.Ipasudoopt, opt_id) {
-			log.Printf("[DEBUG] Warning! Sudo rule option does not exist")
-			d.Set("name", "")
-			d.Set("option", "")
-			d.SetId("")
-			return nil
+		if res.Result.Ipasudoopt == nil || !slices.Contains(*res.Result.Ipasudoopt, optId) {
+			resp.Diagnostics.AddError("Client Error", "Sudo rule option does not exist")
+			return
 		}
 	}
 
-	log.Printf("[DEBUG] Read freeipa sudo rule option %s", res.Result.Cn)
-	return nil
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func resourceFreeIPASudoRuleOptionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa sudo rule option")
+func (r *SudoRuleOptionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state SudoRuleOptionResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	sudoruleId, typeId, opt_id, err := parseSudoRuleOptionID(d.Id())
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *SudoRuleOptionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data SudoRuleOptionResourceModel
+
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	cmdgrpId, typeId, optId, err := parseSudoRuleOptionID(data.Id.ValueString())
 
 	if err != nil {
-		return diag.Errorf("Error parsing ID of freeipa_rule_runasuser_membership: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_sudo_rule_option: %s", err))
+		return
 	}
 
 	optArgs := ipa.SudoruleRemoveOptionOptionalArgs{}
 
 	args := ipa.SudoruleRemoveOptionArgs{
-		Cn: sudoruleId,
+		Cn: cmdgrpId,
 	}
 
 	switch typeId {
 	case "sro":
-		args.Ipasudoopt = opt_id
+		args.Ipasudoopt = []string{optId}
 	}
 
-	_, err = client.SudoruleRemoveOption(&args, &optArgs)
+	_, err = r.client.SudoruleRemoveOption(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error delete freeipa sudo rule option: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo host membership: %s", err))
+		return
 	}
+}
 
-	d.SetId("")
-	return nil
+func (r *SudoRuleOptionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseSudoRuleOptionID(id string) (string, string, string, error) {
 	idParts := strings.SplitN(id, "/", 3)
 	if len(idParts) < 3 {
-		return "", "", "", fmt.Errorf("Unable to determine sudo rule option ID %s", id)
+		return "", "", "", fmt.Errorf("unable to determine sudo rule option ID %s", id)
 	}
 
 	name := decodeSlash(idParts[0])

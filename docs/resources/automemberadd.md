@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_automemberadd Resource - freeipa"
 description: |-
-
+FreeIPA Automember resource
 ---
 
 # freeipa_automemberadd (Resource)
@@ -30,15 +30,15 @@ resource "freeipa_automemberadd" "automember" {
 
 ### Required
 
-- `name` (String)
-- `type` (String)
+- `name` (String) Automember rule name
+- `type` (String) Automember rule type
 
 ### Optional
 
-- `addattr` (List of String)
-- `description` (String)
-- `setattr` (List of String)
+- `addattr` (List of String) Add an attribute/value pair. Format is attr=value. The attribute must be part of the schema.
+- `description` (String) Automember rule description
+- `setattr` (List of String) Set an attribute to a name/value pair. Format is attr=value.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

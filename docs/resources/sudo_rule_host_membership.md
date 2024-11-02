@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_host_membership Resource - freeipa"
 description: |-
-
+FreeIPA Sudo rule host membership resource
 ---
 
 # freeipa_sudo_rule_host_membership (Resource)
@@ -11,14 +11,26 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_rule_host_membership "host-0" {
+resource "freeipa_sudo_rule_host_membership" "host-0" {
   name = "sudo-rule-test"
   host = "test.example.test"
 }
 
-resource freeipa_sudo_rule_host_membership "hostgroup-3" {
+resource "freeipa_sudo_rule_host_membership" "hosts-0" {
   name = "sudo-rule-test"
+  hosts = ["test.example.test"]
+  identifier = "hosts-0"
+}
+
+resource "freeipa_sudo_rule_host_membership" "hostgroup-3" {
+  name      = "sudo-rule-test"
   hostgroup = "test-hostgroup"
+}
+
+resource "freeipa_sudo_rule_host_membership" "hostgroups-3" {
+  name      = "sudo-rule-test"
+  hostgroups = ["test-hostgroup"]
+  identifier = "hostgroups-3"
 }
 ```
 
@@ -34,9 +46,12 @@ resource freeipa_sudo_rule_host_membership "hostgroup-3" {
 
 ### Optional
 
-- `host` (String) Host to add to the sudo rule
-- `hostgroup` (String) Hostgroup to add to the sudo rule
+- `host` (String, Deprecated) **deprecated** Host to add to the sudo rule
+- `hostgroup` (String, Deprecated) **deprecated** Hostgroup to add to the sudo rule
+- `hostgroups` (List of String) List of hostgroups to add to the sudo rule
+- `hosts` (List of String) List of hosts to add to the sudo rule
+- `identifier` (String) Unique identifier to differentiate multiple sudo rule host membership resources on the same sudo rule. Manadatory for using hosts/hostgroups configurations.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

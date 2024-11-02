@@ -1,123 +1,241 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package freeipa
 
 import (
 	"context"
 	"fmt"
-	"log"
+	"strconv"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 	"golang.org/x/exp/slices"
 )
 
-func resourceFreeIPASudoRuleHostMembership() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceFreeIPASudoRuleHostMembershipCreate,
-		ReadContext:   resourceFreeIPASudoRuleHostMembershipRead,
-		DeleteContext: resourceFreeIPASudoRuleHostMembershipDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &SudoRuleHostMembershipResource{}
+var _ resource.ResourceWithImportState = &SudoRuleHostMembershipResource{}
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Sudo rule name",
+func NewSudoRuleHostMembershipResource() resource.Resource {
+	return &SudoRuleHostMembershipResource{}
+}
+
+// SudoRuleHostMembershipResource defines the resource implementation.
+type SudoRuleHostMembershipResource struct {
+	client *ipa.Client
+}
+
+// SudoRuleHostMembershipResourceModel describes the resource data model.
+type SudoRuleHostMembershipResourceModel struct {
+	Id         types.String `tfsdk:"id"`
+	Name       types.String `tfsdk:"name"`
+	Host       types.String `tfsdk:"host"`
+	Hosts      types.List   `tfsdk:"hosts"`
+	HostGroup  types.String `tfsdk:"hostgroup"`
+	HostGroups types.List   `tfsdk:"hostgroups"`
+	Identifier types.String `tfsdk:"identifier"`
+}
+
+func (r *SudoRuleHostMembershipResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_sudo_rule_host_membership"
+}
+
+func (r *SudoRuleHostMembershipResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.Conflicting(
+			path.MatchRoot("host"),
+			path.MatchRoot("hosts"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("host"),
+			path.MatchRoot("hostgroup"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("host"),
+			path.MatchRoot("hostgroups"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("hostgroup"),
+			path.MatchRoot("hosts"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("hostgroup"),
+			path.MatchRoot("hostgroups"),
+		),
+	}
+}
+
+func (r *SudoRuleHostMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "FreeIPA Sudo rule host membership resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"host": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"hostgroup"},
-				Description:   "Host to add to the sudo rule",
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Sudo rule name",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"hostgroup": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"host"},
-				Description:   "Hostgroup to add to the sudo rule",
+			"host": schema.StringAttribute{
+				MarkdownDescription: "**deprecated** Host to add to the sudo rule",
+				DeprecationMessage:  "use hosts instead",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			// Hostmask not implemented yet. Maybe one day but I don't see the need.
-			// "hostmask": {
-			// 	Type:          schema.TypeString,
-			// 	Optional:      true,
-			// 	ForceNew:      true,
-			// 	ConflictsWith: []string{"host", "hostgroup"},
-			// },
+			"hosts": schema.ListAttribute{
+				MarkdownDescription: "List of hosts to add to the sudo rule",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"hostgroup": schema.StringAttribute{
+				MarkdownDescription: "**deprecated** Hostgroup to add to the sudo rule",
+				DeprecationMessage:  "use hostgroups instead",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"hostgroups": schema.ListAttribute{
+				MarkdownDescription: "List of hostgroups to add to the sudo rule",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"identifier": schema.StringAttribute{
+				MarkdownDescription: "Unique identifier to differentiate multiple sudo rule host membership resources on the same sudo rule. Manadatory for using hosts/hostgroups configurations.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 		},
 	}
 }
 
-func resourceFreeIPASudoRuleHostMembershipCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa sudo rule host membership")
-
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+func (r *SudoRuleHostMembershipResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	host_id := "srh"
+	client, ok := req.ProviderData.(*ipa.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
+}
+
+func (r *SudoRuleHostMembershipResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data SudoRuleHostMembershipResourceModel
+	var id, cmd_id string
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	optArgs := ipa.SudoruleAddHostOptionalArgs{}
 
 	args := ipa.SudoruleAddHostArgs{
-		Cn: d.Get("name").(string),
+		Cn: data.Name.ValueString(),
 	}
-	if _v, ok := d.GetOkExists("host"); ok {
-		v := []string{_v.(string)}
+	if !data.Host.IsNull() {
+		v := []string{data.Host.ValueString()}
 		optArgs.Host = &v
-		host_id = "srh"
+		cmd_id = "srh"
 	}
-	if _v, ok := d.GetOkExists("hostgroup"); ok {
-		v := []string{_v.(string)}
+	if !data.HostGroup.IsNull() {
+		v := []string{data.HostGroup.ValueString()}
 		optArgs.Hostgroup = &v
-		host_id = "srhg"
+		cmd_id = "srhg"
 	}
-	// Hostmask not implemented yet. Maybe one day but I don't see the need.
-	// if _v, ok := d.GetOkExists("hostmask"); ok {
-	// 	v := []string{_v.(string)}
-	// 	optArgs.Hostmask = &v
-	// 	host_id = "srhm"
-	// }
+	if !data.Hosts.IsNull() || !data.HostGroups.IsNull() {
+		if !data.Hosts.IsNull() {
+			var v []string
+			for _, value := range data.Hosts.Elements() {
+				val, _ := strconv.Unquote(value.String())
+				v = append(v, val)
+			}
+			optArgs.Host = &v
+		}
+		if !data.HostGroups.IsNull() {
+			var v []string
+			for _, value := range data.HostGroups.Elements() {
+				val, _ := strconv.Unquote(value.String())
+				v = append(v, val)
+			}
+			optArgs.Hostgroup = &v
+		}
+		cmd_id = "msrh"
+	}
 
-	_, err = client.SudoruleAddHost(&args, &optArgs)
+	_, err := r.client.SudoruleAddHost(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error creating freeipa sudo rule host membership: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule host membership: %s", err))
+		return
 	}
 
-	switch host_id {
+	switch cmd_id {
 	case "srh":
-		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), host_id, d.Get("host").(string))
-		d.SetId(id)
+		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), cmd_id, data.Host.ValueString())
+		data.Id = types.StringValue(id)
 	case "srhg":
-		id := fmt.Sprintf("%s/%s/%s", encodeSlash(d.Get("name").(string)), host_id, d.Get("hostgroup").(string))
-		d.SetId(id)
-		// Hostmask not implemented yet. Maybe one day but I don't see the need.
-		// case "srhm":
-		// 	id := fmt.Sprintf("%s/%s/%s", d.Get("name").(string), host_id, d.Get("hostmask").(string))
-		// 	d.SetId(id)
+		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), cmd_id, data.HostGroup.ValueString())
+		data.Id = types.StringValue(id)
+	case "msrh":
+		id = fmt.Sprintf("%s/%s/%s", encodeSlash(data.Name.ValueString()), cmd_id, data.Identifier.ValueString())
+		data.Id = types.StringValue(id)
 	}
 
-	return resourceFreeIPASudoRuleHostMembershipRead(ctx, d, meta)
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPASudoRuleHostMembershipRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa sudo rule host membership")
+func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data SudoRuleHostMembershipResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	sudoruleId, typeId, host_id, err := parseSudoRuleHostMembershipID(d.Id())
+	sudoruleId, typeId, cmdId, err := parseSudoRuleHostMembershipID(data.Id.ValueString())
 
 	if err != nil {
-		return diag.Errorf("Error parsing ID of freeipa_sudo_rule_host_membership: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_sudorule_host_membership: %s", err))
+		return
 	}
 
 	all := true
@@ -129,102 +247,242 @@ func resourceFreeIPASudoRuleHostMembershipRead(ctx context.Context, d *schema.Re
 		Cn: sudoruleId,
 	}
 
-	res, err := client.SudoruleShow(&args, &optArgs)
+	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			d.SetId("")
-			log.Printf("[DEBUG] Sudo rule not found")
-			return nil
+			resp.Diagnostics.AddError("Client Error", "Sudo rule not found")
+			return
 		} else {
-			return diag.Errorf("Error reading freeipa sudo rule: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+			return
 		}
 	}
 
 	switch typeId {
 	case "srh":
-		if res.Result.MemberhostHost == nil || !slices.Contains(*res.Result.MemberhostHost, host_id) {
-			log.Printf("[DEBUG] Warning! Sudo rule host membership does not exist")
-			d.Set("name", "")
-			d.Set("host", "")
-			d.Set("hostgroup", "")
-			d.SetId("")
-			return nil
+		if res.Result.MemberhostHost == nil || !slices.Contains(*res.Result.MemberhostHost, cmdId) {
+			resp.Diagnostics.AddError("Client Error", "Sudo rule host membership does not exist")
+			return
 		}
 	case "srhg":
-		if res.Result.MemberhostHostgroup == nil || !slices.Contains(*res.Result.MemberhostHostgroup, host_id) {
-			log.Printf("[DEBUG] Warning! Sudo rule host membership does not exist")
-			d.Set("name", "")
-			d.Set("host", "")
-			d.Set("hostgroup", "")
-			d.SetId("")
-			return nil
+		if res.Result.MemberhostHostgroup == nil || !slices.Contains(*res.Result.MemberhostHostgroup, cmdId) {
+			resp.Diagnostics.AddError("Client Error", "Sudo rule host group membership does not exist")
+			return
 		}
-		// Hostmask not implemented yet. Maybe one day but I don't see the need.
-		// case "srhm":
-		// 	if res.Result.Hostmask == nil || !slices.Contains(*res.Result.Hostmask, host_id) {
-		// 		log.Printf("[DEBUG] Warning! Sudo rule host membership does not exist")
-		// 		d.Set("name", "")
-		// 		d.Set("sudocmd", "")
-		// 		d.Set("sudocmd_group", "")
-		// 		d.SetId("")
-		// 		return diag.Errorf("Error configuring freeipa Sudo rule host, hostmask not assigned: %s", host_id)
-		// 	}
+	case "msrh":
+		if !data.Hosts.IsNull() && res.Result.MemberhostHost == nil {
+			var changedVals []string
+			for _, value := range data.Hosts.Elements() {
+				val, err := strconv.Unquote(value.String())
+				if err != nil {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member failed with error %s", err))
+				}
+				if slices.Contains(*res.Result.MemberhostHost, val) {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member %s is present in results", val))
+					changedVals = append(changedVals, val)
+				}
+			}
+			var diag diag.Diagnostics
+			data.Hosts, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+			if diag.HasError() {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			}
+		}
+		if !data.HostGroups.IsNull() && res.Result.MemberhostHostgroup == nil {
+			var changedVals []string
+			for _, value := range data.HostGroups.Elements() {
+				val, err := strconv.Unquote(value.String())
+				if err != nil {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member commands failed with error %s", err))
+				}
+				if slices.Contains(*res.Result.MemberhostHostgroup, val) {
+					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member commands %s is present in results", val))
+					changedVals = append(changedVals, val)
+				}
+			}
+			var diag diag.Diagnostics
+			data.HostGroups, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+			if diag.HasError() {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			}
+		}
 	}
 
-	if err != nil {
-		return diag.Errorf("Error show freeipa sudo rule host membership: %s", err)
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-
-	log.Printf("[DEBUG] Read freeipa sudo rule host membership %s", res.Result.Cn)
-	return nil
 }
 
-func resourceFreeIPASudoRuleHostMembershipDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa sudo rule host membership")
+func (r *SudoRuleHostMembershipResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state SudoRuleHostMembershipResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	sudoruleId, typeId, host_id, err := parseSudoRuleHostMembershipID(d.Id())
+	memberAddOptArgs := ipa.SudoruleAddHostOptionalArgs{}
+
+	memberAddArgs := ipa.SudoruleAddHostArgs{
+		Cn: data.Name.ValueString(),
+	}
+
+	memberDelOptArgs := ipa.SudoruleRemoveHostOptionalArgs{}
+
+	memberDelArgs := ipa.SudoruleRemoveHostArgs{
+		Cn: data.Name.ValueString(),
+	}
+	hasMemberAdd := false
+	hasMemberDel := false
+	// Memberships can be added or removed, comparing the current state and the plan allows us to define 2 lists of members to add or remove.
+	if !data.Hosts.Equal(state.Hosts) {
+		var statearr, planarr, addedHosts, deletedHosts []string
+
+		for _, value := range state.Hosts.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			statearr = append(statearr, val)
+		}
+		for _, value := range data.Hosts.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			planarr = append(planarr, val)
+			if !slices.Contains(statearr, val) {
+				addedHosts = append(addedHosts, val)
+				memberAddOptArgs.Host = &addedHosts
+				hasMemberAdd = true
+			}
+		}
+		for _, value := range statearr {
+			if !slices.Contains(planarr, value) {
+				deletedHosts = append(deletedHosts, value)
+				memberDelOptArgs.Host = &deletedHosts
+				hasMemberDel = true
+			}
+		}
+
+	}
+	if !data.HostGroups.Equal(state.HostGroups) {
+		var statearr, planarr, addedCmdGrps, deletedCmdGrps []string
+
+		for _, value := range state.HostGroups.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			statearr = append(statearr, val)
+		}
+		for _, value := range data.HostGroups.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			planarr = append(planarr, val)
+			if !slices.Contains(statearr, val) {
+				addedCmdGrps = append(addedCmdGrps, val)
+				memberAddOptArgs.Hostgroup = &addedCmdGrps
+				hasMemberAdd = true
+			}
+		}
+		for _, value := range statearr {
+			if !slices.Contains(planarr, value) {
+				deletedCmdGrps = append(deletedCmdGrps, value)
+				memberDelOptArgs.Hostgroup = &deletedCmdGrps
+				hasMemberDel = true
+			}
+		}
+
+	}
+	// The api provides a add and a remove function for membership. Therefore we need to call the right one when appropriate.
+	if hasMemberAdd {
+		_v, err := r.client.SudoruleAddHost(&memberAddArgs, &memberAddOptArgs)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error creating freeipa sudo rule host membership: %s", _v.String()))
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule host membership: %s", err))
+			return
+		}
+		if _v.Completed == 0 {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule host membership: %v", _v.Failed))
+			return
+		}
+	}
+	if hasMemberDel {
+		_v, err := r.client.SudoruleRemoveHost(&memberDelArgs, &memberDelOptArgs)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Error removing freeipa sudo host group membership: %s", _v.String()))
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa sudo rule host membership: %s", err))
+			return
+		}
+		if _v.Completed == 0 {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error removing freeipa sudo rule host membership: %v", _v.Failed))
+			return
+		}
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *SudoRuleHostMembershipResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data SudoRuleHostMembershipResourceModel
+
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	cmdgrpId, typeId, _, err := parseSudoRuleHostMembershipID(data.Id.ValueString())
 
 	if err != nil {
-		return diag.Errorf("Error parsing ID of freeipa_rule_host_membership: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error parsing ID of freeipa_sudo_rule_host_membership: %s", err))
+		return
 	}
 
 	optArgs := ipa.SudoruleRemoveHostOptionalArgs{}
 
 	args := ipa.SudoruleRemoveHostArgs{
-		Cn: sudoruleId,
+		Cn: cmdgrpId,
 	}
 
 	switch typeId {
 	case "srh":
-		v := []string{host_id}
+		v := []string{data.Host.ValueString()}
 		optArgs.Host = &v
 	case "srhg":
-		v := []string{host_id}
+		v := []string{data.HostGroup.ValueString()}
 		optArgs.Hostgroup = &v
-		// Hostmask not implemented yet. Maybe one day but I don't see the need.
-		// case "srhm":
-		// 	v := []string{host_id}
-		// 	optArgs.Hostmask = &v
+	case "msrh":
+		if !data.Hosts.IsNull() {
+			var v []string
+			for _, value := range data.Hosts.Elements() {
+				val, _ := strconv.Unquote(value.String())
+				v = append(v, val)
+			}
+			optArgs.Host = &v
+		}
+		if !data.HostGroups.IsNull() {
+			var v []string
+			for _, value := range data.HostGroups.Elements() {
+				val, _ := strconv.Unquote(value.String())
+				v = append(v, val)
+			}
+			optArgs.Hostgroup = &v
+		}
 	}
 
-	_, err = client.SudoruleRemoveHost(&args, &optArgs)
+	_, err = r.client.SudoruleRemoveHost(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error delete freeipa sudo rule host membership: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo host membership: %s", err))
+		return
 	}
+}
 
-	d.SetId("")
-	return nil
+func (r *SudoRuleHostMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseSudoRuleHostMembershipID(id string) (string, string, string, error) {
 	idParts := strings.SplitN(id, "/", 3)
 	if len(idParts) < 3 {
-		return "", "", "", fmt.Errorf("Unable to determine sudo rule host membership ID %s", id)
+		return "", "", "", fmt.Errorf("unable to determine sudo rule host membership ID %s", id)
 	}
 
 	name := decodeSlash(idParts[0])

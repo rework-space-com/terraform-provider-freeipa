@@ -1,105 +1,99 @@
 package freeipa
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFreeIPADNSHostGroupMembership(t *testing.T) {
-	testDatasetHost := map[string]string{
-		"name":       "testhost.testacc.ipatest.lan",
-		"ip_address": "192.168.1.10",
+func TestAccFreeIPAHostGroupMembership_simple(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
 	}
-	testDatasetHostgroup := map[string]string{
-		"name": "test-hostgroup",
+	testMemberHost := map[string]string{
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
 	}
-	testDatasetHostgroup2 := map[string]string{
-		"name": "test-hostgroup-2",
+	testHostGroup := map[string]string{
+		"index": "0",
+		"name":  "\"testacc-hostgroup\"",
+	}
+	testMemberHostGroup := map[string]string{
+		"index": "1",
+		"name":  "\"testacc-groupmember\"",
+	}
+	testMembershipHost := map[string]string{
+		"index": "0",
+		"name":  "freeipa_hostgroup.hostgroup-0.name",
+		"host":  "freeipa_host.host-0.name",
+	}
+	testMembershipHostGroup := map[string]string{
+		"index":     "1",
+		"name":      "freeipa_hostgroup.hostgroup-0.name",
+		"hostgroup": "freeipa_hostgroup.hostgroup-1.name",
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFreeIPADNSHostGroupMembershipResource_host(testDatasetHost, testDatasetHostgroup),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.groupmembership", "name", testDatasetHostgroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.groupmembership", "host", testDatasetHost["name"]),
-				),
-			},
-			{
-				Config: testAccFreeIPADNSHostGroupMembershipResource_hostgroup(testDatasetHostgroup, testDatasetHostgroup2),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.groupmembership", "name", testDatasetHostgroup["name"]),
-					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.groupmembership", "hostgroup", testDatasetHostgroup2["name"]),
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPAHostGroup_resource(testMemberHostGroup) + testAccFreeIPAHostGroupMembership_resource(testMembershipHost) + testAccFreeIPAHostGroupMembership_resource(testMembershipHostGroup),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.membership-0", "host", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.membership-1", "hostgroup", "testacc-groupmember"),
 				),
 			},
 		},
 	})
 }
 
-func testAccFreeIPADNSHostGroupMembershipResource_host(dataset_host map[string]string, dataset_hostgroup map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	
-	resource "freeipa_dns_zone" "testacc_ipatest_lan" {
-		zone_name          = "testacc.ipatest.lan"
+func TestAccFreeIPAHostGroupMembership_multiple(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
 	}
-	
-	  
-	resource "freeipa_host" "host" {
-		name       = "%s"
-		ip_address = "%s"
-		depends_on = [
-			freeipa_dns_zone.testacc_ipatest_lan
-		]
+	testMemberHost := map[string]string{
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
 	}
-
-	resource "freeipa_hostgroup" "hostgroup" {
-		name       = "%s"
+	testHostGroup := map[string]string{
+		"index": "0",
+		"name":  "\"testacc-hostgroup\"",
 	}
-	
-	resource freeipa_host_hostgroup_membership "groupmembership" {
-	   name = freeipa_hostgroup.hostgroup.id
-	   host = freeipa_host.host.id
+	testMemberHostGroup := map[string]string{
+		"index": "1",
+		"name":  "\"testacc-groupmember\"",
 	}
-	`, provider_host, provider_user, provider_pass, dataset_host["name"], dataset_host["ip_address"], dataset_hostgroup["name"])
-}
-
-func testAccFreeIPADNSHostGroupMembershipResource_hostgroup(dataset_hostgroup map[string]string, dataset_hostgroup2 map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	
-	resource "freeipa_hostgroup" "hostgroup" {
-		name       = "%s"
+	testMembershipHost := map[string]string{
+		"index":      "0",
+		"name":       "freeipa_hostgroup.hostgroup-0.name",
+		"hosts":      "[freeipa_host.host-0.name]",
+		"identifier": "1",
 	}
-	resource "freeipa_hostgroup" "subgroup" {
-		name       = "%s"
+	testMembershipHostGroup := map[string]string{
+		"index":      "1",
+		"name":       "freeipa_hostgroup.hostgroup-0.name",
+		"hostgroups": "[freeipa_hostgroup.hostgroup-1.name]",
+		"identifier": "2",
 	}
 
-	resource freeipa_host_hostgroup_membership "groupmembership" {
-	   name = freeipa_hostgroup.hostgroup.id
-	   hostgroup = freeipa_hostgroup.subgroup.id
-	}
-	`, provider_host, provider_user, provider_pass, dataset_hostgroup["name"], dataset_hostgroup2["name"])
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testMemberHost) + testAccFreeIPAHostGroup_resource(testHostGroup) + testAccFreeIPAHostGroup_resource(testMemberHostGroup) + testAccFreeIPAHostGroupMembership_resource(testMembershipHost) + testAccFreeIPAHostGroupMembership_resource(testMembershipHostGroup),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.membership-0", "hosts.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.membership-0", "hosts.0", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.membership-1", "hostgroups.#", "1"),
+					resource.TestCheckResourceAttr("freeipa_host_hostgroup_membership.membership-1", "hostgroups.0", "testacc-groupmember"),
+				),
+			},
+		},
+	})
 }

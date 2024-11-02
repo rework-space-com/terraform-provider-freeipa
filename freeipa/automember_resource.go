@@ -1,106 +1,188 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package freeipa
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"strconv"
 	"strings"
 
-	ipa "github.com/RomanButsiy/go-freeipa/freeipa"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
-func resourceFreeIPAAutomemberadd() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceFreeIPAAutomemberaddCreate,
-		ReadContext:   resourceFreeIPAAutomemberaddRead,
-		UpdateContext: resourceFreeIPAAutomemberaddUpdate,
-		DeleteContext: resourceFreeIPAAutomemberaddDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &AutomemberResource{}
+var _ resource.ResourceWithImportState = &AutomemberResource{}
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"type": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"addattr": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+func NewAutomemberResource() resource.Resource {
+	return &AutomemberResource{}
+}
+
+// AutomemberResource defines the resource implementation.
+type AutomemberResource struct {
+	client *ipa.Client
+}
+
+// AutomemberResourceModel describes the resource data model.
+type AutomemberResourceModel struct {
+	Id          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	Type        types.String `tfsdk:"type"`
+	AddAttr     types.List   `tfsdk:"addattr"`
+	SetAttr     types.List   `tfsdk:"setattr"`
+}
+
+func (r *AutomemberResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_automemberadd"
+}
+
+func (r *AutomemberResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{}
+}
+
+func (r *AutomemberResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "FreeIPA Automember resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the resource",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"setattr": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Automember rule name",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
+			},
+			"description": schema.StringAttribute{
+				MarkdownDescription: "Automember rule description",
+				Optional:            true,
+				Computed:            false,
+			},
+			"type": schema.StringAttribute{
+				MarkdownDescription: "Automember rule type",
+				Required:            true,
+				Computed:            false,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"addattr": schema.ListAttribute{
+				MarkdownDescription: "Add an attribute/value pair. Format is attr=value. The attribute must be part of the schema.",
+				Optional:            true,
+				Computed:            false,
+				ElementType:         types.StringType,
+			},
+			"setattr": schema.ListAttribute{
+				MarkdownDescription: "Set an attribute to a name/value pair. Format is attr=value.",
+				Optional:            true,
+				Computed:            false,
+				ElementType:         types.StringType,
 			},
 		},
 	}
 }
 
-func resourceFreeIPAAutomemberaddCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Creating freeipa automember")
+func (r *AutomemberResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	client, ok := req.ProviderData.(*ipa.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
+}
+
+func (r *AutomemberResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data AutomemberResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	optArgs := ipa.AutomemberAddOptionalArgs{}
 
 	args := ipa.AutomemberAddArgs{
-		Cn:   d.Get("name").(string),
-		Type: d.Get("type").(string),
+		Cn:   data.Name.ValueString(),
+		Type: data.Type.ValueString(),
 	}
-	if _v, ok := d.GetOkExists("description"); ok {
-		v := _v.(string)
-		optArgs.Description = &v
+	if !data.Description.IsNull() {
+		optArgs.Description = data.Description.ValueStringPointer()
 	}
-	if _v, ok := d.GetOk("addattr"); ok {
-		v := make([]string, len(_v.([]interface{})))
-		for i, value := range _v.([]interface{}) {
-			v[i] = value.(string)
+	if len(data.AddAttr.Elements()) > 0 {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa automember rule Addattr %s ", data.AddAttr.String()))
+		var v []string
+
+		for _, value := range data.AddAttr.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
 		}
 		optArgs.Addattr = &v
 	}
-	if _v, ok := d.GetOk("setattr"); ok {
-		v := make([]string, len(_v.([]interface{})))
-		for i, value := range _v.([]interface{}) {
-			v[i] = value.(string)
+
+	if len(data.SetAttr.Elements()) > 0 {
+		var v []string
+		for _, value := range data.SetAttr.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
 		}
 		optArgs.Setattr = &v
 	}
-	_, err = client.AutomemberAdd(&args, &optArgs)
+	_, err := r.client.AutomemberAdd(&args, &optArgs)
 	if err != nil {
-		return diag.Errorf("Error creating freeipa automember: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa automember rule: %s", err))
+		return
 	}
 
-	d.SetId(d.Get("name").(string))
-	d.Set("type", d.Get("type").(string))
+	tflog.Trace(ctx, "created a automember rule resource")
 
-	return resourceFreeIPAAutomemberaddRead(ctx, d, meta)
+	data.Id = types.StringValue(data.Name.ValueString())
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPAAutomemberaddRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Read freeipa automember")
+func (r *AutomemberResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data AutomemberResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	all := true
@@ -109,103 +191,134 @@ func resourceFreeIPAAutomemberaddRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	args := ipa.AutomemberShowArgs{
-		Cn:   d.Id(),
-		Type: d.Get("type").(string),
+		Cn:   data.Name.ValueString(),
+		Type: data.Type.ValueString(),
 	}
 
-	log.Printf("[DEBUG] Read freeipa automember %s", d.Id())
-	res, err := client.AutomemberShow(&args, &optArgs)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa automember rule %s", data.Id.ValueString()))
+	res, err := r.client.AutomemberShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			d.SetId("")
-			log.Printf("[DEBUG] Automemberadd not found")
-			return nil
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Automember rule %s not found", data.Id.ValueString()))
+			return
 		} else {
-			return diag.Errorf("Error reading freeipa group: %s", err)
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("[DEBUG] Automember rule %s not found: %s", data.Id.ValueString(), err))
 		}
 	}
-
-	log.Printf("[DEBUG] Read freeipa automember %s", res.Result.Cn)
-	return nil
-}
-
-func resourceFreeIPAAutomemberaddUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Update freeipa automember")
-
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa Automember rule %v", res))
+	if res != nil {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa automember rule %s", res.Result.String()))
+	} else {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa automember rule %s", data.Name.ValueString()))
+		return
 	}
 
+	data.Name = types.StringValue(res.Result.Cn)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa automember rule Cn %s", data.Name.ValueString()))
+	if res.Result.Description != nil && !data.Description.IsNull() {
+		data.Description = types.StringValue(*res.Result.Description)
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa automember rule Description %s", data.Description.ValueString()))
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+}
+
+func (r *AutomemberResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state AutomemberResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// If applicable, this is a great opportunity to initialize any necessary
+	// provider client data and make a call using it.
+	// httpResp, err := r.client.Do(httpReq)
+	// if err != nil {
+	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
+	//     return
+	// }
 	args := ipa.AutomemberModArgs{
-		Cn:   d.Id(),
-		Type: d.Get("type").(string),
+		Cn:   data.Id.ValueString(),
+		Type: data.Type.ValueString(),
 	}
 	optArgs := ipa.AutomemberModOptionalArgs{}
 
-	var hasChange = false
-
-	if d.HasChange("description") {
-		if _v, ok := d.GetOkExists("description"); ok {
-			v := _v.(string)
-			optArgs.Description = &v
-			hasChange = true
-		}
-	}
-	if d.HasChange("addattr") {
-		if _v, ok := d.GetOkExists("addattr"); ok {
-			v := make([]string, len(_v.([]interface{})))
-			for i, value := range _v.([]interface{}) {
-				v[i] = value.(string)
-			}
-			optArgs.Addattr = &v
-			hasChange = true
-		}
-	}
-	if d.HasChange("setattr") {
-		if _v, ok := d.GetOkExists("setattr"); ok {
-			v := make([]string, len(_v.([]interface{})))
-			for i, value := range _v.([]interface{}) {
-				v[i] = value.(string)
-			}
-			optArgs.Setattr = &v
-			hasChange = true
-		}
+	if !data.Description.Equal(state.Description) {
+		optArgs.Description = data.Description.ValueStringPointer()
 	}
 
-	if hasChange {
-		_, err = client.AutomemberMod(&args, &optArgs)
-		if err != nil {
-			if strings.Contains(err.Error(), "EmptyModlist") {
-				log.Printf("[DEBUG] EmptyModlist (4202): no modifications to be performed")
-			} else {
-				return diag.Errorf("Error update freeipa automember: %s", err)
-			}
+	if !data.AddAttr.Equal(state.AddAttr) {
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa automember rule Addattr %s ", data.AddAttr.String()))
+		var v []string
+
+		for _, value := range data.AddAttr.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Addattr = &v
+	}
+
+	if !data.SetAttr.Equal(state.SetAttr) {
+		var v []string
+		for _, value := range data.SetAttr.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Setattr = &v
+	}
+
+	res, err := r.client.AutomemberMod(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "EmptyModlist") {
+			tflog.Debug(ctx, "[DEBUG] EmptyModlist (4202): no modifications to be performed")
+		} else {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa automember rule %s: %s", res.Result.Cn, err))
+			return
 		}
 	}
 
-	d.SetId(d.Get("name").(string))
-	d.Set("type", d.Get("type").(string))
-
-	return resourceFreeIPAAutomemberaddRead(ctx, d, meta)
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceFreeIPAAutomemberaddDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Delete freeipa automember")
+func (r *AutomemberResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data AutomemberResourceModel
 
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return diag.Errorf("Error creating freeipa identity client: %s", err)
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
+
+	// If applicable, this is a great opportunity to initialize any necessary
+	// provider client data and make a call using it.
+	// httpResp, err := r.client.Do(httpReq)
+	// if err != nil {
+	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
+	//     return
+	// }
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Delete freeipa automember rule Id %s", data.Id.ValueString()))
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Delete freeipa automember rule Name %s", data.Name.ValueString()))
 	args := ipa.AutomemberDelArgs{
-		Cn:   []string{d.Id()},
-		Type: d.Get("type").(string),
+		Cn:   []string{data.Name.ValueString()},
+		Type: data.Type.ValueString(),
 	}
-	_, err = client.AutomemberDel(&args, &ipa.AutomemberDelOptionalArgs{})
+	_, err := r.client.AutomemberDel(&args, &ipa.AutomemberDelOptionalArgs{})
 	if err != nil {
-		return diag.Errorf("Error delete freeipa automember: %s", err)
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("[DEBUG] Automember rule %s deletion failed: %s", data.Id.ValueString(), err))
+		return
 	}
+}
 
-	d.SetId("")
-	return nil
+func (r *AutomemberResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

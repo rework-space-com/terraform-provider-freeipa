@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_host_hostgroup_membership Resource - freeipa"
 description: |-
-
+FreeIPA User Group Membership resource
 ---
 
 # freeipa_host_hostgroup_membership (Resource)
@@ -11,14 +11,21 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_host_hostgroup_membership "test-0" {
+resource "freeipa_host_hostgroup_membership" "test-0" {
   name = "test-hostgroup-2"
   host = "test.example.test"
 }
 
-resource freeipa_host_hostgroup_membership "test-1" {
-  name = "test-hostgroup-2"
+resource "freeipa_host_hostgroup_membership" "test-1" {
+  name      = "test-hostgroup-2"
   hostgroup = "test-hostgroup"
+}
+
+resource "freeipa_host_hostgroup_membership" "test-2" {
+  name       = "test-hostgroup-2"
+  hosts      = ["host1","host2"]
+  hostgroups = ["test-hostgroup","test-hostgroup2"]
+  identifier = "my_unique_identifier"
 }
 ```
 
@@ -30,13 +37,16 @@ resource freeipa_host_hostgroup_membership "test-1" {
 
 ### Required
 
-- `name` (String) Group name
+- `name` (String) Hostgroup name
 
 ### Optional
 
-- `host` (String) Host to add
-- `hostgroup` (String) HostGroup to add
+- `host` (String, Deprecated) **deprecated** Host to add. Will be replaced by hosts.
+- `hostgroup` (String, Deprecated) **deprecated** Hostgroup to add. Will be replaced by hostgroups.
+- `hostgroups` (List of String) Hostgroups to add as hostgroup members
+- `hosts` (List of String) Hosts to add as hostgroup members
+- `identifier` (String) Unique identifier to differentiate multiple hostgroup membership resources on the same hostgroup. Manadatory for using hosts/hostgroups configurations.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_cmd Resource - freeipa"
 description: |-
-
+FreeIPA Sudo command resource
 ---
 
 # freeipa_sudo_cmd (Resource)
@@ -11,8 +11,8 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_cmd "bash" {
-  name = "/bin/bash"
+resource "freeipa_sudo_cmd" "bash" {
+  name        = "/bin/bash"
   description = "The bash terminal"
 }
 ```
@@ -29,8 +29,8 @@ resource freeipa_sudo_cmd "bash" {
 
 ### Optional
 
-- `description` (String) Sudocmd description
+- `description` (String) Sudo command description
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

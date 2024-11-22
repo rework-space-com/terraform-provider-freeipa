@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule Resource - freeipa"
 description: |-
-
+FreeIPA Sudo rule resource
 ---
 
 # freeipa_sudo_rule (Resource)
@@ -11,8 +11,8 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_rule "sysadmins" {
-  name = "sysadmins"
+resource "freeipa_sudo_rule" "sysadmins" {
+  name        = "sysadmins"
   description = "Sysadmins have all permissions"
 }
 ```
@@ -40,4 +40,4 @@ resource freeipa_sudo_rule "sysadmins" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

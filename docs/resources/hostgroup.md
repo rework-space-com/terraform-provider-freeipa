@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_hostgroup Resource - freeipa"
 description: |-
-
+FreeIPA User Group resource
 ---
 
 # freeipa_hostgroup (Resource)
@@ -11,8 +11,8 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_hostgroup "hostgroup-1" {
-  name = "hostgroup-1"
+resource "freeipa_hostgroup" "hostgroup-1" {
+  name        = "hostgroup-1"
   description = "FreeIPA hostgroup"
 }
 ```
@@ -25,12 +25,12 @@ resource freeipa_hostgroup "hostgroup-1" {
 
 ### Required
 
-- `name` (String) Hostgroup's name
+- `name` (String) Hostgroup name
 
 ### Optional
 
-- `description` (String) A description of this hostgroup
+- `description` (String) Hostgroup Description
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

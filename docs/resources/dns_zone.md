@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_dns_zone Resource - freeipa"
 description: |-
-
+FreeIPA DNS Zone resource
 ---
 
 # freeipa_dns_zone (Resource)
@@ -11,10 +11,10 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_dns_zone "dns_zone-2" {
-  zone_name = "test.roman.com.ua"
+resource "freeipa_dns_zone" "dns_zone-2" {
+  zone_name          = "test.roman.com.ua"
   skip_overlap_check = true
-  disable_zone = false
+  disable_zone       = false
 }
 ```
 
@@ -32,7 +32,7 @@ resource freeipa_dns_zone "dns_zone-2" {
 
 - `admin_email_address` (String) Administrator e-mail address
 - `allow_inline_dnssec_signing` (Boolean) Allow inline DNSSEC signing of records in the zone
-- `allow_prt_sync` (Boolean) Allow synchronization of forward (A, AAAA) and reverse (PTR) records in the zone
+- `allow_ptr_sync` (Boolean) Allow synchronization of forward (A, AAAA) and reverse (PTR) records in the zone
 - `allow_query` (String) Semicolon separated list of IP addresses or networks which are allowed to issue queries
 - `allow_transfer` (String) Semicolon separated list of IP addresses or networks which are allowed to transfer the zone
 - `authoritative_nameserver` (String) Authoritative nameserver domain name
@@ -54,4 +54,5 @@ resource freeipa_dns_zone "dns_zone-2" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `computed_zone_name` (String) Real zone name compatible with ARPA (ie: `domain.tld.`)
+- `id` (String) ID of the resource

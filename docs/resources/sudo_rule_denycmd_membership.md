@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_denycmd_membership Resource - freeipa"
 description: |-
-
+FreeIPA Sudo rule deny command membership resource
 ---
 
 # freeipa_sudo_rule_denycmd_membership (Resource)
@@ -11,14 +11,26 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_rule_denycmd_membership "denied_cmd" {
-  name = "sudo-rule-restricted"
+resource "freeipa_sudo_rule_denycmd_membership" "denied_cmd" {
+  name    = "sudo-rule-restricted"
   sudocmd = "/usr/bin/systemctl"
 }
 
-resource freeipa_sudo_rule_denycmd_membership "denied_cmdgrp" {
-  name = "sudo-rule-restricted"
+resource "freeipa_sudo_rule_denycmd_membership" "denied_cmd" {
+  name       = "sudo-rule-restricted"
+  sudocmds   = ["/usr/bin/systemctl"]
+  identifier = "denied_systemctl"
+}
+
+resource "freeipa_sudo_rule_denycmd_membership" "denied_cmdgrp" {
+  name          = "sudo-rule-restricted"
   sudocmd_group = "service-management"
+}
+
+resource "freeipa_sudo_rule_denycmd_membership" "denied_cmdgrp" {
+  name           = "sudo-rule-restricted"
+  sudocmd_groups = ["service-management"]
+  identifier     = "denied_services"
 }
 ```
 
@@ -34,9 +46,12 @@ resource freeipa_sudo_rule_denycmd_membership "denied_cmdgrp" {
 
 ### Optional
 
-- `sudocmd` (String) Sudo command to deny by the sudo rule
-- `sudocmd_group` (String) Sudo command group to deny by the sudo rule
+- `identifier` (String) Unique identifier to differentiate multiple sudo rule allowed membership resources on the same sudo rule. Manadatory for using sudocmds/sudocmd_groups configurations.
+- `sudocmd` (String, Deprecated) **deprecated** Sudo command to deny by the sudo rule
+- `sudocmd_group` (String, Deprecated) **deprecated** Sudo command group to deny by the sudo rule
+- `sudocmd_groups` (List of String) List of sudo command group to deny by the sudo rule
+- `sudocmds` (List of String) List of Sudo command to deny by the sudo rule
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

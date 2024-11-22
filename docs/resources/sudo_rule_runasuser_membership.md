@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_runasuser_membership Resource - freeipa"
 description: |-
-
+FreeIPA Sudo rule run as user membership resource
 ---
 
 # freeipa_sudo_rule_runasuser_membership (Resource)
@@ -11,9 +11,15 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_runasrule_user_membership "user-0" {
-  name = "sudo-rule-test"
+resource "freeipa_sudo_rule_runasuser_membership" "user-0" {
+  name      = "sudo-rule-test"
   runasuser = "user01"
+}
+
+resource "freeipa_sudo_rule_runasuser_membership" "users-0" {
+  name       = "sudo-rule-test"
+  runasusers = ["user01","user02"]
+  identifier = "users-0"
 }
 ```
 
@@ -29,8 +35,10 @@ resource freeipa_sudo_runasrule_user_membership "user-0" {
 
 ### Optional
 
-- `runasuser` (String) Run As User to add to the sudo rule. Can be an external user (local user of ipa clients)
+- `identifier` (String) Unique identifier to differentiate multiple sudo rule runasuser membership resources on the same sudo rule. Manadatory for using runasusers configurations.
+- `runasuser` (String, Deprecated) **deprecated** Run As User to add to the sudo rule. Can be an external user (local user of ipa clients)
+- `runasusers` (List of String) List of Run As User to add to the sudo rule. Can be an external user (local user of ipa clients)
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

@@ -6,8 +6,8 @@ Download provider from [registry.terraform.io](https://registry.terraform.io/pro
 Requirements
 ------------
 
-- [Terraform](https://www.terraform.io/downloads.html) 1.0.x
-- [Go](https://golang.org/doc/install) 1.18 (to build the provider plugin)
+- [Terraform](https://www.terraform.io/downloads.html) 1.0+
+- [Go](https://golang.org/doc/install) 1.22+ (to build the provider plugin)
 
 Building The Provider
 ---------------------

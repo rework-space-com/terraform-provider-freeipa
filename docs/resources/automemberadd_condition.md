@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_automemberadd_condition Resource - freeipa"
 description: |-
-
+FreeIPA Automember conditionresource
 ---
 
 # freeipa_automemberadd_condition (Resource)
@@ -37,16 +37,16 @@ resource "freeipa_automemberadd_condition" "automembercondition" {
 
 ### Required
 
-- `key` (String)
-- `name` (String)
-- `type` (String)
+- `description` (String) Automember rule condition description
+- `key` (String) Automember rule condition key
+- `name` (String) Automember rule condition name
+- `type` (String) Automember rule condition type
 
 ### Optional
 
-- `description` (String)
-- `exclusiveregex` (List of String)
-- `inclusiveregex` (List of String)
+- `exclusiveregex` (List of String) Regex expression for values that should be excluded.
+- `inclusiveregex` (List of String) Regex expression for values that should be included.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

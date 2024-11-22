@@ -1,10 +1,10 @@
 ---
-page_title: "Provider: FreeIPA"
+page_title: "Provider: FREEIPA"
 description: |-
   
 ---
 
-# FreeIPA Provider
+# FREEIPA Provider
 
 ## Example Usage
 
@@ -19,7 +19,7 @@ terraform {
 }
 
 provider "freeipa" {
-  host = "ipa.example.test"
+  host     = "ipa.example.test"
   username = "admin"
   password = "123456789"
   insecure = true
@@ -34,10 +34,5 @@ provider "freeipa" {
 - `ca_certificate` (String) Path to the server's SSL CA certificate
 - `host` (String) The FreeIPA host
 - `insecure` (Boolean) Whether to verify the server's SSL certificate
-- `password` (String) Password to use for connection
+- `password` (String, Sensitive) Password to use for connection
 - `username` (String) Username to use for connection
-
-## Environment Variables
-
-Configuration can be provided by setting the `FREEIPA_HOST`, `FREEIPA_USERNAME`,
-`FREEIPA_PASSWORD`, and `FREEIPA_CA_CERT` environment variables.

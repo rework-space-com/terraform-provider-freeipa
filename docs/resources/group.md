@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_group Resource - freeipa"
 description: |-
-
+FreeIPA User Group resource
 ---
 
 # freeipa_group (Resource)
@@ -11,12 +11,22 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_group "group-0" {
-  name = "test-group"
+resource "freeipa_group" "group-posix" {
+  name        = "test-group"
   description = "Test group"
-  # gid_number = "123457"
-  # nonposix = true
-  # external = true
+  gid_number  = "12345789"
+}
+
+resource "freeipa_group" "group-nonposix" {
+  name        = "test-group"
+  description = "Test group"
+  nonposix    = true
+}
+
+resource "freeipa_group" "group-external" {
+  name        = "test-group"
+  description = "Test group"
+  external    = true
 }
 ```
 
@@ -33,7 +43,7 @@ resource freeipa_group "group-0" {
 ### Optional
 
 - `addattr` (List of String) Add an attribute/value pair. Format is attr=value. The attribute must be part of the schema.
-- `description` (String) Group description
+- `description` (String) Group Description
 - `external` (Boolean) Allow adding external non-IPA members from trusted domains
 - `gid_number` (Number) GID (use this option to set it manually)
 - `nonposix` (Boolean) Create as a non-POSIX group
@@ -41,4 +51,4 @@ resource freeipa_group "group-0" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_option Resource - freeipa"
 description: |-
-
+FreeIPA Sudo rule option resource
 ---
 
 # freeipa_sudo_rule_option (Resource)
@@ -11,8 +11,8 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource freeipa_sudo_rule_option "option-0" {
-  name = "sudo-rule-test"
+resource "freeipa_sudo_rule_option" "option-0" {
+  name   = "sudo-rule-test"
   option = "!authenticate"
 }
 ```
@@ -26,11 +26,8 @@ resource freeipa_sudo_rule_option "option-0" {
 ### Required
 
 - `name` (String) Sudo rule name
-
-### Optional
-
 - `option` (String) Sudo option to add to the sudo rule.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the resource

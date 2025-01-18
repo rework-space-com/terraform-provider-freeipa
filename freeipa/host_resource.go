@@ -296,6 +296,7 @@ func (r *HostResource) Create(ctx context.Context, req resource.CreateRequest, r
 	res, err := r.client.HostAdd(&args, &optArgs)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa host: %s", err))
+		return
 	}
 
 	if !data.RandomPassword.IsNull() && data.RandomPassword.ValueBool() {

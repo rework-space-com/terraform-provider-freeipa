@@ -624,7 +624,7 @@ func (r *HostResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	_, err := r.client.HostMod(&args, &optArgs)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "EmptyModlist (4202)") {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error updating freeipa host: %s", err))
 	}
 

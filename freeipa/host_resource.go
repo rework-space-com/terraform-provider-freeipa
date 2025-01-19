@@ -336,7 +336,8 @@ func (r *HostResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	res, err := r.client.HostShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "[DEBUG] Host not found")
+			tflog.Debug(ctx, "[DEBUG] Host not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa host: %s", err))

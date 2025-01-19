@@ -246,6 +246,7 @@ func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Group %s not found", data.Id.ValueString()))
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("[DEBUG] Group %s not found: %s", data.Id.ValueString(), err))

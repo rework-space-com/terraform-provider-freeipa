@@ -250,7 +250,8 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule not found")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
@@ -261,23 +262,25 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 	switch typeId {
 	case "srh":
 		if res.Result.MemberhostHost == nil || !slices.Contains(*res.Result.MemberhostHost, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule host membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule host membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "srhg":
 		if res.Result.MemberhostHostgroup == nil || !slices.Contains(*res.Result.MemberhostHostgroup, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule host group membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule host group membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "msrh":
-		if !data.Hosts.IsNull() && res.Result.MemberhostHost == nil {
+		if !data.Hosts.IsNull() {
 			var changedVals []string
 			for _, value := range data.Hosts.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberhostHost, val) {
+				if res.Result.MemberhostHost != nil && slices.Contains(*res.Result.MemberhostHost, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -288,14 +291,14 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 			}
 		}
-		if !data.HostGroups.IsNull() && res.Result.MemberhostHostgroup == nil {
+		if !data.HostGroups.IsNull() {
 			var changedVals []string
 			for _, value := range data.HostGroups.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member commands failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberhostHostgroup, val) {
+				if res.Result.MemberhostHostgroup != nil && slices.Contains(*res.Result.MemberhostHostgroup, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

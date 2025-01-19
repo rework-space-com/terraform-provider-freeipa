@@ -250,7 +250,8 @@ func (r *HbacPolicyUserMembershipResource) Read(ctx context.Context, req resourc
 	res, err := r.client.HbacruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Hbac policy not found")
+			tflog.Debug(ctx, "[DEBUG] Hbac policy not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
@@ -261,23 +262,25 @@ func (r *HbacPolicyUserMembershipResource) Read(ctx context.Context, req resourc
 	switch typeId {
 	case "u":
 		if res.Result.MemberuserUser == nil || !slices.Contains(*res.Result.MemberuserUser, policyId) {
-			resp.Diagnostics.AddError("Client Error", "HBAC policy user membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] HBAC policy user membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "g":
 		if res.Result.MemberuserGroup == nil || !slices.Contains(*res.Result.MemberuserGroup, policyId) {
-			resp.Diagnostics.AddError("Client Error", "HBAC policy user group membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] HBAC policy user group membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "mu":
-		if !data.Users.IsNull() && res.Result.MemberuserUser == nil {
+		if !data.Users.IsNull() {
 			var changedVals []string
 			for _, value := range data.Users.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy user member failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberuserUser, val) {
+				if res.Result.MemberuserUser != nil && slices.Contains(*res.Result.MemberuserUser, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy user member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -288,14 +291,14 @@ func (r *HbacPolicyUserMembershipResource) Read(ctx context.Context, req resourc
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 			}
 		}
-		if !data.Groups.IsNull() && res.Result.MemberuserGroup == nil {
+		if !data.Groups.IsNull() {
 			var changedVals []string
 			for _, value := range data.Groups.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberuserGroup, val) {
+				if res.Result.MemberuserGroup != nil && slices.Contains(*res.Result.MemberuserGroup, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

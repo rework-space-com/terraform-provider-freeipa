@@ -148,7 +148,8 @@ func (r *SudoCmdResource) Read(ctx context.Context, req resource.ReadRequest, re
 	res, err := r.client.SudocmdShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "[DEBUG] Sudo command not found")
+			tflog.Debug(ctx, "[DEBUG] Sudo command not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo command: %s", err))

@@ -250,7 +250,8 @@ func (r *SudoRuleAllowCmdMembershipResource) Read(ctx context.Context, req resou
 	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule not found")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
@@ -261,23 +262,25 @@ func (r *SudoRuleAllowCmdMembershipResource) Read(ctx context.Context, req resou
 	switch typeId {
 	case "srac":
 		if res.Result.MemberallowcmdSudocmd == nil || !slices.Contains(*res.Result.MemberallowcmdSudocmd, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule allowed command membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule allowed command membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "sracg":
 		if res.Result.MemberallowcmdSudocmdgroup == nil || !slices.Contains(*res.Result.MemberallowcmdSudocmdgroup, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule allowed command groupmembership does not exist")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule allowed command groupmembership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "msrac":
-		if !data.SudoCmds.IsNull() && res.Result.MemberallowcmdSudocmd == nil {
+		if !data.SudoCmds.IsNull() {
 			var changedVals []string
 			for _, value := range data.SudoCmds.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberallowcmdSudocmd, val) {
+				if res.Result.MemberallowcmdSudocmd != nil && slices.Contains(*res.Result.MemberallowcmdSudocmd, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -288,14 +291,14 @@ func (r *SudoRuleAllowCmdMembershipResource) Read(ctx context.Context, req resou
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 			}
 		}
-		if !data.SudoCmdGroups.IsNull() && res.Result.MemberallowcmdSudocmdgroup == nil {
+		if !data.SudoCmdGroups.IsNull() {
 			var changedVals []string
 			for _, value := range data.SudoCmdGroups.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberallowcmdSudocmdgroup, val) {
+				if res.Result.MemberallowcmdSudocmdgroup != nil && slices.Contains(*res.Result.MemberallowcmdSudocmdgroup, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

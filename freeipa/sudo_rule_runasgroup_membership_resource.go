@@ -201,7 +201,8 @@ func (r *SudoRuleRunAsGroupMembershipResource) Read(ctx context.Context, req res
 	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule not found")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
@@ -212,18 +213,19 @@ func (r *SudoRuleRunAsGroupMembershipResource) Read(ctx context.Context, req res
 	switch typeId {
 	case "srraug":
 		if res.Result.IpasudorunasgroupGroup == nil || !slices.Contains(*res.Result.IpasudorunasgroupGroup, grpId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule runasgroup membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule runasgroup membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "msrraug":
-		if !data.RunAsGroups.IsNull() && res.Result.IpasudorunasgroupGroup == nil {
+		if !data.RunAsGroups.IsNull() {
 			var changedVals []string
 			for _, value := range data.RunAsGroups.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.IpasudorunasgroupGroup, val) {
+				if res.Result.IpasudorunasgroupGroup != nil && slices.Contains(*res.Result.IpasudorunasgroupGroup, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

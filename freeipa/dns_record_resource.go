@@ -236,6 +236,7 @@ func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			tflog.Debug(ctx, "[DEBUG] DNS record not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa DNS record: %s", err))

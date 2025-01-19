@@ -148,7 +148,8 @@ func (r *SudoCmdGroupResource) Read(ctx context.Context, req resource.ReadReques
 	res, err := r.client.SudocmdgroupShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "[DEBUG] Sudo command group not found")
+			tflog.Debug(ctx, "[DEBUG] Sudo command group not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo command group: %s", err))

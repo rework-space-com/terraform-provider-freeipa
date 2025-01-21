@@ -252,6 +252,10 @@ func (r *HostGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read hostgroup membership %s optArgs %v", data.Id.ValueString(), optArgs))
 	res, err := r.client.HostgroupShow(&reqArgs, &optArgs)
 	if err != nil {
+		if strings.Contains(err.Error(), "NotFound (4001)") {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading information on freeipa hostgroup %s: %s", name, err))
 		return
 	}
@@ -259,21 +263,31 @@ func (r *HostGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 	switch typeId {
 	case "hg":
 		v := []string{userId}
-		hostgroups := *res.Result.MemberHostgroup
-		if slices.Contains(hostgroups, v[0]) {
-			data.HostGroup = types.StringValue(v[0])
+		if res.Result.MemberHostgroup != nil {
+			hostgroups := *res.Result.MemberHostgroup
+			if slices.Contains(hostgroups, v[0]) {
+				data.HostGroup = types.StringValue(v[0])
+			} else {
+				data.HostGroup = types.StringValue("")
+				data.Id = types.StringValue("")
+			}
 		} else {
-			data.HostGroup = types.StringValue("")
-			data.Id = types.StringValue("")
+			resp.State.RemoveResource(ctx)
+			return
 		}
 	case "h":
 		v := []string{userId}
-		hosts := *res.Result.MemberHost
-		if slices.Contains(hosts, v[0]) {
-			data.Host = types.StringValue(v[0])
+		if res.Result.MemberHost != nil {
+			hosts := *res.Result.MemberHost
+			if slices.Contains(hosts, v[0]) {
+				data.Host = types.StringValue(v[0])
+			} else {
+				data.Host = types.StringValue("")
+				data.Id = types.StringValue("")
+			}
 		} else {
-			data.Host = types.StringValue("")
-			data.Id = types.StringValue("")
+			resp.State.RemoveResource(ctx)
+			return
 		}
 	case "m":
 		if !data.Hosts.IsNull() && res.Result.MemberHost != nil {
@@ -313,6 +327,10 @@ func (r *HostGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 			if diag.HasError() {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 			}
+		}
+		if res.Result.MemberHostgroup == nil && res.Result.MemberHost == nil {
+			resp.State.RemoveResource(ctx)
+			return
 		}
 	}
 

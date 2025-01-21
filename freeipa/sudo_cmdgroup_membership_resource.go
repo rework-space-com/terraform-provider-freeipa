@@ -195,7 +195,8 @@ func (r *SudoCmdGroupMembershipResource) Read(ctx context.Context, req resource.
 	res, err := r.client.SudocmdgroupShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Sudo command group not found")
+			tflog.Debug(ctx, "[DEBUG] Sudo command group not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa Sudo command group: %s", err))
@@ -206,18 +207,19 @@ func (r *SudoCmdGroupMembershipResource) Read(ctx context.Context, req resource.
 	switch typeId {
 	case "sc":
 		if res.Result.MemberSudocmd == nil || !slices.Contains(*res.Result.MemberSudocmd, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo command group membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] Sudo command group membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "msc":
-		if !data.SudoCmds.IsNull() && res.Result.MemberSudocmd != nil {
+		if !data.SudoCmds.IsNull() {
 			var changedVals []string
 			for _, value := range data.SudoCmds.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command group member commands failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberSudocmd, val) {
+				if res.Result.MemberSudocmd != nil && slices.Contains(*res.Result.MemberSudocmd, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command group member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -227,6 +229,9 @@ func (r *SudoCmdGroupMembershipResource) Read(ctx context.Context, req resource.
 			if diag.HasError() {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 			}
+		} else {
+			resp.State.RemoveResource(ctx)
+			return
 		}
 	}
 

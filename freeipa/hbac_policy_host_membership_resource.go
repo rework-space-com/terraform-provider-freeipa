@@ -250,7 +250,8 @@ func (r *HbacPolicyHostMembershipResource) Read(ctx context.Context, req resourc
 	res, err := r.client.HbacruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Hbac policy not found")
+			tflog.Debug(ctx, "[DEBUG] Hbac policy not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
@@ -261,23 +262,25 @@ func (r *HbacPolicyHostMembershipResource) Read(ctx context.Context, req resourc
 	switch typeId {
 	case "h":
 		if res.Result.MemberhostHost == nil || !slices.Contains(*res.Result.MemberhostHost, policyId) {
-			resp.Diagnostics.AddError("Client Error", "HBAC policy host membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] HBAC policy host membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "hg":
 		if res.Result.MemberhostHostgroup == nil || !slices.Contains(*res.Result.MemberhostHostgroup, policyId) {
-			resp.Diagnostics.AddError("Client Error", "HBAC policy host group membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] HBAC policy host group membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "mh":
-		if !data.Hosts.IsNull() && res.Result.MemberhostHost == nil {
+		if !data.Hosts.IsNull() {
 			var changedVals []string
 			for _, value := range data.Hosts.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy host member failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberhostHost, val) {
+				if res.Result.MemberhostHost != nil && slices.Contains(*res.Result.MemberhostHost, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy host member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -288,14 +291,14 @@ func (r *HbacPolicyHostMembershipResource) Read(ctx context.Context, req resourc
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 			}
 		}
-		if !data.HostGroups.IsNull() && res.Result.MemberhostHostgroup == nil {
+		if !data.HostGroups.IsNull() {
 			var changedVals []string
 			for _, value := range data.HostGroups.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberhostHostgroup, val) {
+				if res.Result.MemberhostHostgroup != nil && slices.Contains(*res.Result.MemberhostHostgroup, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

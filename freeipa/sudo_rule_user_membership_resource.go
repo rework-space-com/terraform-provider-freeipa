@@ -250,7 +250,8 @@ func (r *SudoRuleUserMembershipResource) Read(ctx context.Context, req resource.
 	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule not found")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
@@ -261,49 +262,54 @@ func (r *SudoRuleUserMembershipResource) Read(ctx context.Context, req resource.
 	switch typeId {
 	case "sru":
 		if res.Result.MemberuserUser == nil || !slices.Contains(*res.Result.MemberuserUser, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule user membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "srug":
 		if res.Result.MemberuserGroup == nil || !slices.Contains(*res.Result.MemberuserGroup, cmdId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule user group membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "msru":
-		if !data.Users.IsNull() && res.Result.MemberuserUser == nil {
-			var changedVals []string
-			for _, value := range data.Users.Elements() {
-				val, err := strconv.Unquote(value.String())
-				if err != nil {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user member failed with error %s", err))
+		if res.Result.MemberuserUser == nil && res.Result.MemberuserGroup == nil {
+			resp.State.RemoveResource(ctx)
+			return
+		} else {
+			if !data.Users.IsNull() {
+				var changedVals []string
+				for _, value := range data.Users.Elements() {
+					val, err := strconv.Unquote(value.String())
+					if err != nil {
+						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user member failed with error %s", err))
+					}
+					if res.Result.MemberuserUser != nil && slices.Contains(*res.Result.MemberuserUser, val) {
+						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user member %s is present in results", val))
+						changedVals = append(changedVals, val)
+					}
 				}
-				if slices.Contains(*res.Result.MemberhostHost, val) {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user member %s is present in results", val))
-					changedVals = append(changedVals, val)
-				}
-			}
-			var diag diag.Diagnostics
-			data.Users, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
-			if diag.HasError() {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
-			}
-		}
-		if !data.Groups.IsNull() && res.Result.MemberuserGroup == nil {
-			var changedVals []string
-			for _, value := range data.Groups.Elements() {
-				val, err := strconv.Unquote(value.String())
-				if err != nil {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user group member failed with error %s", err))
-				}
-				if slices.Contains(*res.Result.MemberhostHostgroup, val) {
-					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user group member %s is present in results", val))
-					changedVals = append(changedVals, val)
+				var diag diag.Diagnostics
+				data.Users, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+				if diag.HasError() {
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 				}
 			}
-			var diag diag.Diagnostics
-			data.Groups, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
-			if diag.HasError() {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+			if !data.Groups.IsNull() && res.Result.MemberuserGroup == nil {
+				var changedVals []string
+				for _, value := range data.Groups.Elements() {
+					val, err := strconv.Unquote(value.String())
+					if err != nil {
+						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user group member failed with error %s", err))
+					}
+					if slices.Contains(*res.Result.MemberuserGroup, val) {
+						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user group member %s is present in results", val))
+						changedVals = append(changedVals, val)
+					}
+				}
+				var diag diag.Diagnostics
+				data.Groups, diag = types.ListValueFrom(ctx, types.StringType, &changedVals)
+				if diag.HasError() {
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+				}
 			}
 		}
 	}

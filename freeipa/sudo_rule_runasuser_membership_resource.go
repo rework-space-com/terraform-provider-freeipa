@@ -201,7 +201,8 @@ func (r *SudoRuleRunAsUserMembershipResource) Read(ctx context.Context, req reso
 	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule not found")
+			tflog.Debug(ctx, "[DEBUG] Sudo rule not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
@@ -212,7 +213,7 @@ func (r *SudoRuleRunAsUserMembershipResource) Read(ctx context.Context, req reso
 	switch typeId {
 	case "srrau":
 		if res.Result.IpasudorunasUser == nil || !slices.Contains(*res.Result.IpasudorunasUser, usrId) {
-			resp.Diagnostics.AddError("Client Error", "Sudo rule runasgroup membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "msrrau":

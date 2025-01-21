@@ -250,7 +250,8 @@ func (r *HbacPolicyServiceMembershipResource) Read(ctx context.Context, req reso
 	res, err := r.client.HbacruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "Hbac policy not found")
+			tflog.Debug(ctx, "[DEBUG] Hbac policy not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
@@ -261,23 +262,25 @@ func (r *HbacPolicyServiceMembershipResource) Read(ctx context.Context, req reso
 	switch typeId {
 	case "s":
 		if res.Result.MemberserviceHbacsvc == nil || !slices.Contains(*res.Result.MemberserviceHbacsvc, policyId) {
-			resp.Diagnostics.AddError("Client Error", "HBAC policy service membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] HBAC policy service membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "sg":
 		if res.Result.MemberserviceHbacsvcgroup == nil || !slices.Contains(*res.Result.MemberserviceHbacsvcgroup, policyId) {
-			resp.Diagnostics.AddError("Client Error", "HBAC policy service group membership does not exist")
+			tflog.Debug(ctx, "[DEBUG] HBAC policy service group membership does not exist")
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "ms":
-		if !data.Services.IsNull() && res.Result.MemberserviceHbacsvc == nil {
+		if !data.Services.IsNull() {
 			var changedVals []string
 			for _, value := range data.Services.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy service member failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberserviceHbacsvc, val) {
+				if res.Result.MemberserviceHbacsvc != nil && slices.Contains(*res.Result.MemberserviceHbacsvc, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy service member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -288,14 +291,14 @@ func (r *HbacPolicyServiceMembershipResource) Read(ctx context.Context, req reso
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 			}
 		}
-		if !data.ServiceGroups.IsNull() && res.Result.MemberserviceHbacsvcgroup == nil {
+		if !data.ServiceGroups.IsNull() {
 			var changedVals []string
 			for _, value := range data.ServiceGroups.Elements() {
 				val, err := strconv.Unquote(value.String())
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy service member failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberserviceHbacsvcgroup, val) {
+				if res.Result.MemberserviceHbacsvcgroup != nil && slices.Contains(*res.Result.MemberserviceHbacsvcgroup, val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy service member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

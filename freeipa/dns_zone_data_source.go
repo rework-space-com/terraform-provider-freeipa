@@ -205,6 +205,7 @@ func (r *dnsZoneDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone %s not found", data.ZoneName.ValueString()))
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa DNS zone: %s", err))

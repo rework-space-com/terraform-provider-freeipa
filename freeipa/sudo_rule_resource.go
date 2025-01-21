@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
@@ -207,7 +208,8 @@ func (r *SudoRuleResource) Read(ctx context.Context, req resource.ReadRequest, r
 	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+			tflog.Debug(ctx, "[DEBUG] Sudo rule not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))

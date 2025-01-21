@@ -296,6 +296,7 @@ func (r *HostResource) Create(ctx context.Context, req resource.CreateRequest, r
 	res, err := r.client.HostAdd(&args, &optArgs)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa host: %s", err))
+		return
 	}
 
 	if !data.RandomPassword.IsNull() && data.RandomPassword.ValueBool() {
@@ -335,7 +336,8 @@ func (r *HostResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	res, err := r.client.HostShow(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "[DEBUG] Host not found")
+			tflog.Debug(ctx, "[DEBUG] Host not found")
+			resp.State.RemoveResource(ctx)
 			return
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa host: %s", err))
@@ -623,7 +625,7 @@ func (r *HostResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	_, err := r.client.HostMod(&args, &optArgs)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "EmptyModlist (4202)") {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error updating freeipa host: %s", err))
 	}
 

@@ -358,6 +358,11 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read user group membership %s optArgs %v", data.Id.ValueString(), optArgs))
 	res, err := r.client.GroupShow(&reqArgs, &optArgs)
 	if err != nil {
+		if strings.Contains(err.Error(), "NotFound (4001)") {
+			tflog.Debug(ctx, "[DEBUG] User group not found")
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading information on freeipa user group %s: %s", name, err))
 		return
 	}
@@ -365,30 +370,46 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 	switch typeId {
 	case "g":
 		v := []string{userId}
-		groups := *res.Result.MemberGroup
-		if slices.Contains(groups, v[0]) {
-			data.Group = types.StringValue(v[0])
+		if res.Result.MemberGroup != nil {
+			groups := *res.Result.MemberGroup
+			if slices.Contains(groups, v[0]) {
+				data.Group = types.StringValue(v[0])
+			} else {
+				data.Group = types.StringValue("")
+				data.Id = types.StringValue("")
+			}
 		} else {
-			data.Group = types.StringValue("")
-			data.Id = types.StringValue("")
+			resp.State.RemoveResource(ctx)
+			return
 		}
 	case "u":
 		v := []string{userId}
-		users := *res.Result.MemberUser
-		if slices.Contains(users, v[0]) {
-			data.User = types.StringValue(v[0])
+		if res.Result.MemberUser != nil {
+			users := *res.Result.MemberUser
+			if slices.Contains(users, v[0]) {
+				data.User = types.StringValue(v[0])
+			} else {
+				data.User = types.StringValue("")
+				data.Id = types.StringValue("")
+			}
 		} else {
-			data.User = types.StringValue("")
-			data.Id = types.StringValue("")
+			resp.State.RemoveResource(ctx)
+			return
 		}
 	case "e":
 		v := []string{userId}
-		extmembers := *res.Result.Ipaexternalmember
-		if slices.Contains(extmembers, v[0]) {
-			data.ExternalMember = types.StringValue(v[0])
+
+		if res.Result.Ipaexternalmember != nil {
+			extmembers := *res.Result.Ipaexternalmember
+			if slices.Contains(extmembers, v[0]) {
+				data.ExternalMember = types.StringValue(v[0])
+			} else {
+				data.ExternalMember = types.StringValue("")
+				data.Id = types.StringValue("")
+			}
 		} else {
-			data.ExternalMember = types.StringValue("")
-			data.Id = types.StringValue("")
+			resp.State.RemoveResource(ctx)
+			return
 		}
 	case "m":
 		if !data.Users.IsNull() && res.Result.MemberUser != nil {
@@ -447,6 +468,10 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 			if diag.HasError() {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
 			}
+		}
+		if res.Result.MemberUser == nil && res.Result.MemberGroup == nil && res.Result.Ipaexternalmember == nil {
+			resp.State.RemoveResource(ctx)
+			return
 		}
 	}
 

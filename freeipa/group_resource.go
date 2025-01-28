@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -100,16 +101,20 @@ func (r *UserGroupResource) Schema(ctx context.Context, req resource.SchemaReque
 			"nonposix": schema.BoolAttribute{
 				MarkdownDescription: "Create as a non-POSIX group",
 				Optional:            true,
-				Computed:            false,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
 					boolplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
 			"external": schema.BoolAttribute{
 				MarkdownDescription: "Allow adding external non-IPA members from trusted domains",
 				Optional:            true,
-				Computed:            false,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
 					boolplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},

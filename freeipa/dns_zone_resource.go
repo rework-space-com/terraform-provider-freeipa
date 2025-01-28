@@ -85,93 +85,157 @@ func (r *dnsZone) Schema(ctx context.Context, req resource.SchemaRequest, resp *
 				MarkdownDescription: "Zone name (FQDN)",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"is_reverse_zone": schema.BoolAttribute{
 				MarkdownDescription: "Allow create the reverse zone",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Bool{
+				// 	boolplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"disable_zone": schema.BoolAttribute{
 				MarkdownDescription: "Allow disabled the zone",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Bool{
+				// 	boolplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"skip_overlap_check": schema.BoolAttribute{
 				MarkdownDescription: "Force DNS zone creation even if it will overlap with an existing zone",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Bool{
+				// 	boolplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"authoritative_nameserver": schema.StringAttribute{
 				MarkdownDescription: "Authoritative nameserver domain name",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.String{
+				// 	stringplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"skip_nameserver_check": schema.BoolAttribute{
 				MarkdownDescription: "Force DNS zone creation even if nameserver is not resolvable",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Bool{
+				// 	boolplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"admin_email_address": schema.StringAttribute{
 				MarkdownDescription: "Administrator e-mail address",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.String{
+				// 	stringplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"soa_serial_number": schema.Int64Attribute{
 				MarkdownDescription: "SOA record serial number",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Int64{
+				// 	int64planmodifier.UseStateForUnknown(),
+				// },
 			},
 			"soa_refresh": schema.Int64Attribute{
 				MarkdownDescription: "SOA record refresh time",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Int64{
+				// 	int64planmodifier.UseStateForUnknown(),
+				// },
 			},
 			"soa_retry": schema.Int64Attribute{
 				MarkdownDescription: "SOA record retry time",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Int64{
+				// 	int64planmodifier.UseStateForUnknown(),
+				// },
 			},
 			"soa_expire": schema.Int64Attribute{
 				MarkdownDescription: "SOA record expire time",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Int64{
+				// 	int64planmodifier.UseStateForUnknown(),
+				// },
 			},
 			"soa_minimum": schema.Int64Attribute{
 				MarkdownDescription: "How long should negative responses be cached",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Int64{
+				// 	int64planmodifier.UseStateForUnknown(),
+				// },
 			},
 			"ttl": schema.Int64Attribute{
 				MarkdownDescription: "Time to live for records at zone apex",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Int64{
+				// 	int64planmodifier.UseStateForUnknown(),
+				// },
 			},
 			"default_ttl": schema.Int64Attribute{
 				MarkdownDescription: "Time to live for records without explicit TTL definition",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Int64{
+				// 	int64planmodifier.UseStateForUnknown(),
+				// },
 			},
 			"dynamic_updates": schema.BoolAttribute{
 				MarkdownDescription: "Allow dynamic updates",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Bool{
+				// 	boolplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"bind_update_policy": schema.StringAttribute{
 				MarkdownDescription: "BIND update policy",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.String{
+				// 	stringplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"allow_query": schema.StringAttribute{
 				MarkdownDescription: "Semicolon separated list of IP addresses or networks which are allowed to issue queries",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.String{
+				// 	stringplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"allow_transfer": schema.StringAttribute{
 				MarkdownDescription: "Semicolon separated list of IP addresses or networks which are allowed to transfer the zone",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.String{
+				// 	stringplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"zone_forwarders": schema.ListAttribute{
 				MarkdownDescription: "Per-zone forwarders. A custom port can be specified for each forwarder using a standard format IP_ADDRESS port PORT",
 				Optional:            true,
 				ElementType:         types.StringType,
+				// PlanModifiers: []planmodifier.List{
+				// 	listplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"allow_ptr_sync": schema.BoolAttribute{
 				MarkdownDescription: "Allow synchronization of forward (A, AAAA) and reverse (PTR) records in the zone",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Bool{
+				// 	boolplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"allow_inline_dnssec_signing": schema.BoolAttribute{
 				MarkdownDescription: "Allow inline DNSSEC signing of records in the zone",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.Bool{
+				// 	boolplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"nsec3param_record": schema.StringAttribute{
 				MarkdownDescription: "NSEC3PARAM record for zone in format: hash_algorithm flags iterations salt",
 				Optional:            true,
+				// PlanModifiers: []planmodifier.String{
+				// 	stringplanmodifier.UseStateForUnknown(),
+				// },
 			},
 			"computed_zone_name": schema.StringAttribute{
 				MarkdownDescription: "Real zone name compatible with ARPA (ie: `domain.tld.`)",
@@ -377,6 +441,7 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 	if !data.SoaRefresh.IsNull() {
 		data.SoaRefresh = types.Int64Value(int64(res.Result.Idnssoarefresh))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_refresh %d", int(data.SoaRefresh.ValueInt64())))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Remote Read freeipa dns zone soa_refresh %d", res.Result.Idnssoarefresh))
 	}
 	if !data.SoaRetry.IsNull() {
 		data.SoaRetry = types.Int64Value(int64(res.Result.Idnssoaretry))
@@ -426,6 +491,10 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 		data.Nsec3ParamRecord = types.StringValue(*res.Result.Nsec3paramrecord)
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone nsec3param_record %s", data.Nsec3ParamRecord.ValueString()))
 	}
+
+	dnsnames := res.Result.Idnsname.([]interface{})
+	dnsname := dnsnames[0].(map[string]interface{})["__dns_name__"]
+	data.ComputedZoneName = types.StringValue(dnsname.(string))
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -455,9 +524,9 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 	// }
 
 	hasChange := false
-	var zone_name interface{} = data.ZoneName.ValueString()
+	var zone_id interface{} = data.Id.ValueString()
 	optArgs := ipa.DnszoneModOptionalArgs{
-		Idnsname: &zone_name,
+		Idnsname: &zone_id,
 	}
 
 	if !data.AuthoritativeNameserver.Equal(state.AuthoritativeNameserver) {
@@ -571,7 +640,7 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 		_, err := r.client.DnszoneMod(&ipa.DnszoneModArgs{}, &optArgs)
 		if err != nil {
 			if strings.Contains(err.Error(), "EmptyModlist") {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
+				tflog.Debug(ctx, fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
 			} else {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa dns zone: %s", err))
 				return

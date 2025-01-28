@@ -102,7 +102,7 @@ func (r *UserGroupResource) Schema(ctx context.Context, req resource.SchemaReque
 				Optional:            true,
 				Computed:            false,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
+					boolplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
 			"external": schema.BoolAttribute{
@@ -110,7 +110,7 @@ func (r *UserGroupResource) Schema(ctx context.Context, req resource.SchemaReque
 				Optional:            true,
 				Computed:            false,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
+					boolplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
 			"addattr": schema.ListAttribute{
@@ -224,7 +224,6 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 
 func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data UserGroupResourceModel
-
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 

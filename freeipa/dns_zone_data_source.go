@@ -242,14 +242,22 @@ func (r *dnsZoneDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		data.AdminEmailAddress = types.StringValue(adminemail.(string))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone admin_email_address %s", data.AdminEmailAddress.ValueString()))
 	}
-	//if res.Result.Idnssoaserial != nil {
-	data.SoaSerialNumber = types.Int64Value(int64(*res.Result.Idnssoaserial))
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_serial_number %d", int(data.SoaSerialNumber.ValueInt64())))
-	//}
-	//if res.Result.Idnssoaretry != nil {
+	if res.Result.Idnssoaserial != nil {
+		data.SoaSerialNumber = types.Int64Value(int64(*res.Result.Idnssoaserial))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_serial_number %d", int(data.SoaSerialNumber.ValueInt64())))
+	}
+	data.SoaRefresh = types.Int64Value(int64(res.Result.Idnssoarefresh))
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_refresh %d", int(data.SoaRefresh.ValueInt64())))
+
 	data.SoaRetry = types.Int64Value(int64(res.Result.Idnssoaretry))
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_retry %d", int(data.SoaRetry.ValueInt64())))
-	//}
+
+	data.SoaExpire = types.Int64Value(int64(res.Result.Idnssoaexpire))
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_expire %d", int(data.SoaExpire.ValueInt64())))
+
+	data.SoaMinimum = types.Int64Value(int64(res.Result.Idnssoaminimum))
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone soa_minimum %d", int(data.SoaMinimum.ValueInt64())))
+
 	if res.Result.Dnsttl != nil {
 		data.TTL = types.Int64Value(int64(*res.Result.Dnsttl))
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone ttl %d", int(data.TTL.ValueInt64())))

@@ -107,7 +107,7 @@ func (r *dnsRecordDataSource) Read(ctx context.Context, req datasource.ReadReque
 	res, err := r.client.DnsrecordShow(&reqArgs, &optArgs)
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns record %s: %s", data.RecordName.ValueString(), res.String()))
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa DNS zone %s: %s", data.RecordName.ValueString(), err))
+		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
 	if res != nil {

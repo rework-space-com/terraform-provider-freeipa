@@ -157,7 +157,7 @@ func (r *HbacPolicyDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	res, err := r.client.HbacruleShow(&args, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
+		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
 

@@ -174,7 +174,7 @@ func (r *UserGroupDataSource) Read(ctx context.Context, req datasource.ReadReque
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group %s", data.Name.ValueString()))
 	res, err := r.client.GroupShow(&args, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading group %s: %s", data.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group %v", res))

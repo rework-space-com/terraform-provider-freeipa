@@ -6,7 +6,6 @@ package freeipa
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -203,13 +202,8 @@ func (r *SudoRuleDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
-		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
-			return
-		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
-			return
-		}
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule %s: %s", data.Name.ValueString(), err))
+		return
 	}
 
 	if res.Result.Description != nil {

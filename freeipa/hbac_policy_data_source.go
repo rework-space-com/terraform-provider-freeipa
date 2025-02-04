@@ -6,7 +6,6 @@ package freeipa
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -158,13 +157,8 @@ func (r *HbacPolicyDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	res, err := r.client.HbacruleShow(&args, &optArgs)
 	if err != nil {
-		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
-			return
-		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
-			return
-		}
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
+		return
 	}
 
 	if res.Result.Description != nil {

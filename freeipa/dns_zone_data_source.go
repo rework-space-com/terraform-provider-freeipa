@@ -6,7 +6,6 @@ package freeipa
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -203,14 +202,8 @@ func (r *dnsZoneDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	res, err := r.client.DnszoneShow(&ipa.DnszoneShowArgs{}, &optArgs)
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone %s: %s", data.ZoneName.ValueString(), res.String()))
 	if err != nil {
-		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone %s not found", data.ZoneName.ValueString()))
-			resp.State.RemoveResource(ctx)
-			return
-		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa DNS zone: %s", err))
-			return
-		}
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa DNS zone %s: %s", data.ZoneName.ValueString(), err))
+		return
 	}
 
 	if res != nil {

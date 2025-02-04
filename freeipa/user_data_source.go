@@ -6,13 +6,11 @@ package freeipa
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
@@ -306,12 +304,8 @@ func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	res, err := r.client.UserShow(&ipa.UserShowArgs{}, &optArgs)
 	if err != nil {
-		if strings.Contains(err.Error(), "NotFound") {
-			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] User %s not found", data.UID.ValueString()))
-			return
-		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading user %s: %s", data.UID.ValueString(), err))
-		}
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading user %s: %s", data.UID.ValueString(), err))
+		return
 	}
 
 	if res.Result.Cn != nil {

@@ -6,7 +6,6 @@ package freeipa
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -175,12 +174,8 @@ func (r *UserGroupDataSource) Read(ctx context.Context, req datasource.ReadReque
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group %s", data.Name.ValueString()))
 	res, err := r.client.GroupShow(&args, &optArgs)
 	if err != nil {
-		if strings.Contains(err.Error(), "NotFound") {
-			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Group %s not found", data.Name.ValueString()))
-			return
-		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("[DEBUG] Group %s not found: %s", data.Name.ValueString(), err))
-		}
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading group %s: %s", data.Name.ValueString(), err))
+		return
 	}
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group %v", res))
 	if res != nil {

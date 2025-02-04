@@ -6,7 +6,6 @@ package freeipa
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -107,13 +106,8 @@ func (r *SudoCmdGroupDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	res, err := r.client.SudocmdgroupShow(&args, &optArgs)
 	if err != nil {
-		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "[DEBUG] Sudo command group not found")
-			return
-		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo command group: %s", err))
-			return
-		}
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo command group: %s", err))
+		return
 	}
 	if res != nil {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command group %s", res.Result.String()))

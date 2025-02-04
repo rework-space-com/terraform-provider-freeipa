@@ -6,7 +6,6 @@ package freeipa
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -208,13 +207,8 @@ func (r *HostDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	res, err := r.client.HostShow(&args, &optArgs)
 	if err != nil {
-		if strings.Contains(err.Error(), "NotFound") {
-			resp.Diagnostics.AddError("Client Error", "[DEBUG] Host not found")
-			return
-		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa host: %s", err))
-			return
-		}
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa host %s: %s", data.Name.ValueString(), err))
+		return
 	}
 	if res != nil {
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa host %s", res.Result.String()))

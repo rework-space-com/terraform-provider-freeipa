@@ -163,7 +163,7 @@ func (r *HostGroupDataSource) Read(ctx context.Context, req datasource.ReadReque
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup %s", data.Name.ValueString()))
 	res, err := r.client.HostgroupShow(&args, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa hostgroup %s: %s", data.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup %v", res))

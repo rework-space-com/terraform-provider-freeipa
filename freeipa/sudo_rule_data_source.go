@@ -202,7 +202,7 @@ func (r *SudoRuleDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	res, err := r.client.SudoruleShow(&args, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo rule %s: %s", data.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
 

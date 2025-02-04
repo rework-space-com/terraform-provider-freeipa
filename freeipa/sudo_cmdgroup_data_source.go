@@ -106,7 +106,7 @@ func (r *SudoCmdGroupDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	res, err := r.client.SudocmdgroupShow(&args, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa sudo command group: %s", err))
+		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
 	if res != nil {

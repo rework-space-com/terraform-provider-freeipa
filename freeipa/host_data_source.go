@@ -207,7 +207,7 @@ func (r *HostDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	res, err := r.client.HostShow(&args, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa host %s: %s", data.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
 	if res != nil {

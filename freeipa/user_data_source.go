@@ -304,7 +304,7 @@ func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	res, err := r.client.UserShow(&ipa.UserShowArgs{}, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading user %s: %s", data.UID.ValueString(), err))
+		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
 

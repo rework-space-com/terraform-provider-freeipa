@@ -48,7 +48,6 @@ resource "freeipa_dns_zone" "dns_zone-2" {
 - `soa_minimum` (Number) How long should negative responses be cached
 - `soa_refresh` (Number) SOA record refresh time
 - `soa_retry` (Number) SOA record retry time
-- `soa_serial_number` (Number) SOA record serial number
 - `ttl` (Number) Time to live for records at zone apex
 - `zone_forwarders` (List of String) Per-zone forwarders. A custom port can be specified for each forwarder using a standard format IP_ADDRESS port PORT
 

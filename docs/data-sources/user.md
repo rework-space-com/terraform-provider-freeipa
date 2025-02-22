@@ -65,5 +65,4 @@ data "freeipa_user" "user-0" {
 - `street_address` (String) Street address
 - `telephone_numbers` (List of String) Telephone Number
 - `uid_number` (Number) User ID Number (system will assign one if not provided)
-- `user_password` (String, Sensitive) User password
 - `userclass` (List of String) User category (semantics placed on this attribute are for local interpretation)

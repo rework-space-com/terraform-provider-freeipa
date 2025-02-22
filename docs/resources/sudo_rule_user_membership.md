@@ -28,8 +28,8 @@ resource "freeipa_sudo_rule_user_membership" "group-3" {
 }
 
 resource "freeipa_sudo_rule_user_membership" "groups-3" {
-  name  = "sudo-rule-test"
-  groups = ["test-group-0"]
+  name       = "sudo-rule-test"
+  groups     = ["test-group-0"]
   identifier = "groups-3"
 }
 ```

@@ -10,7 +10,7 @@ testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
 doc:
-	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs; tfplugindocs generate --provider-name freeipa
+	go generate ./...
 
 fmt:
 	go fmt ./...

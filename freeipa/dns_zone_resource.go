@@ -396,9 +396,7 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 	data.Id = types.StringValue(dnsname.(string))
 
 	if !data.DisableZone.IsNull() && data.DisableZone.ValueBool() {
-		//TODO solve the failed error on enable/dissable zone
 		var name interface{} = data.Id.ValueString()
-		// r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
 		_, err = r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
@@ -537,14 +535,6 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s: %v", data.ZoneName.ValueString(), data))
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
-
 	hasChange := false
 	var zone_id interface{} = data.Id.ValueString()
 	optArgs := ipa.DnszoneModOptionalArgs{
@@ -676,18 +666,15 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s plan disabled %s - state disabled %s", data.ZoneName.ValueString(), data.DisableZone.String(), state.DisableZone.String()))
-	//TODO solve the failed error on enable/dissable zone
 	var name interface{} = data.Id.ValueString()
 	if !data.DisableZone.Equal(state.DisableZone) {
 		if data.DisableZone.ValueBool() {
-			//r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
 			_, err := r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
 			if err != nil {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable. Something went wrong: %s", err))
 				return
 			}
 		} else {
-			//r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: &name})
 			_, err := r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: &name})
 			if err != nil {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone enable. Something went wrong: %s", err))
@@ -715,8 +702,6 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 		data.DefaultTTL = types.Int64Null()
 	}
 
-	//data.ComputedZoneName = data.Id
-
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -731,13 +716,6 @@ func (r *dnsZone) Delete(ctx context.Context, req resource.DeleteRequest, resp *
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
-	//     return
-	// }
 	var id []interface{}
 	id = append(id, data.Id.ValueString())
 	optArgs := ipa.DnszoneDelOptionalArgs{

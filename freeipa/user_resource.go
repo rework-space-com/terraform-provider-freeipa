@@ -69,6 +69,7 @@ type UserResourceModel struct {
 	SshPublicKeys          types.List   `tfsdk:"ssh_public_key"`
 	CarLicense             types.List   `tfsdk:"car_license"`
 	UserClass              types.List   `tfsdk:"userclass"`
+	ExternalIDPUsername    types.String `tfsdk:"ipaidpsub"`
 }
 
 func (r *UserResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -247,6 +248,10 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
+			"external_idp_username": schema.StringAttribute{
+				MarkdownDescription: "External IDP Username",
+				Optional:            true,
+			},			
 		},
 	}
 }
@@ -425,6 +430,14 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 		optArgs.Userclass = &v
 	}
+	if len(data.ExternalIDPUsername.Elements()) > 0 {
+		var v []string
+		for _, value := range data.ExternalIDPUsername.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Externalidpusername = &v
+	}	
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -576,6 +589,9 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if res.Result.Userclass != nil && !data.UserClass.IsNull() {
 		data.UserClass, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Userclass)
 	}
+	if res.Result.Externalidpusername != nil && !data.ExternalIDPUsername.IsNull() {
+		data.ExternalIDPUsername, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Externalidpusername)
+	}	
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -750,6 +766,14 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Userclass = &v
 	}
+	if !data.ExternalIDPUsername.Equal(state.ExternalIDPUsername) {
+		var v []string
+		for _, value := range data.ExternalIDPUsername.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Externalidpusername = &v
+	}	
 
 	if resp.Diagnostics.HasError() {
 		return

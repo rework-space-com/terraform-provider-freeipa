@@ -64,6 +64,7 @@ resource "freeipa_user" "user-1" {
 - `uid_number` (Number) User ID Number (system will assign one if not provided)
 - `userclass` (List of String) User category (semantics placed on this attribute are for local interpretation)
 - `userpassword` (String, Sensitive) Prompt to set the user password
+- `external_idp_username` (String) External IDP Username (for use when users will authenticate via external IDP)
 
 ### Read-Only
 

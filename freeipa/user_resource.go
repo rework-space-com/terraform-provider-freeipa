@@ -70,6 +70,7 @@ type UserResourceModel struct {
 	CarLicense             types.List   `tfsdk:"car_license"`
 	UserClass              types.List   `tfsdk:"userclass"`
 	ExternalIDPUsername    types.String `tfsdk:"ipaidpsub"`
+	ExternalIDPConfig      types.String `tfsdk:"ipaidpconfiglink"`
 }
 
 func (r *UserResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -438,6 +439,14 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 		optArgs.Externalidpusername = &v
 	}	
+	if len(data.ExternalIDPConfig.Elements()) > 0 {
+		var v []string
+		for _, value := range data.ExternalIDPConfig.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Externalidpconfig = &v
+	}	
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -592,6 +601,9 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if res.Result.Externalidpusername != nil && !data.ExternalIDPUsername.IsNull() {
 		data.ExternalIDPUsername, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Externalidpusername)
 	}	
+	if res.Result.Externalidpconfig != nil && !data.ExternalIDPConfig.IsNull() {
+		data.ExternalIDPConfig, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Externalidpconfig)
+	}		
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -774,6 +786,14 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Externalidpusername = &v
 	}	
+	if !data.ExternalIDPConfig.Equal(state.ExternalIDPConfig) {
+		var v []string
+		for _, value := range data.ExternalIDPConfig.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Externalidpconfig = &v
+	}		
 
 	if resp.Diagnostics.HasError() {
 		return

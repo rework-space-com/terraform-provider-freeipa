@@ -67,4 +67,5 @@ data "freeipa_user" "user-0" {
 - `uid_number` (Number) User ID Number (system will assign one if not provided)
 - `user_password` (String, Sensitive) User password
 - `userclass` (List of String) User category (semantics placed on this attribute are for local interpretation)
-- `external_idp_username` (String) External IDP Username (for use when users will authenticate via external IDP)
+- `external_idp_username` (String) External IDP username (for use when users will authenticate via external IDP)
+- `external_idp_config` (String) External IDP Configuration name (for use when users will authenticate via external IDP)

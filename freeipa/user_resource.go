@@ -253,6 +253,11 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				MarkdownDescription: "External IDP Username",
 				Optional:            true,
 			},			
+      ,
+			"external_idp_config": schema.StringAttribute{
+				MarkdownDescription: "External IDP Config",
+				Optional:            true,
+			},		      
 		},
 	}
 }

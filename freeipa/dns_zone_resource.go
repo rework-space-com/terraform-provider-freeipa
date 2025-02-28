@@ -59,7 +59,7 @@ type dnsZoneModel struct {
 	AllowQuery               types.String `tfsdk:"allow_query"`
 	AllowTransfer            types.String `tfsdk:"allow_transfer"`
 	ZoneForwarders           types.List   `tfsdk:"zone_forwarders"`
-	AllowPtrSync             types.Bool   `tfsdk:"allow_ptr_sync"`
+	AllowPtrSync             types.Bool   `tfsdk:"allow_prt_sync"`
 	AllowInlineDnssecSigning types.Bool   `tfsdk:"allow_inline_dnssec_signing"`
 	Nsec3ParamRecord         types.String `tfsdk:"nsec3param_record"`
 	ComputedZoneName         types.String `tfsdk:"computed_zone_name"`
@@ -236,7 +236,7 @@ func (r *dnsZone) Schema(ctx context.Context, req resource.SchemaRequest, resp *
 					listplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"allow_ptr_sync": schema.BoolAttribute{
+			"allow_prt_sync": schema.BoolAttribute{
 				MarkdownDescription: "Allow synchronization of forward (A, AAAA) and reverse (PTR) records in the zone",
 				Optional:            true,
 				Computed:            true,
@@ -499,7 +499,7 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 	}
 	if res.Result.Idnsallowsyncptr != nil && !data.AllowPtrSync.IsNull() {
 		data.AllowPtrSync = types.BoolValue(*res.Result.Idnsallowsyncptr)
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_ptr_sync %s", data.AllowPtrSync.String()))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_prt_sync %s", data.AllowPtrSync.String()))
 	} else {
 		data.AllowPtrSync = types.BoolValue(false)
 	}

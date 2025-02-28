@@ -331,7 +331,7 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 	res, err := r.client.GroupMod(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "EmptyModlist") {
-			tflog.Debug(ctx, "[DEBUG] EmptyModlist (4202): no modifications to be performed")
+			resp.Diagnostics.AddWarning("Client Warning", err.Error())
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", res.Result.Cn, err))
 			return

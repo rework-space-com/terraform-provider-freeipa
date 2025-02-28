@@ -737,8 +737,12 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	res, err := r.client.UserMod(&ipa.UserModArgs{}, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error updating freeipa user: %s", err))
-		return
+		if strings.Contains(err.Error(), "EmptyModlist") {
+			resp.Diagnostics.AddWarning("Client Warning", err.Error())
+		} else {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error updating freeipa user: %s", err))
+			return
+		}
 	}
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa user %s returns %s", data.UID.String(), res.String()))
 

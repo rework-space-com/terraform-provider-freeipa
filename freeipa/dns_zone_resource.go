@@ -655,8 +655,7 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 		res, err = r.client.DnszoneMod(&ipa.DnszoneModArgs{}, &optArgs)
 		if err != nil {
 			if strings.Contains(err.Error(), "EmptyModlist") {
-				tflog.Debug(ctx, fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
-				tflog.Debug(ctx, fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
+				resp.Diagnostics.AddWarning("Client Warning", err.Error())
 			} else {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa dns zone: %s", err))
 				return

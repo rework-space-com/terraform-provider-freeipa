@@ -347,7 +347,7 @@ func (r *SudoRuleResource) Update(ctx context.Context, req resource.UpdateReques
 		_, err := r.client.SudoruleMod(&args, &optArgs)
 		if err != nil {
 			if strings.Contains(err.Error(), "EmptyModlist") {
-				resp.Diagnostics.AddError("Client Error", "EmptyModlist (4202): no modifications to be performed")
+				resp.Diagnostics.AddWarning("Client Warning", err.Error())
 			} else {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa sudo rule: %s", err))
 				return

@@ -284,7 +284,7 @@ func (r *HbacPolicyResource) Update(ctx context.Context, req resource.UpdateRequ
 		_, err := r.client.HbacruleMod(&args, &optArgs)
 		if err != nil {
 			if strings.Contains(err.Error(), "EmptyModlist") {
-				resp.Diagnostics.AddError("Client Error", "EmptyModlist (4202): no modifications to be performed")
+				resp.Diagnostics.AddWarning("Client Warning", err.Error())
 			} else {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa hbac policy: %s", err))
 				return

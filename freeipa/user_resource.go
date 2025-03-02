@@ -496,10 +496,6 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if res.Result.Krbprincipalname != nil && !data.KrbPrincipalName.IsNull() {
 		data.KrbPrincipalName, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Krbprincipalname)
 	}
-	//
-	// if res.Result.Userpassword != nil {
-	// 	data.UserPassword = types.StringValue(*res.Result.Userpassword)
-	// }
 	if res.Result.Mail != nil && !data.EmailAddress.IsNull() {
 		data.EmailAddress, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Mail)
 	}
@@ -594,14 +590,6 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
 
 	optArgs := ipa.UserModOptionalArgs{}
 
@@ -734,14 +722,6 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		optArgs.Krbprincipalexpiration = &timestamp
 	}
-	// Do not update password expiration in the provider.
-	// if !data.KrbPasswordExpiration.Equal(state.KrbPasswordExpiration) {
-	// 	timestamp, err := time.Parse(time.RFC3339, data.KrbPasswordExpiration.ValueString())
-	// 	if err != nil {
-	// 		resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_password_expiration timestamp could not be parsed as RFC3339: %s", err))
-	// 	}
-	// 	optArgs.Krbpasswordexpiration = &timestamp
-	// }
 	if !data.UserClass.Equal(state.UserClass) {
 		var v []string
 		for _, value := range data.UserClass.Elements() {
@@ -757,8 +737,12 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	res, err := r.client.UserMod(&ipa.UserModArgs{}, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error updating freeipa user: %s", err))
-		return
+		if strings.Contains(err.Error(), "EmptyModlist") {
+			resp.Diagnostics.AddWarning("Client Warning", err.Error())
+		} else {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error updating freeipa user: %s", err))
+			return
+		}
 	}
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa user %s returns %s", data.UID.String(), res.String()))
 
@@ -779,15 +763,6 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
-	//     return
-	// }
-
 	optArgs := ipa.UserDelOptionalArgs{}
 	optArgs.UID = &[]string{data.UID.ValueString()}
 

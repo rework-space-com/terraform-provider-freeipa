@@ -294,13 +294,6 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
 	args := ipa.GroupModArgs{
 		Cn: data.Name.ValueString(),
 	}
@@ -338,7 +331,7 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 	res, err := r.client.GroupMod(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "EmptyModlist") {
-			tflog.Debug(ctx, "[DEBUG] EmptyModlist (4202): no modifications to be performed")
+			resp.Diagnostics.AddWarning("Client Warning", err.Error())
 		} else {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", res.Result.Cn, err))
 			return
@@ -359,13 +352,6 @@ func (r *UserGroupResource) Delete(ctx context.Context, req resource.DeleteReque
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
-	//     return
-	// }
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Delete freeipa group Id %s", data.Id.ValueString()))
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Delete freeipa group Name %s", data.Name.ValueString()))
 	args := ipa.GroupDelArgs{

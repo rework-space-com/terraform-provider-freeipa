@@ -12,11 +12,11 @@ FreeIPA DNS Zone resource
 
 ```terraform
 data "freeipa_dns_zone" "dns-zone-0" {
-  zone_name       = "test.example.lan."
+  zone_name = "test.example.lan."
 }
 
 data "freeipa_dns_zone" "dns-zone-1" {
-  zone_name       = "23.168.192.in-addr.arpa."
+  zone_name = "23.168.192.in-addr.arpa."
 }
 ```
 
@@ -32,7 +32,7 @@ data "freeipa_dns_zone" "dns-zone-1" {
 
 - `admin_email_address` (String) Administrator e-mail address
 - `allow_inline_dnssec_signing` (Boolean) Allow inline DNSSEC signing of records in the zone
-- `allow_ptr_sync` (Boolean) Allow synchronization of forward (A, AAAA) and reverse (PTR) records in the zone
+- `allow_prt_sync` (Boolean) Allow synchronization of forward (A, AAAA) and reverse (PTR) records in the zone
 - `allow_query` (String) Semicolon separated list of IP addresses or networks which are allowed to issue queries
 - `allow_transfer` (String) Semicolon separated list of IP addresses or networks which are allowed to transfer the zone
 - `authoritative_nameserver` (String) Authoritative nameserver domain name

@@ -480,14 +480,6 @@ func (r *HostResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
-
 	optArgs := ipa.HostModOptionalArgs{}
 
 	args := ipa.HostModArgs{
@@ -625,8 +617,8 @@ func (r *HostResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	_, err := r.client.HostMod(&args, &optArgs)
-	if err != nil && !strings.Contains(err.Error(), "EmptyModlist (4202)") {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error updating freeipa host: %s", err))
+	if err != nil && !strings.Contains(err.Error(), "EmptyModlist") {
+		resp.Diagnostics.AddWarning("Client Warning", err.Error())
 	}
 
 	data.GeneratedPassword = state.GeneratedPassword

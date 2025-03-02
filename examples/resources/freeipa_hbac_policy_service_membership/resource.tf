@@ -24,6 +24,6 @@ resource "freeipa_hbac_policy_service_membership" "hbac-svcgrp-1" {
 
 resource "freeipa_hbac_policy_service_membership" "hbac-svcgrp-2" {
   name          = "test-hbac"
-  servicegroups = ["Sudo","ftp"]
+  servicegroups = ["Sudo", "ftp"]
   identifier    = "hbac-svcgrp-2"
 }

@@ -59,7 +59,7 @@ type dnsZoneModel struct {
 	AllowQuery               types.String `tfsdk:"allow_query"`
 	AllowTransfer            types.String `tfsdk:"allow_transfer"`
 	ZoneForwarders           types.List   `tfsdk:"zone_forwarders"`
-	AllowPtrSync             types.Bool   `tfsdk:"allow_ptr_sync"`
+	AllowPtrSync             types.Bool   `tfsdk:"allow_prt_sync"`
 	AllowInlineDnssecSigning types.Bool   `tfsdk:"allow_inline_dnssec_signing"`
 	Nsec3ParamRecord         types.String `tfsdk:"nsec3param_record"`
 	ComputedZoneName         types.String `tfsdk:"computed_zone_name"`
@@ -236,7 +236,7 @@ func (r *dnsZone) Schema(ctx context.Context, req resource.SchemaRequest, resp *
 					listplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"allow_ptr_sync": schema.BoolAttribute{
+			"allow_prt_sync": schema.BoolAttribute{
 				MarkdownDescription: "Allow synchronization of forward (A, AAAA) and reverse (PTR) records in the zone",
 				Optional:            true,
 				Computed:            true,
@@ -396,9 +396,7 @@ func (r *dnsZone) Create(ctx context.Context, req resource.CreateRequest, resp *
 	data.Id = types.StringValue(dnsname.(string))
 
 	if !data.DisableZone.IsNull() && data.DisableZone.ValueBool() {
-		//TODO solve the failed error on enable/dissable zone
 		var name interface{} = data.Id.ValueString()
-		// r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
 		_, err = r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable/enable. Something went wrong: %s", err))
@@ -501,7 +499,7 @@ func (r *dnsZone) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 	}
 	if res.Result.Idnsallowsyncptr != nil && !data.AllowPtrSync.IsNull() {
 		data.AllowPtrSync = types.BoolValue(*res.Result.Idnsallowsyncptr)
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_ptr_sync %s", data.AllowPtrSync.String()))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa dns zone allow_prt_sync %s", data.AllowPtrSync.String()))
 	} else {
 		data.AllowPtrSync = types.BoolValue(false)
 	}
@@ -536,14 +534,6 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s: %v", data.ZoneName.ValueString(), data))
-
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
 
 	hasChange := false
 	var zone_id interface{} = data.Id.ValueString()
@@ -665,8 +655,7 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 		res, err = r.client.DnszoneMod(&ipa.DnszoneModArgs{}, &optArgs)
 		if err != nil {
 			if strings.Contains(err.Error(), "EmptyModlist") {
-				tflog.Debug(ctx, fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
-				tflog.Debug(ctx, fmt.Sprintf("EmptyModlist (4202): no modifications to be performed on DNS zone %s", data.ZoneName.ValueString()))
+				resp.Diagnostics.AddWarning("Client Warning", err.Error())
 			} else {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa dns zone: %s", err))
 				return
@@ -676,18 +665,15 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa dns zone %s plan disabled %s - state disabled %s", data.ZoneName.ValueString(), data.DisableZone.String(), state.DisableZone.String()))
-	//TODO solve the failed error on enable/dissable zone
 	var name interface{} = data.Id.ValueString()
 	if !data.DisableZone.Equal(state.DisableZone) {
 		if data.DisableZone.ValueBool() {
-			//r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
 			_, err := r.client.DnszoneDisable(&ipa.DnszoneDisableArgs{}, &ipa.DnszoneDisableOptionalArgs{Idnsname: &name})
 			if err != nil {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone disable. Something went wrong: %s", err))
 				return
 			}
 		} else {
-			//r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: &name})
 			_, err := r.client.DnszoneEnable(&ipa.DnszoneEnableArgs{}, &ipa.DnszoneEnableOptionalArgs{Idnsname: &name})
 			if err != nil {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS zone enable. Something went wrong: %s", err))
@@ -715,8 +701,6 @@ func (r *dnsZone) Update(ctx context.Context, req resource.UpdateRequest, resp *
 		data.DefaultTTL = types.Int64Null()
 	}
 
-	//data.ComputedZoneName = data.Id
-
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -731,13 +715,6 @@ func (r *dnsZone) Delete(ctx context.Context, req resource.DeleteRequest, resp *
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
-	//     return
-	// }
 	var id []interface{}
 	id = append(id, data.Id.ValueString())
 	optArgs := ipa.DnszoneDelOptionalArgs{

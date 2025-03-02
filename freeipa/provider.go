@@ -194,7 +194,7 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 		resp.Diagnostics.AddAttributeWarning(
 			path.Root("insecure"),
 			"FreeIPA InsecureSkipVerify set to TRUE",
-			"The provider will skip TLS verification for the FreeIPA API client and therefore cannot guaranty the security of the conneciton. ",
+			"The provider will skip TLS verification for the FreeIPA API client and therefore cannot guaranty the security of the connection. ",
 		)
 	}
 	if !insecure && ca_certificate == "" {

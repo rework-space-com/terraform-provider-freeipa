@@ -128,39 +128,33 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	// Default values to environment variables, but override
-	// with Terraform configuration value if set.
+	// Default values to Terraform configuration value if set.
+	// Uses environment variables if configuration is not set
 
-	host := os.Getenv("FREEIPA_HOST")
-	username := os.Getenv("FREEIPA_USERNAME")
-	password := os.Getenv("FREEIPA_PASSWORD")
-	insecure := getEnvAsBool("FREEIPA_INSECURE", false)
-	ca_certificate := os.Getenv("FREEIPA_CA_CERT")
-
-	if !config.Host.IsNull() {
-		host = config.Host.ValueString()
+	if config.Host.IsNull() {
+		config.Host = types.StringValue(os.Getenv("FREEIPA_HOST"))
 	}
 
-	if !config.Username.IsNull() {
-		username = config.Username.ValueString()
+	if config.Username.IsNull() {
+		config.Username = types.StringValue(os.Getenv("FREEIPA_USERNAME"))
 	}
 
-	if !config.Password.IsNull() {
-		password = config.Password.ValueString()
+	if config.Password.IsNull() {
+		config.Password = types.StringValue(os.Getenv("FREEIPA_PASSWORD"))
 	}
 
-	if !config.InsecureSkipVerify.IsNull() {
-		insecure = config.InsecureSkipVerify.ValueBool()
+	if config.InsecureSkipVerify.IsNull() {
+		config.InsecureSkipVerify = types.BoolValue(getEnvAsBool("FREEIPA_INSECURE", false))
 	}
 
-	if !config.CaCertificate.IsNull() {
-		ca_certificate = config.CaCertificate.ValueString()
+	if config.CaCertificate.IsNull() {
+		config.CaCertificate = types.StringValue(os.Getenv("FREEIPA_CA_CERT"))
 	}
 
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
 
-	if host == "" {
+	if config.Host.ValueString() == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("host"),
 			"Missing FreeIPA Host",
@@ -170,7 +164,7 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 		)
 	}
 
-	if username == "" {
+	if config.Username.ValueString() == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("username"),
 			"Missing FreeIPA Username",
@@ -180,7 +174,7 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 		)
 	}
 
-	if password == "" {
+	if config.Password.ValueString() == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("password"),
 			"Missing FreeIPA Password",
@@ -190,14 +184,14 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 		)
 	}
 
-	if insecure {
+	if config.InsecureSkipVerify.IsNull() {
 		resp.Diagnostics.AddAttributeWarning(
 			path.Root("insecure"),
 			"FreeIPA InsecureSkipVerify set to TRUE",
 			"The provider will skip TLS verification for the FreeIPA API client and therefore cannot guaranty the security of the connection. ",
 		)
 	}
-	if !insecure && ca_certificate == "" {
+	if !config.InsecureSkipVerify.IsNull() && config.CaCertificate.IsNull() {
 		resp.Diagnostics.AddAttributeWarning(
 			path.Root("ca_certificate"),
 			"Missing FreeIPA CA Certificate Path",
@@ -238,12 +232,15 @@ func (c *freeipaProvider) NewFreeIPAClient(ctx context.Context, conf *freeipaPro
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] freeipa cacert path : %s", conf.CaCertificate.ValueString()))
 	caCertPool := x509.NewCertPool()
 
-	if !conf.CaCertificate.IsNull() {
-		caCert, err := os.ReadFile(conf.CaCertificate.String())
+	if conf.CaCertificate.ValueString() != "" {
+		caCert, err := os.ReadFile(conf.CaCertificate.ValueString())
 		if err != nil {
 			return nil, err
 		}
-		caCertPool.AppendCertsFromPEM(caCert)
+		ok := caCertPool.AppendCertsFromPEM(caCert)
+		if !ok {
+			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] freeipa fail to load cacert at %s", conf.CaCertificate.String()))
+		}
 	}
 
 	tspt := &http.Transport{

@@ -96,38 +96,6 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 	// If practitioner provided a configuration value for any of the
 	// attributes, it must be a known value.
-
-	if config.Host.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("host"),
-			"Unknown FreeIPA API",
-			"The provider cannot create the FreeIPA API client as there is an unknown configuration value for the FreeIPA host. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the FREEIPA_HOST environment variable.",
-		)
-	}
-
-	if config.Username.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("username"),
-			"Unknown FreeIPA Username",
-			"The provider cannot create the FreeIPA API client as there is an unknown configuration value for the FreeIPA username. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the FREEIPA_USERNAME environment variable.",
-		)
-	}
-
-	if config.Password.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Unknown FreeIPA Password",
-			"The provider cannot create the FreeIPA API client as there is an unknown configuration value for the FreeIPA password. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the FREEIPA_PASSWORD environment variable.",
-		)
-	}
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Default values to Terraform configuration value if set.
 	// Uses environment variables if configuration is not set
 
@@ -191,8 +159,8 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 			"The provider will skip TLS verification for the FreeIPA API client and therefore cannot guaranty the security of the connection. ",
 		)
 	}
-	if !config.InsecureSkipVerify.IsNull() && config.CaCertificate.IsNull() {
-		resp.Diagnostics.AddAttributeWarning(
+	if !config.InsecureSkipVerify.ValueBool() && config.CaCertificate.ValueString() == "" {
+		resp.Diagnostics.AddAttributeError(
 			path.Root("ca_certificate"),
 			"Missing FreeIPA CA Certificate Path",
 			"The provider cannot create the FreeIPA API client as there is a missing or empty value for the FreeIPA CA Certificate Path. "+

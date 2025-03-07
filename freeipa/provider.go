@@ -8,7 +8,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -160,11 +159,12 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 		)
 	}
 	if !config.InsecureSkipVerify.ValueBool() && config.CaCertificate.ValueString() == "" {
-		resp.Diagnostics.AddAttributeError(
+		resp.Diagnostics.AddAttributeWarning(
 			path.Root("ca_certificate"),
-			"Missing FreeIPA CA Certificate Path",
-			"The provider cannot create the FreeIPA API client as there is a missing or empty value for the FreeIPA CA Certificate Path. "+
-				"Set the CA Certificate path value in the configuration or use the FREEIPA_CA_CERT environment variable. "+
+			"Using Host's Root CA Certificates",
+			"The FreeIPA CA Certificate Path is missing or empty, which means the provider will use the host's root CA certificates by default. "+
+				"This may pose a security risk if the host's certificates are not trusted. "+
+				"Set the CA Certificate path in the configuration or use the FREEIPA_CA_CERT environment variable to specify a trusted certificate. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -198,19 +198,22 @@ func (c *freeipaProvider) NewFreeIPAClient(ctx context.Context, conf *freeipaPro
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] freeipa password : %s", conf.Password.ValueString()))
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] freeipa insecure : %s", conf.InsecureSkipVerify.String()))
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] freeipa cacert path : %s", conf.CaCertificate.ValueString()))
-	caCertPool := x509.NewCertPool()
+
+	var caCertPool *x509.CertPool
 
 	if conf.CaCertificate.ValueString() != "" {
 		caCert, err := os.ReadFile(conf.CaCertificate.ValueString())
 		if err != nil {
 			return nil, err
 		}
+		caCertPool = x509.NewCertPool()
 		ok := caCertPool.AppendCertsFromPEM(caCert)
 		if !ok {
 			tflog.Debug(ctx, fmt.Sprintf("[DEBUG] freeipa fail to load cacert at %s", conf.CaCertificate.String()))
 		}
 	}
 
+	// If RootCAs is nil, TLS uses the host's root CA set
 	tspt := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: conf.InsecureSkipVerify.ValueBool(),
@@ -223,7 +226,7 @@ func (c *freeipaProvider) NewFreeIPAClient(ctx context.Context, conf *freeipaPro
 		return nil, err
 	}
 
-	log.Printf("[INFO] FreeIPA Client configured for host: %s", conf.Host)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] FreeIPA Client configured for host : %s", conf.Host.ValueString()))
 
 	return client, nil
 }

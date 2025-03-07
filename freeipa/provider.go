@@ -151,7 +151,7 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 		)
 	}
 
-	if config.InsecureSkipVerify.IsNull() {
+	if config.InsecureSkipVerify.ValueBool() {
 		resp.Diagnostics.AddAttributeWarning(
 			path.Root("insecure"),
 			"FreeIPA InsecureSkipVerify set to TRUE",

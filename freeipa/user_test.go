@@ -47,6 +47,8 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 		"userpassword":             "\"P@ssword\"",
 		"krb_principal_expiration": "\"2049-12-31T23:59:59Z\"",
 		"userclass":                "[\"user-account\"]",
+		"external_idp_username":    "\"testacc-user-remote\"",
+		"external_idp_config":      "\"remote-idp-name\"",
 	}
 	testUserModified := map[string]string{
 		"index":                    "1",
@@ -82,6 +84,8 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 		"userpassword":             "\"Password\"",
 		"krb_principal_expiration": "\"2050-12-31T23:59:59Z\"",
 		"userclass":                "[\"unprivileged-user-account\"]",
+		"external_idp_username":    "\"testacc-user-remote\"",
+		"external_idp_config":      "\"remote-idp-name\"",
 	}
 	testUserModified2 := map[string]string{
 		"index":                    "1",
@@ -117,6 +121,8 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 		"userpassword":             "\"Password\"",
 		"krb_principal_expiration": "\"2050-12-31T23:59:59Z\"",
 		"userclass":                "[\"unprivileged-user-account\"]",
+		"external_idp_username":    "\"testacc-user-remote\"",
+		"external_idp_config":      "\"remote-idp-name\"",
 	}
 	testUserDS := map[string]string{
 		"index": "1",
@@ -190,6 +196,8 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "krb_principal_expiration", "2050-12-31T23:59:59Z"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "userclass.#", "1"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "userclass.0", "unprivileged-user-account"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "external_idp_username", "testacc-user-remote"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "external_idp_config", "remote-idp-name"),
 				),
 			},
 			{
@@ -231,6 +239,8 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "krb_principal_expiration", "2050-12-31T23:59:59Z"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "userclass.#", "1"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "userclass.0", "unprivileged-user-account"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "external_idp_username", "testacc-user-remote"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "external_idp_config", "remote-idp-name"),
 				),
 			},
 		},

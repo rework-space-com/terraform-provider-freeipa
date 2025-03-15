@@ -369,11 +369,9 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 
 	switch typeId {
 	case "g":
-		v := []string{userId}
 		if res.Result.MemberGroup != nil {
-			groups := *res.Result.MemberGroup
-			if slices.Contains(groups, v[0]) {
-				data.Group = types.StringValue(v[0])
+			if isStringListContainsCaseInsensistive(res.Result.MemberGroup, &userId) {
+				data.Group = types.StringValue(userId)
 			} else {
 				data.Group = types.StringValue("")
 				data.Id = types.StringValue("")
@@ -383,11 +381,9 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 			return
 		}
 	case "u":
-		v := []string{userId}
 		if res.Result.MemberUser != nil {
-			users := *res.Result.MemberUser
-			if slices.Contains(users, v[0]) {
-				data.User = types.StringValue(v[0])
+			if isStringListContainsCaseInsensistive(res.Result.MemberUser, &userId) {
+				data.User = types.StringValue(userId)
 			} else {
 				data.User = types.StringValue("")
 				data.Id = types.StringValue("")
@@ -420,7 +416,7 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member users failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberUser, val) {
+				if isStringListContainsCaseInsensistive(res.Result.MemberUser, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member users %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -439,7 +435,7 @@ func (r *userGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member groups failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberGroup, val) {
+				if isStringListContainsCaseInsensistive(res.Result.MemberGroup, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group member groups %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

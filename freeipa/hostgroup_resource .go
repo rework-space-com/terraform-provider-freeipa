@@ -114,13 +114,12 @@ func (r *HostGroupResource) Create(ctx context.Context, req resource.CreateReque
 	}
 	tflog.Trace(ctx, "created a host group resource")
 
-	data.Id = types.StringValue(data.Name.ValueString())
-
-	_, err := r.client.HostgroupAdd(&args, &optArgs)
+	res, err := r.client.HostgroupAdd(&args, &optArgs)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa host group: %s", err))
 	}
 
+	data.Id = types.StringValue(res.Result.Cn)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -145,7 +144,7 @@ func (r *HostGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	args := ipa.HostgroupShowArgs{
-		Cn: data.Id.ValueString(),
+		Cn: data.Name.ValueString(),
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup %s", data.Id.ValueString()))
@@ -167,7 +166,7 @@ func (r *HostGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	data.Name = types.StringValue(res.Result.Cn)
+	//data.Name = types.StringValue(res.Result.Cn)
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup Cn %s", data.Name.ValueString()))
 	if res.Result.Description != nil && !data.Description.IsNull() {
 		data.Description = types.StringValue(*res.Result.Description)

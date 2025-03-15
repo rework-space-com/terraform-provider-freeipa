@@ -261,13 +261,13 @@ func (r *SudoRuleDenyCmdMembershipResource) Read(ctx context.Context, req resour
 
 	switch typeId {
 	case "srdc":
-		if res.Result.MemberdenycmdSudocmd == nil || !slices.Contains(*res.Result.MemberdenycmdSudocmd, cmdId) {
+		if res.Result.MemberdenycmdSudocmd == nil || !isStringListContainsCaseInsensistive(res.Result.MemberdenycmdSudocmd, &cmdId) {
 			tflog.Debug(ctx, "[DEBUG] Sudo rule denied command membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "srdcg":
-		if res.Result.MemberdenycmdSudocmdgroup == nil || !slices.Contains(*res.Result.MemberdenycmdSudocmdgroup, cmdId) {
+		if res.Result.MemberdenycmdSudocmdgroup == nil || !isStringListContainsCaseInsensistive(res.Result.MemberdenycmdSudocmdgroup, &cmdId) {
 			tflog.Debug(ctx, "[DEBUG] Sudo rule denied command membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
@@ -280,7 +280,7 @@ func (r *SudoRuleDenyCmdMembershipResource) Read(ctx context.Context, req resour
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
 				}
-				if res.Result.MemberdenycmdSudocmd != nil && slices.Contains(*res.Result.MemberdenycmdSudocmd, val) {
+				if res.Result.MemberdenycmdSudocmd != nil && isStringListContainsCaseInsensistive(res.Result.MemberdenycmdSudocmd, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -298,7 +298,7 @@ func (r *SudoRuleDenyCmdMembershipResource) Read(ctx context.Context, req resour
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
 				}
-				if res.Result.MemberdenycmdSudocmdgroup != nil && slices.Contains(*res.Result.MemberdenycmdSudocmdgroup, val) {
+				if res.Result.MemberdenycmdSudocmdgroup != nil && isStringListContainsCaseInsensistive(res.Result.MemberdenycmdSudocmdgroup, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

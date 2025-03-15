@@ -23,3 +23,12 @@ func encodeSlash(str string) string {
 func decodeSlash(str string) string {
 	return strings.ReplaceAll(str, "%2F", string('/'))
 }
+
+func isStringListContainsCaseInsensistive(strList *[]string, str *string) bool {
+	for _, s := range *strList {
+		if strings.EqualFold(s, *str) {
+			return true
+		}
+	}
+	return false
+}

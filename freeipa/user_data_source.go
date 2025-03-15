@@ -302,6 +302,10 @@ func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
+	if res.Result.Givenname != nil {
+		data.FirstName = types.StringValue(*res.Result.Givenname)
+	}
+	data.LastName = types.StringValue(res.Result.Sn)
 	if res.Result.Cn != nil {
 		data.FullName = types.StringValue(*res.Result.Cn)
 	}

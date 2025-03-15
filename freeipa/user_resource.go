@@ -437,7 +437,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa user %s returns %s", data.UID.String(), res.String()))
 
-	data.Id = types.StringValue(data.UID.ValueString())
+	data.Id = types.StringValue(res.Result.UID)
 
 	if resp.Diagnostics.HasError() {
 		return

@@ -122,7 +122,7 @@ func (r *SudoCmdGroupDataSource) Read(ctx context.Context, req datasource.ReadRe
 	if res.Result.MemberSudocmd != nil {
 		data.MemberSudocmd, _ = types.ListValueFrom(ctx, types.StringType, res.Result.MemberSudocmd)
 	}
-	data.Id = data.Name
+	data.Id = types.StringValue(res.Result.Cn)
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command group %s", res.Result.Cn))
 
 	// Save updated data into Terraform state

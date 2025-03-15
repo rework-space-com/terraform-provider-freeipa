@@ -305,7 +305,7 @@ func (r *HostResource) Create(ctx context.Context, req resource.CreateRequest, r
 		data.GeneratedPassword = types.StringValue("")
 	}
 
-	data.Id = data.Name
+	data.Id = types.StringValue(res.Result.Fqdn)
 
 	if resp.Diagnostics.HasError() {
 		return

@@ -261,13 +261,13 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 
 	switch typeId {
 	case "srh":
-		if res.Result.MemberhostHost == nil || !slices.Contains(*res.Result.MemberhostHost, cmdId) {
+		if res.Result.MemberhostHost == nil || !isStringListContainsCaseInsensistive(res.Result.MemberhostHost, &cmdId) {
 			tflog.Debug(ctx, "[DEBUG] Sudo rule host membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "srhg":
-		if res.Result.MemberhostHostgroup == nil || !slices.Contains(*res.Result.MemberhostHostgroup, cmdId) {
+		if res.Result.MemberhostHostgroup == nil || !isStringListContainsCaseInsensistive(res.Result.MemberhostHostgroup, &cmdId) {
 			tflog.Debug(ctx, "[DEBUG] Sudo rule host group membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
@@ -280,7 +280,7 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member failed with error %s", err))
 				}
-				if res.Result.MemberhostHost != nil && slices.Contains(*res.Result.MemberhostHost, val) {
+				if res.Result.MemberhostHost != nil && isStringListContainsCaseInsensistive(res.Result.MemberhostHost, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -298,7 +298,7 @@ func (r *SudoRuleHostMembershipResource) Read(ctx context.Context, req resource.
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member commands failed with error %s", err))
 				}
-				if res.Result.MemberhostHostgroup != nil && slices.Contains(*res.Result.MemberhostHostgroup, val) {
+				if res.Result.MemberhostHostgroup != nil && isStringListContainsCaseInsensistive(res.Result.MemberhostHostgroup, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo host member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

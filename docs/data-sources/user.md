@@ -24,7 +24,12 @@ data "freeipa_user" "user-0" {
 
 ### Required
 
-- `name` (String) UID or login
+- `name` (String) UID or Login
+
+	- The name must not exceed 32 characters.
+	- The name must contain only lowercase letters (a-z), digits (0-9), and the characters (. - _).
+	- The name must not start with a special character.
+	- A user and a group cannot have the same name.
 
 ### Read-Only
 

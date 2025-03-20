@@ -25,7 +25,7 @@ resource "freeipa_sudo_cmd" "bash" {
 
 ### Required
 
-- `name` (String) Absolute path of the sudo command
+- `name` (String) Absolute path of the sudo command (case sensitive)
 
 ### Optional
 

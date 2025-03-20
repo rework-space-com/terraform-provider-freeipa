@@ -69,7 +69,7 @@ func (r *HostDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Host name",
+				MarkdownDescription: "Host fully qualified name\n\n	- May contain only letters, numbers, '-'.\n	- DNS label may not start or end with '-'",
 				Required:            true,
 			},
 			"description": schema.StringAttribute{

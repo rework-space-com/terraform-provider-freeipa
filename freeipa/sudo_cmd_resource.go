@@ -60,7 +60,7 @@ func (r *SudoCmdResource) Schema(ctx context.Context, req resource.SchemaRequest
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Absolute path of the sudo command",
+				MarkdownDescription: "Absolute path of the sudo command (case sensitive)",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),

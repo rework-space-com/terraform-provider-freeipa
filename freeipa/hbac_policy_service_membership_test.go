@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 func TestAccFreeIPAHbacPolicyServiceMembership_simple(t *testing.T) {
@@ -52,6 +53,14 @@ func TestAccFreeIPAHbacPolicyServiceMembership_simple(t *testing.T) {
 					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_servicegroup.#", "1"),
 					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_servicegroup.0", "Sudo"),
 				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceMembership) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceGroupMembership) + testAccFreeIPAHbacPolicy_datasource(testHbacDS),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 			},
 		},
 	})
@@ -106,6 +115,14 @@ func TestAccFreeIPAHbacPolicyServiceMembership_mutiple(t *testing.T) {
 					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_servicegroup.#", "1"),
 					resource.TestCheckResourceAttr("data.freeipa_hbac_policy.hbacpolicy-1", "member_servicegroup.0", "Sudo"),
 				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAHbacPolicy_resource(testHbacPolicy) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceMembership) + testAccFreeIPAHbacPolicyServiceMembership_resource(testHbacServiceGroupMembership) + testAccFreeIPAHbacPolicy_datasource(testHbacDS),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 			},
 		},
 	})

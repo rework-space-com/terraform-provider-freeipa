@@ -174,7 +174,6 @@ func (r *HostGroupDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	data.Name = types.StringValue(res.Result.Cn)
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup Cn %s", data.Name.ValueString()))
 	if res.Result.Description != nil {
 		data.Description = types.StringValue(*res.Result.Description)
@@ -260,7 +259,7 @@ func (r *HostGroupDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 	}
 
-	data.Id = types.StringValue(data.Name.ValueString())
+	data.Id = types.StringValue(res.Result.Cn)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

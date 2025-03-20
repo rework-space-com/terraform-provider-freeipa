@@ -261,13 +261,13 @@ func (r *HbacPolicyHostMembershipResource) Read(ctx context.Context, req resourc
 
 	switch typeId {
 	case "h":
-		if res.Result.MemberhostHost == nil || !slices.Contains(*res.Result.MemberhostHost, policyId) {
+		if res.Result.MemberhostHost == nil || !isStringListContainsCaseInsensistive(res.Result.MemberhostHost, &policyId) {
 			tflog.Debug(ctx, "[DEBUG] HBAC policy host membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "hg":
-		if res.Result.MemberhostHostgroup == nil || !slices.Contains(*res.Result.MemberhostHostgroup, policyId) {
+		if res.Result.MemberhostHostgroup == nil || !isStringListContainsCaseInsensistive(res.Result.MemberhostHostgroup, &policyId) {
 			tflog.Debug(ctx, "[DEBUG] HBAC policy host group membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
@@ -280,7 +280,7 @@ func (r *HbacPolicyHostMembershipResource) Read(ctx context.Context, req resourc
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy host member failed with error %s", err))
 				}
-				if res.Result.MemberhostHost != nil && slices.Contains(*res.Result.MemberhostHost, val) {
+				if res.Result.MemberhostHost != nil && isStringListContainsCaseInsensistive(res.Result.MemberhostHost, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy host member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -298,7 +298,7 @@ func (r *HbacPolicyHostMembershipResource) Read(ctx context.Context, req resourc
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands failed with error %s", err))
 				}
-				if res.Result.MemberhostHostgroup != nil && slices.Contains(*res.Result.MemberhostHostgroup, val) {
+				if res.Result.MemberhostHostgroup != nil && isStringListContainsCaseInsensistive(res.Result.MemberhostHostgroup, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

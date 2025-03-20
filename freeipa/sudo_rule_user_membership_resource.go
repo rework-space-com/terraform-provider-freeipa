@@ -261,12 +261,12 @@ func (r *SudoRuleUserMembershipResource) Read(ctx context.Context, req resource.
 
 	switch typeId {
 	case "sru":
-		if res.Result.MemberuserUser == nil || !slices.Contains(*res.Result.MemberuserUser, cmdId) {
+		if res.Result.MemberuserUser == nil || !isStringListContainsCaseInsensistive(res.Result.MemberuserUser, &cmdId) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "srug":
-		if res.Result.MemberuserGroup == nil || !slices.Contains(*res.Result.MemberuserGroup, cmdId) {
+		if res.Result.MemberuserGroup == nil || !isStringListContainsCaseInsensistive(res.Result.MemberuserGroup, &cmdId) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -282,7 +282,7 @@ func (r *SudoRuleUserMembershipResource) Read(ctx context.Context, req resource.
 					if err != nil {
 						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user member failed with error %s", err))
 					}
-					if res.Result.MemberuserUser != nil && slices.Contains(*res.Result.MemberuserUser, val) {
+					if res.Result.MemberuserUser != nil && isStringListContainsCaseInsensistive(res.Result.MemberuserUser, &val) {
 						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user member %s is present in results", val))
 						changedVals = append(changedVals, val)
 					}
@@ -300,7 +300,7 @@ func (r *SudoRuleUserMembershipResource) Read(ctx context.Context, req resource.
 					if err != nil {
 						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user group member failed with error %s", err))
 					}
-					if slices.Contains(*res.Result.MemberuserGroup, val) {
+					if isStringListContainsCaseInsensistive(res.Result.MemberuserGroup, &val) {
 						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo user group member %s is present in results", val))
 						changedVals = append(changedVals, val)
 					}

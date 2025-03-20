@@ -111,3 +111,9 @@ You should get a response from the FreeIPA API server that contains the server v
 ```shell
 {"result": {"result": {"version": "4.10.1"}, "count": 1, "total": 120, "summary": null, "messages": [{"type": "warning", "name": "VersionMissing", "message": "API Version number was not sent, forward compatibility not guaranteed. Assuming server's API version, 2.251", "code": 13001, "data": {"server_version": "2.251"}}]}, "error": null, "id": 0, "principal": "admin@IPATEST.LAN", "version": "4.10.1"}
 ```
+### Run individual acceptance test
+Once the environment is set, you can run a specific test with this command (example for `TestAccFreeIPASudoRuleAllowCmdMembership_CaseInsensitive`)
+
+```shell
+TF_ACC=1 /usr/local/go/bin/go test -timeout 30s -run ^TestAccFreeIPASudoRuleAllowCmdMembership_CaseInsensitive$ github.com/rework-space-com/terraform-provider-freeipa/freeipa
+```

@@ -82,7 +82,7 @@ func (r *UserGroupResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Group name",
+				MarkdownDescription: "Group name\n\n	- The name must not exceed 32 characters.\n	- The name must contain only lowercase letters (a-z), digits (0-9), and the characters (. - _).\n	- The name must not start with a special character.\n	- A user and a group cannot have the same name.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -217,7 +217,7 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 
 	tflog.Trace(ctx, "created a user group resource")
 
-	data.Id = types.StringValue(data.Name.ValueString())
+	data.Id = types.StringValue(ret.Result.Cn)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -263,8 +263,6 @@ func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa group %s", data.Name.ValueString()))
 		return
 	}
-
-	data.Name = types.StringValue(res.Result.Cn)
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group Cn %s", data.Name.ValueString()))
 	if res.Result.Description != nil && !data.Description.IsNull() {
 		data.Description = types.StringValue(*res.Result.Description)

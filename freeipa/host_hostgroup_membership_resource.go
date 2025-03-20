@@ -262,11 +262,9 @@ func (r *HostGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 
 	switch typeId {
 	case "hg":
-		v := []string{userId}
 		if res.Result.MemberHostgroup != nil {
-			hostgroups := *res.Result.MemberHostgroup
-			if slices.Contains(hostgroups, v[0]) {
-				data.HostGroup = types.StringValue(v[0])
+			if isStringListContainsCaseInsensistive(res.Result.MemberHostgroup, &userId) {
+				data.HostGroup = types.StringValue(userId)
 			} else {
 				data.HostGroup = types.StringValue("")
 				data.Id = types.StringValue("")
@@ -276,11 +274,9 @@ func (r *HostGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 			return
 		}
 	case "h":
-		v := []string{userId}
 		if res.Result.MemberHost != nil {
-			hosts := *res.Result.MemberHost
-			if slices.Contains(hosts, v[0]) {
-				data.Host = types.StringValue(v[0])
+			if isStringListContainsCaseInsensistive(res.Result.MemberHost, &userId) {
+				data.Host = types.StringValue(userId)
 			} else {
 				data.Host = types.StringValue("")
 				data.Id = types.StringValue("")
@@ -298,7 +294,7 @@ func (r *HostGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup member hosts failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberHost, val) {
+				if isStringListContainsCaseInsensistive(res.Result.MemberHost, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup member hosts %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -317,7 +313,7 @@ func (r *HostGroupMembership) Read(ctx context.Context, req resource.ReadRequest
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup member hostgroups failed with error %s", err))
 				}
-				if slices.Contains(*res.Result.MemberHostgroup, val) {
+				if isStringListContainsCaseInsensistive(res.Result.MemberHostgroup, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hostgroup member hostgroups %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

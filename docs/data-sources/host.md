@@ -22,7 +22,10 @@ data "freeipa_host" "host-0" {
 
 ### Required
 
-- `name` (String) Host name
+- `name` (String) Host fully qualified name
+
+	- May contain only letters, numbers, '-'.
+	- DNS label may not start or end with '-'
 
 ### Optional
 

@@ -267,7 +267,7 @@ func (r *SudoRuleAllowCmdMembershipResource) Read(ctx context.Context, req resou
 			return
 		}
 	case "sracg":
-		if res.Result.MemberallowcmdSudocmdgroup == nil || !slices.Contains(*res.Result.MemberallowcmdSudocmdgroup, cmdId) {
+		if res.Result.MemberallowcmdSudocmdgroup == nil || !isStringListContainsCaseInsensistive(res.Result.MemberallowcmdSudocmdgroup, &cmdId) {
 			tflog.Debug(ctx, "[DEBUG] Sudo rule allowed command groupmembership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
@@ -298,7 +298,7 @@ func (r *SudoRuleAllowCmdMembershipResource) Read(ctx context.Context, req resou
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
 				}
-				if res.Result.MemberallowcmdSudocmdgroup != nil && slices.Contains(*res.Result.MemberallowcmdSudocmdgroup, val) {
+				if res.Result.MemberallowcmdSudocmdgroup != nil && isStringListContainsCaseInsensistive(res.Result.MemberallowcmdSudocmdgroup, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

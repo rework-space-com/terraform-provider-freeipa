@@ -212,7 +212,7 @@ func (r *SudoRuleRunAsGroupMembershipResource) Read(ctx context.Context, req res
 
 	switch typeId {
 	case "srraug":
-		if res.Result.IpasudorunasgroupGroup == nil || !slices.Contains(*res.Result.IpasudorunasgroupGroup, grpId) {
+		if res.Result.IpasudorunasgroupGroup == nil || !isStringListContainsCaseInsensistive(res.Result.IpasudorunasgroupGroup, &grpId) {
 			tflog.Debug(ctx, "[DEBUG] Sudo rule runasgroup membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
@@ -225,7 +225,7 @@ func (r *SudoRuleRunAsGroupMembershipResource) Read(ctx context.Context, req res
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands failed with error %s", err))
 				}
-				if res.Result.IpasudorunasgroupGroup != nil && slices.Contains(*res.Result.IpasudorunasgroupGroup, val) {
+				if res.Result.IpasudorunasgroupGroup != nil && isStringListContainsCaseInsensistive(res.Result.IpasudorunasgroupGroup, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo command member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

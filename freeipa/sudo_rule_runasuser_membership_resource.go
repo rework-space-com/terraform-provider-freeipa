@@ -212,7 +212,7 @@ func (r *SudoRuleRunAsUserMembershipResource) Read(ctx context.Context, req reso
 
 	switch typeId {
 	case "srrau":
-		if res.Result.IpasudorunasUser == nil || !slices.Contains(*res.Result.IpasudorunasUser, usrId) {
+		if res.Result.IpasudorunasUser == nil || !isStringListContainsCaseInsensistive(res.Result.IpasudorunasUser, &usrId) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -225,7 +225,7 @@ func (r *SudoRuleRunAsUserMembershipResource) Read(ctx context.Context, req reso
 					if err != nil {
 						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo runasgroup membership failed with error %s", err))
 					}
-					if slices.Contains(*res.Result.IpasudorunasUser, val) {
+					if isStringListContainsCaseInsensistive(res.Result.IpasudorunasUser, &val) {
 						tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa sudo runasgroup membership %s is present in results", val))
 						changedVals = append(changedVals, val)
 					}

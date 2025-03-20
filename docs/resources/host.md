@@ -28,7 +28,10 @@ resource "freeipa_host" "host-1" {
 ### Required
 
 - `ip_address` (String) IP address of the host
-- `name` (String) Host name
+- `name` (String) Host fully qualified name
+
+	- May contain only letters, numbers, '-'.
+	- DNS label may not start or end with '-'
 
 ### Optional
 

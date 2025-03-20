@@ -40,6 +40,11 @@ resource "freeipa_group" "group-external" {
 
 - `name` (String) Group name
 
+	- The name must not exceed 32 characters.
+	- The name must contain only lowercase letters (a-z), digits (0-9), and the characters (. - _).
+	- The name must not start with a special character.
+	- A user and a group cannot have the same name.
+
 ### Optional
 
 - `addattr` (List of String) Add an attribute/value pair. Format is attr=value. The attribute must be part of the schema.

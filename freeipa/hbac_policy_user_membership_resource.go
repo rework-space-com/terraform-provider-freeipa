@@ -261,13 +261,13 @@ func (r *HbacPolicyUserMembershipResource) Read(ctx context.Context, req resourc
 
 	switch typeId {
 	case "u":
-		if res.Result.MemberuserUser == nil || !slices.Contains(*res.Result.MemberuserUser, policyId) {
+		if res.Result.MemberuserUser == nil || !isStringListContainsCaseInsensistive(res.Result.MemberuserUser, &policyId) {
 			tflog.Debug(ctx, "[DEBUG] HBAC policy user membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
 		}
 	case "g":
-		if res.Result.MemberuserGroup == nil || !slices.Contains(*res.Result.MemberuserGroup, policyId) {
+		if res.Result.MemberuserGroup == nil || !isStringListContainsCaseInsensistive(res.Result.MemberuserGroup, &policyId) {
 			tflog.Debug(ctx, "[DEBUG] HBAC policy user group membership does not exist")
 			resp.State.RemoveResource(ctx)
 			return
@@ -280,7 +280,7 @@ func (r *HbacPolicyUserMembershipResource) Read(ctx context.Context, req resourc
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy user member failed with error %s", err))
 				}
-				if res.Result.MemberuserUser != nil && slices.Contains(*res.Result.MemberuserUser, val) {
+				if res.Result.MemberuserUser != nil && isStringListContainsCaseInsensistive(res.Result.MemberuserUser, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy user member %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}
@@ -298,7 +298,7 @@ func (r *HbacPolicyUserMembershipResource) Read(ctx context.Context, req resourc
 				if err != nil {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands failed with error %s", err))
 				}
-				if res.Result.MemberuserGroup != nil && slices.Contains(*res.Result.MemberuserGroup, val) {
+				if res.Result.MemberuserGroup != nil && isStringListContainsCaseInsensistive(res.Result.MemberuserGroup, &val) {
 					tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa hbac policy member commands %s is present in results", val))
 					changedVals = append(changedVals, val)
 				}

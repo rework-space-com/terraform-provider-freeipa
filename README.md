@@ -21,3 +21,8 @@ $ go build -o ~/go/bin/terraform-provider-freeipa
 ## Contributing to the provider
 
 To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/rework-space-com/terraform-provider-freeipa/issues/new/choose).
+
+## 🤝 Contributors
+
+A full list of contributors is available in [OUR_CONTRIBUTORS.md](./OUR_CONTRIBUTORS.md).  
+We acknowledge and thank everyone who has contributed to this project.

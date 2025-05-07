@@ -13,7 +13,7 @@ If you are a contributor and your name is missing, feel free to submit a pull re
 - **Mykhailo Holubovskyi** — <mholubovskyi@scalhive.com>
 - **Parsa** — <p.yousefi97@gmail.com>
 - **Roman Butsiy** — <butsiyroman@gmail.com>
-- **Vitaly Te** — <vitaly@example.com>
+- **Vitaly Brevus** — <vitalyte@users.noreply.github.com>
 
 ---
 

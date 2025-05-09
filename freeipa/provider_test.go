@@ -1,5 +1,15 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// This file was originally inspired by the module structure and design patterns
+// used in HashiCorp projects, but all code in this file was written from scratch.
+//
+// Previously licensed under the MPL-2.0.
+// This file is now relicensed under the GNU General Public License v3.0 only,
+// as permitted by Section 1.10 of the MPL.
+//
+// Authors:
+//	Antoine Gatineau <antoine.gatineau@infra-monkey.com>
+//	Roman Butsiy <butsiyroman@gmail.com>
+//
+// SPDX-License-Identifier: GPL-3.0-only
 
 package freeipa
 

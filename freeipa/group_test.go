@@ -1,3 +1,9 @@
+// Authors:
+//	Antoine Gatineau <antoine.gatineau@infra-monkey.com>
+//	Mixton <maxime.thomas@mtconsulting.tech>
+//
+// SPDX-License-Identifier: GPL-3.0-only
+
 package freeipa
 
 import (

@@ -84,7 +84,7 @@ func (r *AutomemberConditionResource) Schema(ctx context.Context, req resource.S
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Automember rule condition description",
-				Required:            true,
+				Optional:            true,
 				Computed:            false,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),

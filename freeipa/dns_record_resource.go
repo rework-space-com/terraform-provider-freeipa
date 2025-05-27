@@ -49,7 +49,7 @@ type DNSRecordResourceModel struct {
 	Name          types.String `tfsdk:"name"`
 	ZoneName      types.String `tfsdk:"zone_name"`
 	Type          types.String `tfsdk:"type"`
-	Records       types.List   `tfsdk:"records"`
+	Records       types.Set    `tfsdk:"records"`
 	TTL           types.Int32  `tfsdk:"ttl"`
 	SetIdentifier types.String `tfsdk:"set_identifier"`
 }
@@ -96,7 +96,7 @@ func (r *DNSRecordResource) Schema(ctx context.Context, req resource.SchemaReque
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"records": schema.ListAttribute{
+			"records": schema.SetAttribute{
 				MarkdownDescription: "A string list of records",
 				Required:            true,
 				ElementType:         types.StringType,
@@ -259,35 +259,35 @@ func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 	switch _type {
 	case "A":
 		if res.Result.Arecord != nil {
-			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Arecord)
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Arecord)
 		}
 	case "AAAA":
 		if res.Result.Aaaarecord != nil {
-			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Aaaarecord)
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Aaaarecord)
 		}
 	case "MX":
 		if res.Result.Mxrecord != nil {
-			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Mxrecord)
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Mxrecord)
 		}
 	case "NS":
 		if res.Result.Nsrecord != nil {
-			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Nsrecord)
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Nsrecord)
 		}
 	case "PTR":
 		if res.Result.Ptrrecord != nil {
-			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ptrrecord)
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Ptrrecord)
 		}
 	case "SRV":
 		if res.Result.Srvrecord != nil {
-			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Srvrecord)
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Srvrecord)
 		}
 	case "TXT":
 		if res.Result.Txtrecord != nil {
-			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Txtrecord)
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Txtrecord)
 		}
 	case "SSHFP":
 		if res.Result.Sshfprecord != nil {
-			data.Records, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Sshfprecord)
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Sshfprecord)
 		}
 	}
 

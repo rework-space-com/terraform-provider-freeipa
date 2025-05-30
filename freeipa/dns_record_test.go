@@ -24,6 +24,13 @@ func TestAccFreeIPADNSRecord_A(t *testing.T) {
 		"name":      "\"test-record\"",
 		"records":   "[\"192.168.10.10\", \"192.168.10.11\"]",
 	}
+	testRecordMisordered := map[string]string{
+		"index":     "0",
+		"zone_name": "resource.freeipa_dns_zone.dns-zone-0.id",
+		"type":      "\"A\"",
+		"name":      "\"test-record\"",
+		"records":   "[\"192.168.10.11\", \"192.168.10.10\"]",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -37,6 +44,14 @@ func TestAccFreeIPADNSRecord_A(t *testing.T) {
 			},
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPADNSRecord_resource(testRecord),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPADNSRecord_resource(testRecordMisordered),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),

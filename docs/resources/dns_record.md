@@ -40,7 +40,7 @@ resource "freeipa_dns_record" "record-7" {
 ### Required
 
 - `name` (String) Record name
-- `records` (List of String) A string list of records
+- `records` (Set of String) A string list of records
 - `type` (String) The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHP)
 - `zone_name` (String) Zone name (FQDN)
 

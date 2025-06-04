@@ -713,10 +713,6 @@ func (r *userGroupMembership) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-// func (r *userGroupMembership) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-// 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-// }
-
 func parseUserMembershipID(id string) (string, string, string, error) {
 	idParts := strings.Split(id, "/")
 	if len(idParts) < 3 {

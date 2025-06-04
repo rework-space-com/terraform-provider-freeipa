@@ -35,8 +35,6 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoCmdGroupMembershipResource{}
 
-// var _ resource.ResourceWithImportState = &SudoCmdGroupMembershipResource{}
-
 func NewSudoCmdGroupMembershipResource() resource.Resource {
 	return &SudoCmdGroupMembershipResource{}
 }
@@ -376,10 +374,6 @@ func (r *SudoCmdGroupMembershipResource) Delete(ctx context.Context, req resourc
 		return
 	}
 }
-
-// func (r *SudoCmdGroupMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-// 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-// }
 
 func parseSudocmdgroupMembershipID(id string) (string, string, string, error) {
 	idParts := strings.SplitN(id, "/", 3)

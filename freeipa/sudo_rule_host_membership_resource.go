@@ -35,8 +35,6 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleHostMembershipResource{}
 
-// var _ resource.ResourceWithImportState = &SudoRuleHostMembershipResource{}
-
 func NewSudoRuleHostMembershipResource() resource.Resource {
 	return &SudoRuleHostMembershipResource{}
 }
@@ -488,10 +486,6 @@ func (r *SudoRuleHostMembershipResource) Delete(ctx context.Context, req resourc
 		return
 	}
 }
-
-// func (r *SudoRuleHostMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-// 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-// }
 
 func parseSudoRuleHostMembershipID(id string) (string, string, string, error) {
 	idParts := strings.SplitN(id, "/", 3)

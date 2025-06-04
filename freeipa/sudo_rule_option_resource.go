@@ -31,8 +31,6 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleOptionResource{}
 
-// var _ resource.ResourceWithImportState = &SudoRuleOptionResource{}
-
 func NewSudoRuleOptionResource() resource.Resource {
 	return &SudoRuleOptionResource{}
 }

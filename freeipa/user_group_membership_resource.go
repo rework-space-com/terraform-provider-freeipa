@@ -34,7 +34,8 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &userGroupMembership{}
-var _ resource.ResourceWithImportState = &userGroupMembership{}
+
+// var _ resource.ResourceWithImportState = &userGroupMembership{}
 
 func NewUserGroupMembershipResource() resource.Resource {
 	return &userGroupMembership{}
@@ -712,9 +713,9 @@ func (r *userGroupMembership) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-func (r *userGroupMembership) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
+// func (r *userGroupMembership) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+// 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+// }
 
 func parseUserMembershipID(id string) (string, string, string, error) {
 	idParts := strings.Split(id, "/")

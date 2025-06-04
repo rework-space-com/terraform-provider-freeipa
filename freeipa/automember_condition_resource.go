@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
@@ -32,7 +31,8 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &AutomemberConditionResource{}
-var _ resource.ResourceWithImportState = &AutomemberConditionResource{}
+
+// var _ resource.ResourceWithImportState = &AutomemberConditionResource{}
 
 func NewAutomemberConditionResource() resource.Resource {
 	return &AutomemberConditionResource{}
@@ -319,6 +319,6 @@ func (r *AutomemberConditionResource) Delete(ctx context.Context, req resource.D
 	}
 }
 
-func (r *AutomemberConditionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
+// func (r *AutomemberConditionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+// 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+// }

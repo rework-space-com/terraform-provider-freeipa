@@ -252,5 +252,5 @@ func (r *SudoCmdGroupResource) Delete(ctx context.Context, req resource.DeleteRe
 }
 
 func (r *SudoCmdGroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }

@@ -32,7 +32,8 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &DNSRecordResource{}
-var _ resource.ResourceWithImportState = &DNSRecordResource{}
+
+// var _ resource.ResourceWithImportState = &DNSRecordResource{}
 
 func NewDNSRecordResource() resource.Resource {
 	return &DNSRecordResource{}
@@ -447,5 +448,83 @@ func (r *DNSRecordResource) Delete(ctx context.Context, req resource.DeleteReque
 }
 
 func (r *DNSRecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	all := true
+	idelements := strings.SplitN(req.ID, ";", 4)
+	var name interface{} = idelements[0]
+	var zone_name interface{} = idelements[1]
+	var _type string = idelements[2]
+
+	args := ipa.DnsrecordShowArgs{
+		Idnsname: name,
+	}
+
+	optArgs := ipa.DnsrecordShowOptionalArgs{
+		Dnszoneidnsname: &zone_name,
+		All:             &all,
+	}
+
+	res, err := r.client.DnsrecordShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			tflog.Debug(ctx, "[DEBUG] DNS record not found")
+			resp.State.RemoveResource(ctx)
+			return
+		} else {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error reading freeipa DNS record: %s", err))
+			return
+		}
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone_name"), idelements[1])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), idelements[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), idelements[2])...)
+
+	switch _type {
+	case "A":
+		if res.Result.Arecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Arecord)...)
+		}
+	case "AAAA":
+		if res.Result.Aaaarecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Aaaarecord)...)
+		}
+	case "MX":
+		if res.Result.Mxrecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Mxrecord)...)
+		}
+	case "NS":
+		if res.Result.Nsrecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Nsrecord)...)
+		}
+	case "PTR":
+		if res.Result.Ptrrecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Ptrrecord)...)
+		}
+	case "SRV":
+		if res.Result.Srvrecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Srvrecord)...)
+		}
+	case "TXT":
+		if res.Result.Txtrecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Txtrecord)...)
+		}
+	case "SSHFP":
+		if res.Result.Sshfprecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Sshfprecord)...)
+		}
+	}
+
+	// Generate an ID
+	vars := []string{
+		idelements[1],
+		strings.ToLower(idelements[0]),
+		_type,
+	}
+
+	if len(idelements) == 4 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("set_identifier"), idelements[3])...)
+		vars = append(vars, strings.ToLower(idelements[3]))
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(strings.Join(vars, "_")))...)
+
 }

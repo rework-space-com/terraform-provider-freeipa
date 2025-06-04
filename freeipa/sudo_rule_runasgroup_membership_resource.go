@@ -34,7 +34,8 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleRunAsGroupMembershipResource{}
-var _ resource.ResourceWithImportState = &SudoRuleRunAsGroupMembershipResource{}
+
+// var _ resource.ResourceWithImportState = &SudoRuleRunAsGroupMembershipResource{}
 
 func NewSudoRuleRunAsGroupMembershipResource() resource.Resource {
 	return &SudoRuleRunAsGroupMembershipResource{}
@@ -379,9 +380,9 @@ func (r *SudoRuleRunAsGroupMembershipResource) Delete(ctx context.Context, req r
 	}
 }
 
-func (r *SudoRuleRunAsGroupMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
+// func (r *SudoRuleRunAsGroupMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+// 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+// }
 
 func parseSudoRuleRunAsGroupMembershipID(id string) (string, string, string, error) {
 	idParts := strings.SplitN(id, "/", 3)

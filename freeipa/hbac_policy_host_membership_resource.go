@@ -34,7 +34,8 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &HbacPolicyHostMembershipResource{}
-var _ resource.ResourceWithImportState = &HbacPolicyHostMembershipResource{}
+
+// var _ resource.ResourceWithImportState = &HbacPolicyHostMembershipResource{}
 
 func NewHbacPolicyHostMembershipResource() resource.Resource {
 	return &HbacPolicyHostMembershipResource{}
@@ -488,9 +489,9 @@ func (r *HbacPolicyHostMembershipResource) Delete(ctx context.Context, req resou
 	}
 }
 
-func (r *HbacPolicyHostMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
+// func (r *HbacPolicyHostMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+// 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+// }
 
 func parseHBACPolicyHostMembershipID(id string) (string, string, string, error) {
 	idParts := strings.Split(id, "/")

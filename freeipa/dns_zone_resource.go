@@ -38,7 +38,8 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &dnsZone{}
-var _ resource.ResourceWithImportState = &dnsZone{}
+
+// var _ resource.ResourceWithImportState = &dnsZone{}
 
 func NewDNSZoneResource() resource.Resource {
 	return &dnsZone{}
@@ -738,5 +739,50 @@ func (r *dnsZone) Delete(ctx context.Context, req resource.DeleteRequest, resp *
 }
 
 func (r *dnsZone) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	all := true
+	var name interface{} = req.ID
+	optArgs := ipa.DnszoneShowOptionalArgs{
+		All:      &all,
+		Rights:   &all,
+		Idnsname: &name,
+	}
+
+	res, err := r.client.DnszoneShow(&ipa.DnszoneShowArgs{}, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa DNS zone: %s", err))
+		return
+	}
+
+	dnsnames := res.Result.Idnsname.([]interface{})
+	dnsname := dnsnames[0].(map[string]interface{})["__dns_name__"]
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone_name"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), dnsname.(string))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("is_reverse_zone"), false)...)
+	if res.Result.Idnszoneactive != nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("disable_zone"), !*res.Result.Idnszoneactive)...)
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("skip_nameserver_check"), false)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("skip_overlap_check"), false)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("soa_refresh"), res.Result.Idnssoarefresh)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("soa_retry"), res.Result.Idnssoaretry)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("soa_expire"), res.Result.Idnssoaexpire)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("soa_minimum"), res.Result.Idnssoaminimum)...)
+	if res.Result.Idnsallowdynupdate != nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("dynamic_updates"), res.Result.Idnsallowdynupdate)...)
+	}
+	if res.Result.Idnsallowquery != nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("allow_query"), res.Result.Idnsallowquery)...)
+	}
+	if res.Result.Idnsallowtransfer != nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("allow_transfer"), res.Result.Idnsallowtransfer)...)
+	}
+	if res.Result.Idnsallowsyncptr != nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("allow_prt_sync"), res.Result.Idnsallowsyncptr)...)
+	}
+	if res.Result.Idnssecinlinesigning != nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("allow_inline_dnssec_signing"), res.Result.Idnssecinlinesigning)...)
+	} else {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("allow_inline_dnssec_signing"), false)...)
+	}
+
 }

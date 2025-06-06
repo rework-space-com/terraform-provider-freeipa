@@ -396,5 +396,31 @@ func (r *SudoRuleResource) Delete(ctx context.Context, req resource.DeleteReques
 }
 
 func (r *SudoRuleResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	all := true
+	optArgs := ipa.SudoruleShowOptionalArgs{
+		All: &all,
+	}
+
+	args := ipa.SudoruleShowArgs{
+		Cn: req.ID,
+	}
+
+	res, err := r.client.SudoruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			tflog.Debug(ctx, "[DEBUG] Sudo rule not found")
+			resp.State.RemoveResource(ctx)
+			return
+		} else {
+			resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+			return
+		}
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), req.ID)...)
+	if res.Result.Ipaenabledflag != nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("enabled"), res.Result.Ipaenabledflag)...)
+	}
+
 }

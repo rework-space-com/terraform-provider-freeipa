@@ -246,5 +246,5 @@ func (r *HostGroupResource) Delete(ctx context.Context, req resource.DeleteReque
 }
 
 func (r *HostGroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }

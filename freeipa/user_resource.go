@@ -593,11 +593,12 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 }
 
 func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data, state UserResourceModel
+	var data, state, config UserResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -610,7 +611,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	} else {
 		optArgs.UID = state.UID.ValueStringPointer()
 	}
-	if !data.FullName.Equal(state.FullName) {
+	if !data.FullName.Equal(state.FullName) || !data.FullName.Equal(config.FullName) {
 		optArgs.Cn = data.FullName.ValueStringPointer()
 	}
 	if !data.FirstName.Equal(state.FirstName) {
@@ -786,5 +787,26 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 }
 
 func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+
+	all := true
+	optArgs := ipa.UserShowOptionalArgs{
+		All: &all,
+	}
+
+	optArgs.UID = &req.ID
+
+	res, err := r.client.UserShow(&ipa.UserShowArgs{}, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", err.Error())
+		return
+	}
+	if res.Result.UID != req.ID {
+		resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), res.Result.UID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
 }

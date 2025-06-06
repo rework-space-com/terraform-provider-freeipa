@@ -34,7 +34,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleRunAsGroupMembershipResource{}
-var _ resource.ResourceWithImportState = &SudoRuleRunAsGroupMembershipResource{}
 
 func NewSudoRuleRunAsGroupMembershipResource() resource.Resource {
 	return &SudoRuleRunAsGroupMembershipResource{}
@@ -377,10 +376,6 @@ func (r *SudoRuleRunAsGroupMembershipResource) Delete(ctx context.Context, req r
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo runasgroup membership: %s", err))
 		return
 	}
-}
-
-func (r *SudoRuleRunAsGroupMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseSudoRuleRunAsGroupMembershipID(id string) (string, string, string, error) {

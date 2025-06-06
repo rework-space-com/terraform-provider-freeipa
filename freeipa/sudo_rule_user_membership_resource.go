@@ -34,7 +34,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleUserMembershipResource{}
-var _ resource.ResourceWithImportState = &SudoRuleUserMembershipResource{}
 
 func NewSudoRuleUserMembershipResource() resource.Resource {
 	return &SudoRuleUserMembershipResource{}
@@ -489,10 +488,6 @@ func (r *SudoRuleUserMembershipResource) Delete(ctx context.Context, req resourc
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo user membership: %s", err))
 		return
 	}
-}
-
-func (r *SudoRuleUserMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseSudoRuleUserMembershipID(id string) (string, string, string, error) {

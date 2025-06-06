@@ -34,7 +34,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &HostGroupMembership{}
-var _ resource.ResourceWithImportState = &HostGroupMembership{}
 
 func NewHostGroupMembershipResource() resource.Resource {
 	return &HostGroupMembership{}
@@ -512,10 +511,6 @@ func (r *HostGroupMembership) Delete(ctx context.Context, req resource.DeleteReq
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error remove hostgroup membership %s: %s", data.Id.ValueString(), err))
 		return
 	}
-}
-
-func (r *HostGroupMembership) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseHostgroupMembershipID(id string) (string, string, string, error) {

@@ -34,7 +34,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleAllowCmdMembershipResource{}
-var _ resource.ResourceWithImportState = &SudoRuleAllowCmdMembershipResource{}
 
 func NewSudoRuleAllowCmdMembershipResource() resource.Resource {
 	return &SudoRuleAllowCmdMembershipResource{}
@@ -486,10 +485,6 @@ func (r *SudoRuleAllowCmdMembershipResource) Delete(ctx context.Context, req res
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo command group membership: %s", err))
 		return
 	}
-}
-
-func (r *SudoRuleAllowCmdMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseSudoRuleAllowCommandMembershipID(id string) (string, string, string, error) {

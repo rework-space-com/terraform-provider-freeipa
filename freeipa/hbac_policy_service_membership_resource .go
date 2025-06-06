@@ -34,7 +34,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &HbacPolicyServiceMembershipResource{}
-var _ resource.ResourceWithImportState = &HbacPolicyServiceMembershipResource{}
 
 func NewHbacPolicyServiceMembershipResource() resource.Resource {
 	return &HbacPolicyServiceMembershipResource{}
@@ -486,10 +485,6 @@ func (r *HbacPolicyServiceMembershipResource) Delete(ctx context.Context, req re
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa hbac policy servie membership: %s", err))
 		return
 	}
-}
-
-func (r *HbacPolicyServiceMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseHBACPolicyServiceMembershipID(id string) (string, string, string, error) {

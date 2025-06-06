@@ -101,10 +101,10 @@ func (r *HostResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			},
 			"ip_address": schema.StringAttribute{
 				MarkdownDescription: "IP address of the host",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				Optional:            true,
+				// PlanModifiers: []planmodifier.String{
+				// 	stringplanmodifier.RequiresReplace(),
+				// },
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "A description of this host",
@@ -672,5 +672,5 @@ func (r *HostResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 }
 
 func (r *HostResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }

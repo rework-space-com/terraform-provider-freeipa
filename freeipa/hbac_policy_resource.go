@@ -333,5 +333,5 @@ func (r *HbacPolicyResource) Delete(ctx context.Context, req resource.DeleteRequ
 }
 
 func (r *HbacPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }

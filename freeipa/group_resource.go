@@ -35,7 +35,8 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &UserGroupResource{}
-var _ resource.ResourceWithImportState = &UserGroupResource{}
+
+// var _ resource.ResourceWithImportState = &UserGroupResource{}
 
 func NewUserGroupResource() resource.Resource {
 	return &UserGroupResource{}
@@ -374,5 +375,69 @@ func (r *UserGroupResource) Delete(ctx context.Context, req resource.DeleteReque
 }
 
 func (r *UserGroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	valTrue := true
+	// check if it is a posix group
+	optArgs := ipa.GroupFindOptionalArgs{
+		Posix: &valTrue,
+		Cn:    &req.ID,
+	}
+	args := ipa.GroupFindArgs{}
+	res, err := r.client.GroupFind(req.ID, &args, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa group %s", req.ID))
+		return
+	}
+
+	for _, grp := range res.Result {
+		if grp.Cn == req.ID {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), grp.Cn)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), grp.Cn)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("nonposix"), false)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("external"), false)...)
+			return
+		}
+	}
+
+	// check if it is a external group
+	optArgs = ipa.GroupFindOptionalArgs{
+		External: &valTrue,
+		Cn:       &req.ID,
+	}
+	res, err = r.client.GroupFind(req.ID, &args, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa group %s", req.ID))
+		return
+	}
+
+	for _, grp := range res.Result {
+		if grp.Cn == req.ID {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), grp.Cn)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), grp.Cn)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("nonposix"), false)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("external"), true)...)
+			return
+		}
+	}
+
+	// check if it is a non posix group
+	optArgs = ipa.GroupFindOptionalArgs{
+		Nonposix: &valTrue,
+		Cn:       &req.ID,
+	}
+	res, err = r.client.GroupFind(req.ID, &args, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa group %s", req.ID))
+		return
+	}
+
+	for _, grp := range res.Result {
+		if grp.Cn == req.ID {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), grp.Cn)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), grp.Cn)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("nonposix"), true)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("external"), false)...)
+			return
+		}
+	}
+
 }

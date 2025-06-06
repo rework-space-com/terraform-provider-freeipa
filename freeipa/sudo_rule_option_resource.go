@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -31,7 +30,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleOptionResource{}
-var _ resource.ResourceWithImportState = &SudoRuleOptionResource{}
 
 func NewSudoRuleOptionResource() resource.Resource {
 	return &SudoRuleOptionResource{}
@@ -239,10 +237,6 @@ func (r *SudoRuleOptionResource) Delete(ctx context.Context, req resource.Delete
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo host membership: %s", err))
 		return
 	}
-}
-
-func (r *SudoRuleOptionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseSudoRuleOptionID(id string) (string, string, string, error) {

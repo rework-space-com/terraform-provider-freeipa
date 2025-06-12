@@ -1,6 +1,6 @@
 Terraform FreeIPA Provider
 ============================
-Tested on FreeIPA version 4.9.1  
+Tested on FreeIPA version 4.12.2
 Download provider from [registry.terraform.io](https://registry.terraform.io/providers/rework-space-com/freeipa/latest)
 
 Requirements

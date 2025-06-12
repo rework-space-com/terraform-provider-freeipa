@@ -22,11 +22,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
@@ -55,6 +58,11 @@ type UserResourceModel struct {
 	DisplayName            types.String `tfsdk:"display_name"`
 	Initials               types.String `tfsdk:"initials"`
 	HomeDirectory          types.String `tfsdk:"home_directory"`
+	AuthType               types.Set    `tfsdk:"auth_type"`
+	RadiusConfig           types.String `tfsdk:"radius_proxy_config"`
+	RadiusUser             types.String `tfsdk:"radius_proxy_username"`
+	IdpConfig              types.String `tfsdk:"external_idp_config"`
+	IdpUser                types.String `tfsdk:"external_idp_username"`
 	Gecos                  types.String `tfsdk:"gecos"`
 	LoginShell             types.String `tfsdk:"login_shell"`
 	KrbPrincipalName       types.List   `tfsdk:"krb_principal_name"`
@@ -79,6 +87,7 @@ type UserResourceModel struct {
 	PreferredLanguage      types.String `tfsdk:"preferred_language"`
 	AccountDisabled        types.Bool   `tfsdk:"account_disabled"`
 	SshPublicKeys          types.List   `tfsdk:"ssh_public_key"`
+	UserCerts              types.Set    `tfsdk:"user_certificates"`
 	CarLicense             types.List   `tfsdk:"car_license"`
 	UserClass              types.List   `tfsdk:"userclass"`
 }
@@ -107,16 +116,10 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"first_name": schema.StringAttribute{
 				MarkdownDescription: "First name",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"last_name": schema.StringAttribute{
 				MarkdownDescription: "Last name",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "UID or Login\n\n	- The name must not exceed 32 characters.\n	- The name must contain only lowercase letters (a-z), digits (0-9), and the characters (. - _).\n	- The name must not start with a special character.\n	- A user and a group cannot have the same name.",
@@ -139,6 +142,30 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			},
 			"home_directory": schema.StringAttribute{
 				MarkdownDescription: "Home Directory",
+				Optional:            true,
+			},
+			"auth_type": schema.SetAttribute{
+				MarkdownDescription: "User authentication type. Possible values of the elements are (password, radius, otp, pkinit, hardened, idp, passkey)",
+				Optional:            true,
+				ElementType:         types.StringType,
+				Validators: []validator.Set{
+					setvalidator.ValueStringsAre(stringvalidator.OneOf("password", "radius", "otp", "pkinit", "hardened", "idp", "passkey")),
+				},
+			},
+			"radius_proxy_config": schema.StringAttribute{
+				MarkdownDescription: "RADIUS proxy configuration",
+				Optional:            true,
+			},
+			"radius_proxy_username": schema.StringAttribute{
+				MarkdownDescription: "RADIUS proxy username",
+				Optional:            true,
+			},
+			"external_idp_config": schema.StringAttribute{
+				MarkdownDescription: "External IdP configuration",
+				Optional:            true,
+			},
+			"external_idp_username": schema.StringAttribute{
+				MarkdownDescription: "External IdP user identifier",
 				Optional:            true,
 			},
 			"gecos": schema.StringAttribute{
@@ -249,6 +276,11 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
+			"user_certificates": schema.SetAttribute{
+				MarkdownDescription: "List of Base-64 encoded user certificates",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 			"car_license": schema.ListAttribute{
 				MarkdownDescription: "Car Licenses",
 				Optional:            true,
@@ -311,6 +343,26 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	if !data.HomeDirectory.IsNull() {
 		optArgs.Homedirectory = data.HomeDirectory.ValueStringPointer()
+	}
+	if !data.RadiusConfig.IsNull() {
+		optArgs.Ipatokenradiusconfiglink = data.RadiusConfig.ValueStringPointer()
+	}
+	if !data.RadiusUser.IsNull() {
+		optArgs.Ipatokenradiususername = data.RadiusUser.ValueStringPointer()
+	}
+	if !data.IdpConfig.IsNull() {
+		optArgs.Ipaidpconfiglink = data.IdpConfig.ValueStringPointer()
+	}
+	if !data.IdpUser.IsNull() {
+		optArgs.Ipaidpsub = data.IdpUser.ValueStringPointer()
+	}
+	if len(data.AuthType.Elements()) > 0 {
+		var v []string
+		for _, value := range data.AuthType.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Ipauserauthtype = &v
 	}
 	if !data.Gecos.IsNull() {
 		optArgs.Gecos = data.Gecos.ValueStringPointer()
@@ -404,6 +456,14 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 			v = append(v, val)
 		}
 		optArgs.Ipasshpubkey = &v
+	}
+	if len(data.UserCerts.Elements()) > 0 {
+		var v []interface{}
+		for _, value := range data.UserCerts.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Usercertificate = &v
 	}
 	if len(data.CarLicense.Elements()) > 0 {
 		var v []string
@@ -499,6 +559,21 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if res.Result.Homedirectory != nil && !data.HomeDirectory.IsNull() {
 		data.HomeDirectory = types.StringValue(*res.Result.Homedirectory)
 	}
+	if res.Result.Ipauserauthtype != nil && !data.AuthType.IsNull() {
+		data.AuthType, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Ipauserauthtype)
+	}
+	if res.Result.Ipatokenradiusconfiglink != nil && !data.RadiusConfig.IsNull() {
+		data.RadiusConfig = types.StringValue(*res.Result.Ipatokenradiusconfiglink)
+	}
+	if res.Result.Ipatokenradiususername != nil && !data.RadiusUser.IsNull() {
+		data.RadiusUser = types.StringValue(*res.Result.Ipatokenradiususername)
+	}
+	if res.Result.Ipaidpconfiglink != nil && !data.IdpConfig.IsNull() {
+		data.IdpConfig = types.StringValue(*res.Result.Ipaidpconfiglink)
+	}
+	if res.Result.Ipaidpsub != nil && !data.IdpUser.IsNull() {
+		data.IdpUser = types.StringValue(*res.Result.Ipaidpsub)
+	}
 	if res.Result.Gecos != nil && !data.Gecos.IsNull() {
 		data.Gecos = types.StringValue(*res.Result.Gecos)
 	}
@@ -561,6 +636,14 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 	if res.Result.Ipasshpubkey != nil && !data.SshPublicKeys.IsNull() {
 		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
+	}
+	if res.Result.Usercertificate != nil && !data.UserCerts.IsNull() {
+		var resVals []string
+		for _, v := range *res.Result.Usercertificate {
+			str := v.([]interface{})[0].(map[string]interface{})["__base64__"]
+			resVals = append(resVals, str.(string))
+		}
+		data.UserCerts, _ = types.SetValueFrom(ctx, types.StringType, resVals)
 	}
 	if res.Result.Carlicense != nil && !data.CarLicense.IsNull() {
 		data.CarLicense, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Carlicense)
@@ -628,6 +711,42 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 	if !data.HomeDirectory.Equal(state.HomeDirectory) {
 		optArgs.Homedirectory = data.HomeDirectory.ValueStringPointer()
+	}
+	if !data.AuthType.Equal(state.AuthType) {
+		var v []string
+		for _, value := range data.AuthType.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Ipauserauthtype = &v
+	}
+	if !data.RadiusConfig.Equal(state.RadiusConfig) {
+		if data.RadiusConfig.IsNull() {
+			optArgs.Ipatokenradiusconfiglink = ipa.String("")
+		} else {
+			optArgs.Ipatokenradiusconfiglink = data.RadiusConfig.ValueStringPointer()
+		}
+	}
+	if !data.RadiusUser.Equal(state.RadiusUser) {
+		if data.RadiusUser.IsNull() {
+			optArgs.Ipatokenradiususername = ipa.String("")
+		} else {
+			optArgs.Ipatokenradiususername = data.RadiusUser.ValueStringPointer()
+		}
+	}
+	if !data.IdpConfig.Equal(state.IdpConfig) {
+		if data.IdpConfig.IsNull() {
+			optArgs.Ipaidpconfiglink = ipa.String("")
+		} else {
+			optArgs.Ipaidpconfiglink = data.IdpConfig.ValueStringPointer()
+		}
+	}
+	if !data.IdpUser.Equal(state.IdpUser) {
+		if data.IdpUser.IsNull() {
+			optArgs.Ipaidpsub = ipa.String("")
+		} else {
+			optArgs.Ipaidpsub = data.IdpUser.ValueStringPointer()
+		}
 	}
 	if !data.Gecos.Equal(state.Gecos) {
 		optArgs.Gecos = data.Gecos.ValueStringPointer()
@@ -711,6 +830,14 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			v = append(v, val)
 		}
 		optArgs.Ipasshpubkey = &v
+	}
+	if !data.UserCerts.Equal(state.UserCerts) {
+		var v []interface{}
+		for _, value := range data.UserCerts.Elements() {
+			val, _ := strconv.Unquote(value.String())
+			v = append(v, val)
+		}
+		optArgs.Usercertificate = &v
 	}
 	if !data.CarLicense.Equal(state.CarLicense) {
 		var v []string

@@ -62,12 +62,15 @@ resource "freeipa_user" "testuser" {
 ### Optional
 
 - `account_disabled` (Boolean) Account disabled
+- `auth_type` (Set of String) User authentication type. Possible values of the elements are (password, radius, otp, pkinit, hardened, idp, passkey)
 - `car_license` (List of String) Car Licenses
 - `city` (String) City
 - `display_name` (String) Display name
 - `email_address` (List of String) Email address
 - `employee_number` (String) Employee Number
 - `employee_type` (String) Employee Type
+- `external_idp_config` (String) External IdP configuration
+- `external_idp_username` (String) External IdP user identifier
 - `full_name` (String) Full name
 - `gecos` (String) GECOS
 - `gid_number` (Number) Group ID Number
@@ -84,11 +87,14 @@ resource "freeipa_user" "testuser" {
 - `postal_code` (String) Postal code
 - `preferred_language` (String) Preferred Language
 - `province` (String) Province/State/Country
+- `radius_proxy_config` (String) RADIUS proxy configuration
+- `radius_proxy_username` (String) RADIUS proxy username
 - `random_password` (Boolean) Generate a random user password
 - `ssh_public_key` (List of String) List of SSH public keys
 - `street_address` (String) Street address
 - `telephone_numbers` (List of String) Telephone Number
 - `uid_number` (Number) User ID Number (system will assign one if not provided)
+- `user_certificates` (Set of String) List of Base-64 encoded user certificates
 - `userclass` (List of String) User category (semantics placed on this attribute are for local interpretation)
 - `userpassword` (String, Sensitive) Prompt to set the user password
 

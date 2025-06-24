@@ -20,11 +20,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
@@ -91,10 +93,13 @@ func (r *DNSRecordResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHP)",
+				MarkdownDescription: "The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHFP)",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf("A", "AAAA", "CNAME", "MX", "PTR", "SRV", "TXT", "SSHFP"),
 				},
 			},
 			"records": schema.SetAttribute{
@@ -265,6 +270,10 @@ func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 	case "AAAA":
 		if res.Result.Aaaarecord != nil {
 			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Aaaarecord)
+		}
+	case "CNAME":
+		if res.Result.Cnamerecord != nil {
+			data.Records, _ = types.SetValueFrom(ctx, types.StringType, res.Result.Cnamerecord)
 		}
 	case "MX":
 		if res.Result.Mxrecord != nil {
@@ -487,6 +496,10 @@ func (r *DNSRecordResource) ImportState(ctx context.Context, req resource.Import
 	case "AAAA":
 		if res.Result.Aaaarecord != nil {
 			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Aaaarecord)...)
+		}
+	case "CNAME":
+		if res.Result.Cnamerecord != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("records"), *res.Result.Cnamerecord)...)
 		}
 	case "MX":
 		if res.Result.Mxrecord != nil {

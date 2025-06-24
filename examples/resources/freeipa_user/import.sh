@@ -6,12 +6,12 @@
 # - `last_name`
 
 import {
-    to = freeipa_user.testuser
-    id = "testuser"
+  to = freeipa_user.testuser
+  id = "testuser"
 }
 
 resource "freeipa_user" "testuser" {
-    name       = "testuser"
-    first_name = "Test"
-    last_name  = "User"
+  name       = "testuser"
+  first_name = "Test"
+  last_name  = "User"
 }

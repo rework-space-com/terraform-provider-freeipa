@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_hostgroup Resource - freeipa"
 description: |-
-FreeIPA User Group resource
+  FreeIPA Host Group resource
 ---
 
 # freeipa_hostgroup (Resource)
@@ -25,12 +25,12 @@ resource "freeipa_hostgroup" "hostgroup-1" {
 # The import id must be exactly the same as the name of the host group.
 
 import {
-    to = freeipa_hostgroup.testhostgroup
-    id = "testhostgroup"
+  to = freeipa_hostgroup.testhostgroup
+  id = "testhostgroup"
 }
 
 resource "freeipa_hostgroup" "testhostgroup" {
-    name = "testhostgroup"
+  name = "testhostgroup"
 }
 ```
 

@@ -68,7 +68,7 @@ func (r *SudoRuleDataSource) Metadata(ctx context.Context, req datasource.Metada
 func (r *SudoRuleDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA User sudo rule data source",
+		MarkdownDescription: "FreeIPA Sudo rule data source",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_hbac_policy Data Source - freeipa"
 description: |-
-FreeIPA User hbac policy data source
+  FreeIPA User hbac policy data source
 ---
 
 # freeipa_hbac_policy (Data Source)

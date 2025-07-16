@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_user Data Source - freeipa"
 description: |-
-FreeIPA User data source
+  FreeIPA User data source
 ---
 
 # freeipa_user (Data Source)

@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_user_membership Resource - freeipa"
 description: |-
-FreeIPA Sudo rule user membership resource
+  FreeIPA Sudo rule user membership resource
 ---
 
 # freeipa_sudo_rule_user_membership (Resource)

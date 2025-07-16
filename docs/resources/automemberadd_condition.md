@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_automemberadd_condition Resource - freeipa"
 description: |-
-FreeIPA Automember conditionresource
+  FreeIPA Automember condition resource
 ---
 
 # freeipa_automemberadd_condition (Resource)

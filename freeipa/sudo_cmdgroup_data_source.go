@@ -51,7 +51,7 @@ func (r *SudoCmdGroupDataSource) Metadata(ctx context.Context, req datasource.Me
 func (r *SudoCmdGroupDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA User sudo command group data source",
+		MarkdownDescription: "FreeIPA Sudo command group data source",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_host Resource - freeipa"
 description: |-
-FreeIPA User resource
+  FreeIPA Host resource
 ---
 
 # freeipa_host (Resource)
@@ -27,12 +27,12 @@ resource "freeipa_host" "host-1" {
 # The import id must be exactly the same as the name of the host, which must be the fqdn of the host.
 
 import {
-    to = freeipa_host.testhost
-    id = "testhost.ipatest.lan"
+  to = freeipa_host.testhost
+  id = "testhost.ipatest.lan"
 }
 
 resource "freeipa_host" "testhost" {
-    name = "testhost.ipatest.lan"
+  name = "testhost.ipatest.lan"
 }
 ```
 

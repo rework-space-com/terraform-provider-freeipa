@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_hostgroup Data Source - freeipa"
 description: |-
-FreeIPA User Group data source
+  FreeIPA Host Group data source
 ---
 
 # freeipa_hostgroup (Data Source)

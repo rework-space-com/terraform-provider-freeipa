@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_cmdgroup Resource - freeipa"
 description: |-
-FreeIPA Sudo command group resource
+  FreeIPA Sudo command group resource
 ---
 
 # freeipa_sudo_cmdgroup (Resource)
@@ -25,13 +25,13 @@ resource "freeipa_sudo_cmdgroup" "service_management" {
 # The import id must be exactly the same as the name of the sudo command group.
 
 import {
-    to = freeipa_sudo_cmdgroup.testsudocmdgrp
-    id = "testsudocmdgrp"
+  to = freeipa_sudo_cmdgroup.testsudocmdgrp
+  id = "testsudocmdgrp"
 }
 
 
 resource "freeipa_sudo_cmdgroup" "testsudocmdgrp" {
-    name = "testsudocmdgrp"
+  name = "testsudocmdgrp"
 }
 ```
 

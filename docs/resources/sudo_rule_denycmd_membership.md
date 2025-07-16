@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_denycmd_membership Resource - freeipa"
 description: |-
-FreeIPA Sudo rule deny command membership resource
+  FreeIPA Sudo rule deny command membership resource
 ---
 
 # freeipa_sudo_rule_denycmd_membership (Resource)

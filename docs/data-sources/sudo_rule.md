@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule Data Source - freeipa"
 description: |-
-FreeIPA User sudo rule data source
+  FreeIPA Sudo rule data source
 ---
 
 # freeipa_sudo_rule (Data Source)

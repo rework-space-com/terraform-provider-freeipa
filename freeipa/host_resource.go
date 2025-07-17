@@ -82,7 +82,7 @@ func (r *HostResource) ConfigValidators(ctx context.Context) []resource.ConfigVa
 func (r *HostResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA User resource",
+		MarkdownDescription: "FreeIPA Host resource",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

@@ -12,8 +12,8 @@ description: |-
 terraform {
   required_providers {
     freeipa = {
-      version = "0.1.1"
-      source  = "[Terraform registry provider path]"
+      version = "5.1.0"
+      source  = "rework-space-com/freeipa"
     }
   }
 }

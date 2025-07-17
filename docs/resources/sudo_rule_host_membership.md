@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule_host_membership Resource - freeipa"
 description: |-
-FreeIPA Sudo rule host membership resource
+  FreeIPA Sudo rule host membership resource
 ---
 
 # freeipa_sudo_rule_host_membership (Resource)

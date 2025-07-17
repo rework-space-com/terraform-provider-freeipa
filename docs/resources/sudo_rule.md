@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_rule Resource - freeipa"
 description: |-
-FreeIPA Sudo rule resource
+  FreeIPA Sudo rule resource
 ---
 
 # freeipa_sudo_rule (Resource)
@@ -23,12 +23,12 @@ resource "freeipa_sudo_rule" "sysadmins" {
 
 ```terraform
 import {
-    to = freeipa_sudo_rule.testsudorule
-    id = "testsudorule"
+  to = freeipa_sudo_rule.testsudorule
+  id = "testsudorule"
 }
 
 resource "freeipa_sudo_rule" "testsudorule" {
-    name = "testsudorule"
+  name = "testsudorule"
 }
 ```
 

@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_hbac_policy Resource - freeipa"
 description: |-
-FreeIPA HBAC policy resource
+  FreeIPA HBAC policy resource
 ---
 
 # freeipa_hbac_policy (Resource)
@@ -28,12 +28,12 @@ resource "freeipa_hbac_policy" "hbac-0" {
 # The import id must be exactly the same as the name of the HBAC policy.
 
 import {
-    to = freeipa_hbac_policy.testhbac
-    id = "testhbac"
+  to = freeipa_hbac_policy.testhbac
+  id = "testhbac"
 }
 
 resource "freeipa_hbac_policy" "testhbac" {
-    name = "testhbac"
+  name = "testhbac"
 }
 ```
 

@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_group Data Source - freeipa"
 description: |-
-FreeIPA User Group data source
+  FreeIPA User Group data source
 ---
 
 # freeipa_group (Data Source)

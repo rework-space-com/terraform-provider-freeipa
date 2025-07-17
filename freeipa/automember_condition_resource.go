@@ -63,7 +63,7 @@ func (r *AutomemberConditionResource) ConfigValidators(ctx context.Context) []re
 func (r *AutomemberConditionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA Automember conditionresource",
+		MarkdownDescription: "FreeIPA Automember condition resource",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

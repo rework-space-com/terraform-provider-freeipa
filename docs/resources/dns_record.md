@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_dns_record Resource - freeipa"
 description: |-
-FreeIPA DNS Record resource
+  FreeIPA DNS Record resource
 ---
 
 # freeipa_dns_record (Resource)
@@ -40,8 +40,8 @@ resource "freeipa_dns_record" "record-7" {
 # or without the optional set_identifier : <name>;<zone_name>;<type>
 
 import {
-    to = freeipa_dns_record.txtrecord
-    id = "_kerberos;testimport.ipatest.lan;TXT;krbtxt"
+  to = freeipa_dns_record.txtrecord
+  id = "_kerberos;testimport.ipatest.lan;TXT;krbtxt"
 }
 
 resource "freeipa_dns_record" "txtrecord" {
@@ -53,8 +53,8 @@ resource "freeipa_dns_record" "txtrecord" {
 }
 
 import {
-    to = freeipa_dns_record.arecord
-    id = "test;testimport.ipatest.lan;A"
+  to = freeipa_dns_record.arecord
+  id = "test;testimport.ipatest.lan;A"
 }
 
 resource "freeipa_dns_record" "arecord" {
@@ -65,8 +65,8 @@ resource "freeipa_dns_record" "arecord" {
 }
 
 import {
-    to = freeipa_dns_record.ptrrecord
-    id = "2;2.27.172.in-addr.arpa;PTR"
+  to = freeipa_dns_record.ptrrecord
+  id = "2;2.27.172.in-addr.arpa;PTR"
 }
 
 resource "freeipa_dns_record" "ptrrecord" {
@@ -85,7 +85,7 @@ resource "freeipa_dns_record" "ptrrecord" {
 
 - `name` (String) Record name
 - `records` (Set of String) A string list of records
-- `type` (String) The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHP)
+- `type` (String) The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHFP)
 - `zone_name` (String) Zone name (FQDN)
 
 ### Optional

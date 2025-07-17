@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_cmdgroup_membership Resource - freeipa"
 description: |-
-FreeIPA Sudo command group membership resource
+  FreeIPA Sudo command group membership resource
 ---
 
 # freeipa_sudo_cmdgroup_membership (Resource)

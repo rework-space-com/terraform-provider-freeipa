@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_sudo_cmdgroup Data Source - freeipa"
 description: |-
-FreeIPA User sudo command group data source
+  FreeIPA Sudo command group data source
 ---
 
 # freeipa_sudo_cmdgroup (Data Source)

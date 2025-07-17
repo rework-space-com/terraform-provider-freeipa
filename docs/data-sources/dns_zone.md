@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_dns_zone Data Source - freeipa"
 description: |-
-FreeIPA DNS Zone resource
+  FreeIPA DNS Zone resource
 ---
 
 # freeipa_dns_zone (Data Source)

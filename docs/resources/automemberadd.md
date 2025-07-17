@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_automemberadd Resource - freeipa"
 description: |-
-FreeIPA Automember resource
+  FreeIPA Automember resource
 ---
 
 # freeipa_automemberadd (Resource)

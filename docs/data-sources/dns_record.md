@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_dns_record Data Source - freeipa"
 description: |-
-FreeIPA DNS Record data source
+  FreeIPA DNS Record data source
 ---
 
 # freeipa_dns_record (Data Source)

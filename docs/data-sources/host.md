@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_host Data Source - freeipa"
 description: |-
-FreeIPA Host data source
+  FreeIPA Host data source
 ---
 
 # freeipa_host (Data Source)

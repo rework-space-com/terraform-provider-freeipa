@@ -61,7 +61,7 @@ func (r *HostGroupDataSource) Metadata(ctx context.Context, req datasource.Metad
 func (r *HostGroupDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA User Group data source",
+		MarkdownDescription: "FreeIPA Host Group data source",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

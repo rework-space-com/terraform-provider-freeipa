@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_host_hostgroup_membership Resource - freeipa"
 description: |-
-FreeIPA User Group Membership resource
+  FreeIPA User Group Membership resource
 ---
 
 # freeipa_host_hostgroup_membership (Resource)

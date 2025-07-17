@@ -1,7 +1,7 @@
 ---
 page_title: "freeipa_hbac_policy_service_membership Resource - freeipa"
 description: |-
-FreeIPA HBAC policy service membership resource
+  FreeIPA HBAC policy service membership resource
 ---
 
 # freeipa_hbac_policy_service_membership (Resource)

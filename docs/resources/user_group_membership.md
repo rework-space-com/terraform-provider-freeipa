@@ -1,7 +1,8 @@
 ---
 page_title: "freeipa_user_group_membership Resource - freeipa"
 description: |-
-  FreeIPA User Group Membership resource
+  FreeIPA User Group Membership resource.
+  Adding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.
 ---
 
 # freeipa_user_group_membership (Resource)

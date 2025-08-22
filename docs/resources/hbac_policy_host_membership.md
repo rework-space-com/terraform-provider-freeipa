@@ -1,7 +1,8 @@
 ---
 page_title: "freeipa_hbac_policy_host_membership Resource - freeipa"
 description: |-
-  FreeIPA HBAC policy host membership resource
+  FreeIPA HBAC policy host membership resource.
+  Adding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.
 ---
 
 # freeipa_hbac_policy_host_membership (Resource)

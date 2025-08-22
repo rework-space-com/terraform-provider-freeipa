@@ -93,7 +93,7 @@ func (r *HostGroupMembership) ConfigValidators(ctx context.Context) []resource.C
 func (r *HostGroupMembership) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA User Group Membership resource",
+		MarkdownDescription: "FreeIPA User Group Membership resource.\nAdding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -227,8 +227,7 @@ func (r *HostGroupMembership) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 	if _v.Completed == 0 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa hostgroup membership: %v", _v.Failed))
-		return
+		resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa hostgroup membership: %v", _v.Failed))
 	}
 
 	// Save data into Terraform state
@@ -432,8 +431,7 @@ func (r *HostGroupMembership) Update(ctx context.Context, req resource.UpdateReq
 			return
 		}
 		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa hostgroup membership: %v", _v.Failed))
-			return
+			resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa hostgroup membership: %v", _v.Failed))
 		}
 	}
 	if hasMemberDel {

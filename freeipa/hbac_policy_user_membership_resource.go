@@ -87,7 +87,7 @@ func (r *HbacPolicyUserMembershipResource) ConfigValidators(ctx context.Context)
 func (r *HbacPolicyUserMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA HBAC policy host membership resource",
+		MarkdownDescription: "FreeIPA HBAC policy host membership resource.\nAdding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -208,10 +208,13 @@ func (r *HbacPolicyUserMembershipResource) Create(ctx context.Context, req resou
 		user_id = "mu"
 	}
 
-	_, err := r.client.HbacruleAddUser(&args, &optArgs)
+	_v, err := r.client.HbacruleAddUser(&args, &optArgs)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule user membership: %s", err))
 		return
+	}
+	if _v.Completed == 0 {
+		resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa sudo rule user membership: %v", _v.Failed))
 	}
 
 	switch user_id {
@@ -411,8 +414,7 @@ func (r *HbacPolicyUserMembershipResource) Update(ctx context.Context, req resou
 			return
 		}
 		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa hbac policy user membership: %v", _v.Failed))
-			return
+			resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa sudo rule user membership: %v", _v.Failed))
 		}
 	}
 	if hasMemberDel {

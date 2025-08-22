@@ -69,7 +69,7 @@ func (r *SudoRuleRunAsUserMembershipResource) ConfigValidators(ctx context.Conte
 func (r *SudoRuleRunAsUserMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA Sudo rule run as user membership resource",
+		MarkdownDescription: "FreeIPA Sudo rule run as user membership resource.\nAdding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -162,10 +162,13 @@ func (r *SudoRuleRunAsUserMembershipResource) Create(ctx context.Context, req re
 		usr_id = "msrrau"
 	}
 
-	_, err := r.client.SudoruleAddRunasuser(&args, &optArgs)
+	_v, err := r.client.SudoruleAddRunasuser(&args, &optArgs)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule runasuser membership: %s", err))
 		return
+	}
+	if _v.Completed == 0 {
+		resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa sudo rule runasuser membership: %v", _v.Failed))
 	}
 
 	switch usr_id {
@@ -320,8 +323,7 @@ func (r *SudoRuleRunAsUserMembershipResource) Update(ctx context.Context, req re
 			return
 		}
 		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule runasuser membership: %v", _v.Failed))
-			return
+			resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa sudo rule runasuser membership: %v", _v.Failed))
 		}
 	}
 	if hasMemberDel {

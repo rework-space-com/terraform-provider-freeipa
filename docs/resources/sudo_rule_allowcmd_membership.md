@@ -1,7 +1,8 @@
 ---
 page_title: "freeipa_sudo_rule_allowcmd_membership Resource - freeipa"
 description: |-
-  FreeIPA Sudo rule allow command membership resource
+  FreeIPA Sudo rule allow command membership resource.
+  Adding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.
 ---
 
 # freeipa_sudo_rule_allowcmd_membership (Resource)

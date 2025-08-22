@@ -1,7 +1,8 @@
 ---
 page_title: "freeipa_sudo_rule_host_membership Resource - freeipa"
 description: |-
-  FreeIPA Sudo rule host membership resource
+  FreeIPA Sudo rule host membership resource.
+  Adding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.
 ---
 
 # freeipa_sudo_rule_host_membership (Resource)

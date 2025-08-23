@@ -1,7 +1,7 @@
 ---
 page_title: "{{ .Name }} {{ .Type }} - {{ .ProviderShortName }}"
 description: |-
-  {{ .Description }}
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{ .Name }} ({{ .Type }})

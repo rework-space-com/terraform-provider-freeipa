@@ -87,7 +87,7 @@ func (r *SudoRuleAllowCmdMembershipResource) ConfigValidators(ctx context.Contex
 func (r *SudoRuleAllowCmdMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA Sudo rule allow command membership resource",
+		MarkdownDescription: "FreeIPA Sudo rule allow command membership resource.\nAdding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -208,10 +208,13 @@ func (r *SudoRuleAllowCmdMembershipResource) Create(ctx context.Context, req res
 		cmd_id = "msrac"
 	}
 
-	_, err := r.client.SudoruleAddAllowCommand(&args, &optArgs)
+	_v, err := r.client.SudoruleAddAllowCommand(&args, &optArgs)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule allowed command membership: %s", err))
 		return
+	}
+	if _v.Completed == 0 {
+		resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa sudo rule allowed command membership: %v", _v.Failed))
 	}
 
 	switch cmd_id {
@@ -411,8 +414,7 @@ func (r *SudoRuleAllowCmdMembershipResource) Update(ctx context.Context, req res
 			return
 		}
 		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo rule allow command membership: %v", _v.Failed))
-			return
+			resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa sudo rule allowed command membership: %v", _v.Failed))
 		}
 	}
 	if hasMemberDel {

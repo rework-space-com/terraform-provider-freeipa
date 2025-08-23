@@ -69,7 +69,7 @@ func (r *SudoCmdGroupMembershipResource) ConfigValidators(ctx context.Context) [
 func (r *SudoCmdGroupMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA Sudo command group membership resource",
+		MarkdownDescription: "FreeIPA Sudo command group membership resource.\nAdding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -162,9 +162,12 @@ func (r *SudoCmdGroupMembershipResource) Create(ctx context.Context, req resourc
 		optArgs.Sudocmd = &v
 		id = fmt.Sprintf("%s/msc/%s", encodeSlash(data.Name.ValueString()), data.Identifier.ValueString())
 	}
-	_, err := r.client.SudocmdgroupAddMember(&args, &optArgs)
+	_v, err := r.client.SudocmdgroupAddMember(&args, &optArgs)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo command group membership: %s", err))
+	}
+	if _v.Completed == 0 {
+		resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa sudo command group membership: %v", _v.Failed))
 	}
 	data.Id = types.StringValue(id)
 
@@ -310,8 +313,7 @@ func (r *SudoCmdGroupMembershipResource) Update(ctx context.Context, req resourc
 			return
 		}
 		if _v.Completed == 0 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa sudo command group membership: %v", _v.Failed))
-			return
+			resp.Diagnostics.AddWarning("Client Warning", fmt.Sprintf("Warning creating freeipa sudo command group membership: %v", _v.Failed))
 		}
 	}
 	if hasMemberDel {

@@ -70,10 +70,12 @@ func (p *freeipaProvider) Metadata(ctx context.Context, req provider.MetadataReq
 
 func (p *freeipaProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "This FreeIPA terraform provider allows to manage resources for the `FreeIPA` solution.\nThe provider is also compatible with the `Red Hat Identity Manager` product that is based on FreeIPA.",
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
 				MarkdownDescription: "The FreeIPA host",
-				Optional:            true,
+				Required:            true,
 			},
 			"username": schema.StringAttribute{
 				MarkdownDescription: "Username to use for connection",

@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_hostgroup (Data Source)
 
+FreeIPA Host Group data source
 
 
 ## Example Usage

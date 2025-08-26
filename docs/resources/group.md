@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_group (Resource)
 
+FreeIPA User Group resource
 
 
 ## Example Usage

@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_sudo_cmd (Resource)
 
+FreeIPA Sudo command resource
 
 
 ## Example Usage

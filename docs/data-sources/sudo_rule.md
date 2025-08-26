@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_sudo_rule (Data Source)
 
+FreeIPA Sudo rule data source
 
 
 ## Example Usage

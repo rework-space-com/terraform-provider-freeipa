@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_dns_zone (Resource)
 
+FreeIPA DNS Zone resource
 
 
 ## Example Usage

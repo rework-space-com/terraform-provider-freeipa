@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_hbac_policy (Data Source)
 
+FreeIPA User hbac policy data source
 
 
 ## Example Usage

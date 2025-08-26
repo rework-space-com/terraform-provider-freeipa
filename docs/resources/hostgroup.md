@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_hostgroup (Resource)
 
+FreeIPA Host Group resource
 
 
 ## Example Usage

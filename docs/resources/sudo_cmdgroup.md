@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_sudo_cmdgroup (Resource)
 
+FreeIPA Sudo command group resource
 
 
 ## Example Usage

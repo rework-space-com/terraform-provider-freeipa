@@ -7,6 +7,8 @@ description: |-
 
 # freeipa_sudo_rule_user_membership (Resource)
 
+FreeIPA Sudo rule user membership resource.
+Adding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.
 
 
 ## Example Usage

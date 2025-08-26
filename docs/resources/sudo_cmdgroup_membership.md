@@ -7,6 +7,8 @@ description: |-
 
 # freeipa_sudo_cmdgroup_membership (Resource)
 
+FreeIPA Sudo command group membership resource.
+Adding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.
 
 
 ## Example Usage

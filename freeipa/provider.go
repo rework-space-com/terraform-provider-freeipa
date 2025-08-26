@@ -74,24 +74,24 @@ func (p *freeipaProvider) Schema(ctx context.Context, req provider.SchemaRequest
 		MarkdownDescription: "This FreeIPA terraform provider allows to manage resources for the `FreeIPA` solution.\nThe provider is also compatible with the `Red Hat Identity Manager` product that is based on FreeIPA.",
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
-				MarkdownDescription: "The FreeIPA host",
+				MarkdownDescription: "The FreeIPA host. Can be set through the environment variable `FREEIPA_HOST`.",
 				Required:            true,
 			},
 			"username": schema.StringAttribute{
-				MarkdownDescription: "Username to use for connection",
+				MarkdownDescription: "Username to use for connection. Can be set through the environment variable `FREEIPA_USERNAME`.",
 				Optional:            true,
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "Password to use for connection",
+				MarkdownDescription: "Password to use for connection. Can be set through the environment variable `FREEIPA_PASSWORD`.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"insecure": schema.BoolAttribute{
-				MarkdownDescription: "Whether to verify the server's SSL certificate",
+				MarkdownDescription: "Whether to verify the server's SSL certificate. Can be set through the environment variable `FREEIPA_INSECURE`.",
 				Optional:            true,
 			},
 			"ca_certificate": schema.StringAttribute{
-				MarkdownDescription: "Path to the server's SSL CA certificate",
+				MarkdownDescription: "Path to the server's SSL CA certificate. Can be set through the environment variable `FREEIPA_CA_CERT`.",
 				Optional:            true,
 			},
 		},

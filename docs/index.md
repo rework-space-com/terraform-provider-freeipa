@@ -37,11 +37,11 @@ provider "freeipa" {
 
 ### Required
 
-- `host` (String) The FreeIPA host
+- `host` (String) The FreeIPA host. Can be set through the environment variable `FREEIPA_HOST`.
 
 ### Optional
 
-- `ca_certificate` (String) Path to the server's SSL CA certificate
-- `insecure` (Boolean) Whether to verify the server's SSL certificate
-- `password` (String, Sensitive) Password to use for connection
-- `username` (String) Username to use for connection
+- `ca_certificate` (String) Path to the server's SSL CA certificate. Can be set through the environment variable `FREEIPA_CA_CERT`.
+- `insecure` (Boolean) Whether to verify the server's SSL certificate. Can be set through the environment variable `FREEIPA_INSECURE`.
+- `password` (String, Sensitive) Password to use for connection. Can be set through the environment variable `FREEIPA_PASSWORD`.
+- `username` (String) Username to use for connection. Can be set through the environment variable `FREEIPA_USERNAME`.

@@ -7,6 +7,8 @@ description: |-
 
 # freeipa_user_group_membership (Resource)
 
+FreeIPA User Group Membership resource.
+Adding a member that already exist in FreeIPA will result in a warning but the member will be added to the state.
 
 
 ## Example Usage

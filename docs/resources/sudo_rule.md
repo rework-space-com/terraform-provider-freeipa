@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_sudo_rule (Resource)
 
+FreeIPA Sudo rule resource
 
 
 ## Example Usage

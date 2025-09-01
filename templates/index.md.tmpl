@@ -1,10 +1,14 @@
 ---
 page_title: "Provider: {{ .ProviderShortName | upper }}"
 description: |-
-  
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{ .ProviderShortName | upper }} Provider
+
+{{ .Description | trimspace }}
+
+The provider needs to be configured with the proper endpoints and credentials before it can be used.
 
 ## Example Usage
 

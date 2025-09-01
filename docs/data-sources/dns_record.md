@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_dns_record (Data Source)
 
+FreeIPA DNS Record data source
 
 
 ## Example Usage

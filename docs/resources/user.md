@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_user (Resource)
 
+FreeIPA User resource
 
 
 ## Example Usage

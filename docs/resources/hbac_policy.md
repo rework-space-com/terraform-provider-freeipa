@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_hbac_policy (Resource)
 
+FreeIPA HBAC policy resource
 
 
 ## Example Usage

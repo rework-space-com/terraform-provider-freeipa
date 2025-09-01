@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_automemberadd_condition (Resource)
 
+FreeIPA Automember condition resource
 
 
 ## Example Usage

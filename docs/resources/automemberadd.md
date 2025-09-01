@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_automemberadd (Resource)
 
+FreeIPA Automember resource
 
 
 ## Example Usage

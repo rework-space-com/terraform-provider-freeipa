@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_sudo_cmdgroup (Data Source)
 
+FreeIPA Sudo command group data source
 
 
 ## Example Usage

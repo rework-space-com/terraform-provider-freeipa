@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_user (Data Source)
 
+FreeIPA User data source
 
 
 ## Example Usage

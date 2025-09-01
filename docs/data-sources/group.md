@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_group (Data Source)
 
+FreeIPA User Group data source
 
 
 ## Example Usage

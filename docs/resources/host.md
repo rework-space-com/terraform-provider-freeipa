@@ -6,6 +6,7 @@ description: |-
 
 # freeipa_host (Resource)
 
+FreeIPA Host resource
 
 
 ## Example Usage

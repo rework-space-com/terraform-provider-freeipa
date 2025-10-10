@@ -137,7 +137,10 @@ func (r *AutomemberResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	optArgs := ipa.AutomemberAddOptionalArgs{}
+	all := true
+	optArgs := ipa.AutomemberAddOptionalArgs{
+		All: &all,
+	}
 
 	args := ipa.AutomemberAddArgs{
 		Cn:   data.Name.ValueString(),
@@ -257,7 +260,11 @@ func (r *AutomemberResource) Update(ctx context.Context, req resource.UpdateRequ
 		Cn:   data.Id.ValueString(),
 		Type: data.Type.ValueString(),
 	}
-	optArgs := ipa.AutomemberModOptionalArgs{}
+
+	all := true
+	optArgs := ipa.AutomemberModOptionalArgs{
+		All: &all,
+	}
 
 	if !data.Description.Equal(state.Description) {
 		optArgs.Description = data.Description.ValueStringPointer()

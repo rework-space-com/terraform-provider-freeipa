@@ -19,7 +19,7 @@ version: "3"
 
 services:
   ipa:
-    image: freeipa/freeipa-server:fedora-37-4.10.1
+    image: freeipa/freeipa-server:fedora-42-4.12.5
     container_name: ipa
     hostname: ipa.ipatest.lan
     restart: unless-stopped

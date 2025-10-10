@@ -176,7 +176,10 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	optArgs := ipa.GroupAddOptionalArgs{}
+	all := true
+	optArgs := ipa.GroupAddOptionalArgs{
+		All: &all,
+	}
 
 	args := ipa.GroupAddArgs{
 		Cn: data.Name.ValueString(),
@@ -307,7 +310,11 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 	args := ipa.GroupModArgs{
 		Cn: data.Name.ValueString(),
 	}
-	optArgs := ipa.GroupModOptionalArgs{}
+
+	all := true
+	optArgs := ipa.GroupModOptionalArgs{
+		All: &all,
+	}
 
 	if !data.Description.Equal(state.Description) {
 		optArgs.Description = data.Description.ValueStringPointer()
@@ -319,7 +326,7 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	if !data.AddAttr.Equal(state.AddAttr) {
-		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa group Addattr %s ", data.AddAttr.String()))
+		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa group Addattr %s ", data.AddAttr.String()))
 		var v []string
 
 		for _, value := range data.AddAttr.Elements() {

@@ -345,12 +345,12 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 		optArgs.Setattr = &v
 	}
 
-	res, err := r.client.GroupMod(&args, &optArgs)
+	_, err := r.client.GroupMod(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "EmptyModlist") {
 			resp.Diagnostics.AddWarning("Client Warning", err.Error())
 		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", res.Result.Cn, err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", data.Name.ValueString(), err))
 			return
 		}
 	}

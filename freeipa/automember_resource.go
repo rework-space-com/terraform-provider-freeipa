@@ -290,12 +290,12 @@ func (r *AutomemberResource) Update(ctx context.Context, req resource.UpdateRequ
 		optArgs.Setattr = &v
 	}
 
-	res, err := r.client.AutomemberMod(&args, &optArgs)
+	_, err := r.client.AutomemberMod(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "EmptyModlist") {
 			resp.Diagnostics.AddWarning("Client Warning", err.Error())
 		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa automember rule %s: %s", res.Result.Cn, err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa automember rule %s: %s", data.Id.ValueString(), err))
 			return
 		}
 	}

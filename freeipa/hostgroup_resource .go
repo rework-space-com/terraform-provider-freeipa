@@ -209,12 +209,12 @@ func (r *HostGroupResource) Update(ctx context.Context, req resource.UpdateReque
 	if !data.Description.Equal(state.Description) {
 		optArgs.Description = data.Description.ValueStringPointer()
 	}
-	res, err := r.client.HostgroupMod(&args, &optArgs)
+	_, err := r.client.HostgroupMod(&args, &optArgs)
 	if err != nil {
 		if strings.Contains(err.Error(), "EmptyModlist") {
 			resp.Diagnostics.AddWarning("Client Warning", err.Error())
 		} else {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", res.Result.Cn, err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error update freeipa group %s: %s", data.Name.ValueString(), err))
 			return
 		}
 	}

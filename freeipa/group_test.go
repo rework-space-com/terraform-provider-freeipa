@@ -19,7 +19,6 @@ func TestAccFreeIPAGroup_posix(t *testing.T) {
 		"name":        "\"testacc-group-1\"",
 		"description": "\"Test group 1\"",
 		"gid_number":  "10000",
-		"addattr":     "[\"owner=uid=test\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
 	testGroup2 := map[string]string{
@@ -27,7 +26,6 @@ func TestAccFreeIPAGroup_posix(t *testing.T) {
 		"name":        "\"testacc-grouppos-2\"",
 		"description": "\"User group test 2\"",
 		"gid_number":  "10002",
-		"addattr":     "[\"owner=uid=test2\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
 	testGroupDS := map[string]string{
@@ -81,7 +79,6 @@ func TestAccFreeIPAGroup_posix_CaseInsensitive(t *testing.T) {
 		"name":        "\"TestACC-Group-1\"",
 		"description": "\"Test group 1\"",
 		"gid_number":  "10000",
-		"addattr":     "[\"owner=uid=test\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
 	testGroup2 := map[string]string{
@@ -89,7 +86,6 @@ func TestAccFreeIPAGroup_posix_CaseInsensitive(t *testing.T) {
 		"name":        "\"TestACC-GroupPos-2\"",
 		"description": "\"User group test 2\"",
 		"gid_number":  "10002",
-		"addattr":     "[\"owner=uid=test2\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
 	testGroupDS := map[string]string{
@@ -148,7 +144,6 @@ func TestAccFreeIPAGroup_noposix(t *testing.T) {
 		"name":        "\"testacc-groupnonpos\"",
 		"description": "\"User group test\"",
 		"nonposix":    "true",
-		"addattr":     "[\"owner=uid=test\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
 
@@ -182,7 +177,6 @@ func TestAccFreeIPAGroup_noposix_CaseInsensitive(t *testing.T) {
 		"name":        "\"TestACC-groupnonpos\"",
 		"description": "\"User group test\"",
 		"nonposix":    "true",
-		"addattr":     "[\"owner=uid=test\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
 
@@ -216,7 +210,6 @@ func TestAccFreeIPAGroup_external(t *testing.T) {
 		"name":        "\"testacc-groupext\"",
 		"description": "\"External user group test\"",
 		"external":    "true",
-		"addattr":     "[\"owner=uid=test\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
 
@@ -250,7 +243,6 @@ func TestAccFreeIPAGroup_external_CaseInsensitive(t *testing.T) {
 		"name":        "\"TestACC-groupext\"",
 		"description": "\"External user group test\"",
 		"external":    "true",
-		"addattr":     "[\"owner=uid=test\"]",
 		"setattr":     "[\"owner=uid=test\"]",
 	}
 

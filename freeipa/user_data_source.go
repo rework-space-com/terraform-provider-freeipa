@@ -68,6 +68,8 @@ type UserDataSourceModel struct {
 	EmployeeType             types.String `tfsdk:"employee_type"`
 	PreferredLanguage        types.String `tfsdk:"preferred_language"`
 	AccountDisabled          types.Bool   `tfsdk:"account_disabled"`
+	AccountStaged            types.Bool   `tfsdk:"account_staged"`
+	AccountPreserved         types.Bool   `tfsdk:"account_preserved"`
 	SshPublicKeys            types.List   `tfsdk:"ssh_public_key"`
 	CarLicense               types.List   `tfsdk:"car_license"`
 	UserClass                types.List   `tfsdk:"userclass"`
@@ -104,6 +106,14 @@ func (r *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 			"name": schema.StringAttribute{
 				MarkdownDescription: "UID or Login\n\n	- The name must not exceed 32 characters.\n	- The name must contain only lowercase letters (a-z), digits (0-9), and the characters (. - _).\n	- The name must not start with a special character.\n	- A user and a group cannot have the same name.",
 				Required:            true,
+			},
+			"account_staged": schema.BoolAttribute{
+				MarkdownDescription: "Lookup in staged accounts",
+				Optional:            true,
+			},
+			"account_preserved": schema.BoolAttribute{
+				MarkdownDescription: "Lookup in preserved accounts",
+				Optional:            true,
 			},
 			"full_name": schema.StringAttribute{
 				MarkdownDescription: "Full name",
@@ -291,6 +301,23 @@ func (r *UserDataSource) Configure(ctx context.Context, req datasource.Configure
 func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data UserDataSourceModel
 
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if data.AccountStaged.IsNull() || data.AccountStaged.Equal(types.BoolValue(false)) {
+		r.ReadActiveUser(ctx, req, resp)
+	} else {
+		r.ReadStagedUser(ctx, req, resp)
+	}
+}
+
+func (r *UserDataSource) ReadActiveUser(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data UserDataSourceModel
+
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
@@ -311,6 +338,14 @@ func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
+	if !data.AccountPreserved.IsNull() && data.AccountPreserved.Equal(types.BoolValue(true)) && !*res.Result.Preserved {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("User %s not found in preserved users.", data.UID.ValueString()))
+		return
+	}
+	if (data.AccountPreserved.IsNull() || data.AccountPreserved.Equal(types.BoolValue(false))) && *res.Result.Preserved {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("User %s not found in active users.", data.UID.ValueString()))
+		return
+	}
 	if res.Result.Givenname != nil {
 		data.FirstName = types.StringValue(*res.Result.Givenname)
 	}
@@ -429,6 +464,136 @@ func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 	if res.Result.MemberofindirectSudorule != nil {
 		data.MemberOfIndirectSudoRule, _ = types.ListValueFrom(ctx, types.StringType, res.Result.MemberofindirectSudorule)
+	}
+	if res.Result.Preserved != nil {
+		data.AccountPreserved = types.BoolValue(*res.Result.Preserved)
+	}
+
+	data.Id = types.StringValue(data.UID.ValueString())
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+}
+
+func (r *UserDataSource) ReadStagedUser(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data UserDataSourceModel
+
+	// Read Terraform configuration data into the model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	all := true
+	optArgs := ipa.StageuserShowOptionalArgs{
+		All: &all,
+	}
+
+	optArgs.UID = data.UID.ValueStringPointer()
+
+	res, err := r.client.StageuserShow(&ipa.StageuserShowArgs{}, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", err.Error())
+		return
+	}
+
+	data.FirstName = types.StringValue(res.Result.Givenname)
+
+	data.LastName = types.StringValue(res.Result.Sn)
+	data.FullName = types.StringValue(res.Result.Cn)
+	if res.Result.Displayname != nil {
+		data.DisplayName = types.StringValue(*res.Result.Displayname)
+	}
+	if res.Result.Initials != nil {
+		data.Initials = types.StringValue(*res.Result.Initials)
+	}
+	if res.Result.Homedirectory != nil {
+		data.HomeDirectory = types.StringValue(*res.Result.Homedirectory)
+	}
+	if res.Result.Gecos != nil {
+		data.Gecos = types.StringValue(*res.Result.Gecos)
+	}
+	if res.Result.Initials != nil {
+		data.LoginShell = types.StringValue(*res.Result.Loginshell)
+	}
+	if res.Result.Krbprincipalname != nil {
+		data.KrbPrincipalName, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Krbprincipalname)
+	}
+	if res.Result.Mail != nil {
+		data.EmailAddress, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Mail)
+	}
+	if res.Result.Telephonenumber != nil {
+		data.TelephoneNumbers, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Telephonenumber)
+	}
+	if res.Result.Mobile != nil {
+		data.MobileNumbers, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Mobile)
+	}
+	if res.Result.Random != nil {
+		data.RandomPassword = types.BoolValue(*res.Result.Random)
+	}
+	if res.Result.Uidnumber != nil {
+		data.UidNumber = types.Int32Value(int32(*res.Result.Uidnumber))
+	}
+	if res.Result.Gidnumber != nil {
+		data.GidNumber = types.Int32Value(int32(*res.Result.Gidnumber))
+	}
+	if res.Result.Street != nil {
+		data.StreetAddress = types.StringValue(*res.Result.Street)
+	}
+	if res.Result.L != nil {
+		data.City = types.StringValue(*res.Result.L)
+	}
+	if res.Result.St != nil {
+		data.Province = types.StringValue(*res.Result.St)
+	}
+	if res.Result.Postalcode != nil {
+		data.PostalCode = types.StringValue(*res.Result.Postalcode)
+	}
+	if res.Result.Ou != nil {
+		data.OrganisationUnit = types.StringValue(*res.Result.Ou)
+	}
+	if res.Result.Title != nil {
+		data.JobTitle = types.StringValue(*res.Result.Title)
+	}
+	if res.Result.Manager != nil {
+		data.Manager = types.StringValue(*res.Result.Manager)
+	}
+	if res.Result.Employeenumber != nil {
+		data.EmployeeNumber = types.StringValue(*res.Result.Employeenumber)
+	}
+	if res.Result.Employeetype != nil {
+		data.EmployeeType = types.StringValue(*res.Result.Employeetype)
+	}
+	if res.Result.Preferredlanguage != nil {
+		data.PreferredLanguage = types.StringValue(*res.Result.Preferredlanguage)
+	}
+	if res.Result.Ipasshpubkey != nil && !data.SshPublicKeys.IsNull() {
+		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
+	}
+	if res.Result.Carlicense != nil {
+		data.CarLicense, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Carlicense)
+	}
+	if res.Result.Krbprincipalexpiration != nil && !data.KrbPrincipalExpiration.IsNull() {
+		timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", res.Result.Krbprincipalexpiration.String())
+		if err != nil {
+			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))
+			return
+		}
+		data.KrbPrincipalExpiration = types.StringValue(timestamp.Format(time.RFC3339))
+	}
+	if res.Result.Krbpasswordexpiration != nil && !data.KrbPasswordExpiration.IsNull() {
+		timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", res.Result.Krbpasswordexpiration.String())
+		if err != nil {
+			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))
+			return
+		}
+		data.KrbPasswordExpiration = types.StringValue(timestamp.Format(time.RFC3339))
+	}
+	if res.Result.Userclass != nil {
+		data.UserClass, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Userclass)
 	}
 
 	data.Id = types.StringValue(data.UID.ValueString())

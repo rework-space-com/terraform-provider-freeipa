@@ -131,7 +131,7 @@ func (r *UserGroupResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"addattr": schema.ListAttribute{
-				MarkdownDescription: "Add an attribute/value pair. Format is attr=value. The attribute must be part of the schema.",
+				MarkdownDescription: "Add an attribute/value pair. Format is attr=value. The attribute must be part of the LDAP schema.",
 				Optional:            true,
 				Computed:            false,
 				ElementType:         types.StringType,

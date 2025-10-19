@@ -6,6 +6,7 @@
 package freeipa
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -302,6 +303,248 @@ func TestAccFreeIPAUser_simple_CaseInsensitive(t *testing.T) {
 			},
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_datasource(testUserDS),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestAccFreeIPAUser_staged(t *testing.T) {
+	testUser := map[string]string{
+		"index":          "0",
+		"login":          "\"TestACC-User\"",
+		"firstname":      "\"Dev\"",
+		"lastname":       "\"User\"",
+		"account_staged": "true",
+	}
+	testUserDS := map[string]string{
+		"index":          "0",
+		"name":           "freeipa_user.user-0.name",
+		"account_staged": "true",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_datasource(testUserDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_datasource(testUserDS),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestAccFreeIPAUser_lifecycle(t *testing.T) {
+	testUserStaged := map[string]string{
+		"index":          "0",
+		"login":          "\"TestACC-User\"",
+		"firstname":      "\"Dev\"",
+		"lastname":       "\"User\"",
+		"account_staged": "true",
+	}
+	testUserStagedDS := map[string]string{
+		"index":          "0",
+		"name":           "freeipa_user.user-0.name",
+		"account_staged": "true",
+	}
+	testUserActive := map[string]string{
+		"index":     "0",
+		"login":     "\"TestACC-User\"",
+		"firstname": "\"Dev\"",
+		"lastname":  "\"User\"",
+	}
+	testUserActiveDS := map[string]string{
+		"index": "0",
+		"name":  "freeipa_user.user-0.name",
+	}
+	testUserDisabled := map[string]string{
+		"index":            "0",
+		"login":            "\"TestACC-User\"",
+		"firstname":        "\"Dev\"",
+		"lastname":         "\"User\"",
+		"account_disabled": "true",
+	}
+	testUserPreserved := map[string]string{
+		"index":             "0",
+		"login":             "\"TestACC-User\"",
+		"firstname":         "\"Dev\"",
+		"lastname":          "\"User\"",
+		"account_preserved": "true",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
+				ExpectError: regexp.MustCompile("Creating a preserved user is not allowed."),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged) + testAccFreeIPAUser_datasource(testUserStagedDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
+				ExpectError: regexp.MustCompile("Preserving a staged user is not allowed."),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive) + testAccFreeIPAUser_datasource(testUserActiveDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				ExpectError: regexp.MustCompile("Staging an active user is not allowed."),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled) + testAccFreeIPAUser_datasource(testUserActiveDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				ExpectError: regexp.MustCompile("Staging an preserved user is not allowed."),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),

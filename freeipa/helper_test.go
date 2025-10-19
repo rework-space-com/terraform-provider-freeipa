@@ -81,6 +81,12 @@ func testAccFreeIPAUser_resource(dataset map[string]string) string {
 	if dataset["account_disabled"] != "" {
 		tf_def += fmt.Sprintf("  account_disabled = %s\n", dataset["account_disabled"])
 	}
+	if dataset["account_staged"] != "" {
+		tf_def += fmt.Sprintf("  account_staged = %s\n", dataset["account_staged"])
+	}
+	if dataset["account_preserved"] != "" {
+		tf_def += fmt.Sprintf("  account_preserved = %s\n", dataset["account_preserved"])
+	}
 	if dataset["car_license"] != "" {
 		tf_def += fmt.Sprintf("  car_license = %s\n", dataset["car_license"])
 	}
@@ -168,16 +174,27 @@ func testAccFreeIPAUser_resource(dataset map[string]string) string {
 	if dataset["userclass"] != "" {
 		tf_def += fmt.Sprintf("  userclass = %s\n", dataset["userclass"])
 	}
+	if dataset["addattr"] != "" {
+		tf_def += fmt.Sprintf("  addattr = %s\n", dataset["addattr"])
+	}
+	if dataset["setattr"] != "" {
+		tf_def += fmt.Sprintf("  setattr = %s\n", dataset["setattr"])
+	}
 	tf_def += "}\n"
 	return tf_def
 }
 
 func testAccFreeIPAUser_datasource(dataset map[string]string) string {
-	return fmt.Sprintf(`
+	tf_def := fmt.Sprintf(`
 	data "freeipa_user" "user-%s" {
 		name        = %s
-	}
 	`, dataset["index"], dataset["name"])
+
+	if dataset["account_staged"] != "" {
+		tf_def += fmt.Sprintf("  account_staged = %s\n", dataset["account_staged"])
+	}
+	tf_def += "}\n"
+	return tf_def
 }
 
 func testAccFreeIPAUserGroupMembership_resource(dataset map[string]string) string {

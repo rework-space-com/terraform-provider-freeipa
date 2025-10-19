@@ -12,10 +12,17 @@ FreeIPA User data source
 ## Example Usage
 
 ```terraform
+# Lookup an active user
+
 data "freeipa_user" "user-0" {
-  name       = "test-user"
-  first_name = "John"
-  last_name  = "Doe"
+  name = "test-user"
+}
+
+# Lookup an staged user
+
+data "freeipa_user" "user-0" {
+  name           = "test-user"
+  account_staged = true
 }
 ```
 
@@ -31,6 +38,11 @@ data "freeipa_user" "user-0" {
 	- The name must contain only lowercase letters (a-z), digits (0-9), and the characters (. - _).
 	- The name must not start with a special character.
 	- A user and a group cannot have the same name.
+
+### Optional
+
+- `account_preserved` (Boolean) Lookup in preserved accounts
+- `account_staged` (Boolean) Lookup in staged accounts
 
 ### Read-Only
 

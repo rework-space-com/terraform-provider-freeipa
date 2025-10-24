@@ -7,7 +7,7 @@ description: |-
   account_preserved
   (defaults to active)
   An active user can be preserved.
-  A user can bestaged only at the user's creation.
+  A user can be staged only at the user's creation.
   A staged user can be preserved.
   A preserved or staged user can activated.
 ---
@@ -24,7 +24,7 @@ FreeIPA User resource. The user lifecycle is managed with the attributes:
 
 An `active` user can be preserved.
 
-A user can be`staged` only at the user's creation.
+A user can be `staged` only at the user's creation.
 
 A `staged` user can be preserved.
 

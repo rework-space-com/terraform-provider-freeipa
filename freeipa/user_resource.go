@@ -114,7 +114,7 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"- account_preserved\n\n" +
 			"(defaults to active)\n\n" +
 			"An `active` user can be preserved.\n\n" +
-			"A user can be`staged` only at the user's creation.\n\n" +
+			"A user can be `staged` only at the user's creation.\n\n" +
 			"A `staged` user can be preserved.\n\n" +
 			"A `preserved` or `staged` user can activated.\n\n",
 
@@ -347,6 +347,7 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				ElementType:         types.StringType,
 			},
 		},
+		Version: 1,
 	}
 }
 
@@ -381,17 +382,17 @@ func (r *UserResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRe
 	if req.Plan.Raw.IsNull() {
 		return
 	}
-	if req.State.Raw.IsNull() && (!toPreserved.IsNull() && toPreserved.Equal(types.BoolValue(true))) {
+	if req.State.Raw.IsNull() && toPreserved.ValueBool() {
 		resp.Diagnostics.AddError("User Lifecycle", "Creating a preserved user is not allowed.")
 		return
 	}
-	if (toStaged.IsNull() || toStaged.Equal(types.BoolValue(false))) && (!toPreserved.IsNull() && toPreserved.Equal(types.BoolValue(true))) {
+	if !toStaged.ValueBool() && toPreserved.ValueBool() {
 		if accountStage.Equal(types.StringValue("staged")) {
 			resp.Diagnostics.AddError("User Lifecycle", "Preserving a staged user is not allowed.")
 			return
 		}
 		resp.Plan.SetAttribute(ctx, path.Root("state"), types.StringValue("preserved"))
-	} else if (!toStaged.IsNull() && toStaged.Equal(types.BoolValue(true))) && (toPreserved.IsNull() || toPreserved.Equal(types.BoolValue(false))) {
+	} else if toStaged.ValueBool() && !toPreserved.ValueBool() {
 		if accountStage.Equal(types.StringValue("active")) {
 			resp.Diagnostics.AddError("User Lifecycle", "Staging an active user is not allowed.")
 			return
@@ -463,7 +464,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	// update active user
-	if state.State.Equal(types.StringValue("active")) {
+	if state.State.IsNull() || state.State.Equal(types.StringValue("active")) {
 		if data.State.Equal(types.StringValue("staged")) {
 			resp.Diagnostics.AddError("Client Error", "Staging an active user is not authorized.")
 			return

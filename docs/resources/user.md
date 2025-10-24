@@ -7,7 +7,7 @@ description: |-
   account_preserved
   (defaults to active)
   An active user can be preserved.
-  A user can be staged only at the user's creation.
+  A user can be staged at the user's creation or from a preservedstate.
   A staged user can be preserved.
   A preserved or staged user can activated.
 ---
@@ -24,7 +24,7 @@ FreeIPA User resource. The user lifecycle is managed with the attributes:
 
 An `active` user can be preserved.
 
-A user can be `staged` only at the user's creation.
+A user can be `staged` at the user's creation or from a `preserved`state.
 
 A `staged` user can be preserved.
 
@@ -66,7 +66,7 @@ resource "freeipa_user" "testuser" {
   last_name  = "User"
 }
 
-# The import id of an staged must be exactly equal to `username;staged` of the user to import.
+# The import id of n staged must be exactly equal to `username;staged` of the user to import.
 
 # The associated resource in terraform must include the attributes:
 # - `name`
@@ -84,6 +84,26 @@ resource "freeipa_user" "testuser" {
   first_name     = "Test"
   last_name      = "User"
   account_staged = true
+}
+
+# The import id of a preserved must be exactly equal to `username;preserved` of the user to import.
+
+# The associated resource in terraform must include the attributes:
+# - `name`
+# - `first_name`
+# - `last_name`
+# - `account_preserved`
+
+import {
+  to = freeipa_user.testuser
+  id = "testuser;preserved"
+}
+
+resource "freeipa_user" "testuser" {
+  name           = "testuser"
+  first_name     = "Test"
+  last_name      = "User"
+  account_preserved = true
 }
 ```
 
@@ -105,8 +125,8 @@ resource "freeipa_user" "testuser" {
 ### Optional
 
 - `account_disabled` (Boolean) Account disabled.
-- `account_preserved` (Boolean) Account preserved. Conflicts with `account_staged`.
-- `account_staged` (Boolean) Account staged. Conflicts with `account_preserved`.
+- `account_preserved` (Boolean) Account preserved.
+- `account_staged` (Boolean) Account staged.
 - `addattr` (List of String) Add an attribute/value pair. Format is attr=value. The attribute must be part of the LDAP schema.
 - `auth_type` (Set of String) User authentication type. Possible values of the elements are (password, radius, otp, pkinit, hardened, idp, passkey)
 - `car_license` (List of String) Car Licenses

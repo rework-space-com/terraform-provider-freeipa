@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -106,15 +105,15 @@ func (r *UserResource) ConfigValidators(ctx context.Context) []resource.ConfigVa
 	return []resource.ConfigValidator{}
 }
 
-func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
+func userSchema() schema.Schema {
+	return schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "FreeIPA User resource. The user lifecycle is managed with the attributes:\n\n" +
 			"- account_staged\n\n" +
 			"- account_preserved\n\n" +
 			"(defaults to active)\n\n" +
 			"An `active` user can be preserved.\n\n" +
-			"A user can be `staged` only at the user's creation.\n\n" +
+			"A user can be `staged` at the user's creation or from a `preserved`state.\n\n" +
 			"A `staged` user can be preserved.\n\n" +
 			"A `preserved` or `staged` user can activated.\n\n",
 
@@ -288,23 +287,17 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				},
 			},
 			"account_staged": schema.BoolAttribute{
-				MarkdownDescription: "Account staged. Conflicts with `account_preserved`.",
+				MarkdownDescription: "Account staged.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.Bool{
-					boolvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("account_preserved")),
 				},
 			},
 			"account_preserved": schema.BoolAttribute{
-				MarkdownDescription: "Account preserved. Conflicts with `account_staged`.",
+				MarkdownDescription: "Account preserved.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.Bool{
-					boolvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("account_staged")),
 				},
 			},
 			"state": schema.StringAttribute{
@@ -351,6 +344,11 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 	}
 }
 
+func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = userSchema()
+
+}
+
 func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
@@ -374,35 +372,36 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 func (r *UserResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	var accountStage types.String
 	req.State.GetAttribute(ctx, path.Root("state"), &accountStage)
-	var toPreserved types.Bool
+	var toPreserved, toStaged types.Bool
 	req.Plan.GetAttribute(ctx, path.Root("account_preserved"), &toPreserved)
-	var toStaged types.Bool
 	req.Plan.GetAttribute(ctx, path.Root("account_staged"), &toStaged)
 
+	if toPreserved.ValueBool() && toStaged.ValueBool() {
+		resp.Diagnostics.AddError("User Lifecycle", "account_staged and account_preserved cannot be both true.")
+		return
+	}
+	// on delete
 	if req.Plan.Raw.IsNull() {
 		return
 	}
+	// create as preserved
 	if req.State.Raw.IsNull() && toPreserved.ValueBool() {
 		resp.Diagnostics.AddError("User Lifecycle", "Creating a preserved user is not allowed.")
 		return
 	}
-	if !toStaged.ValueBool() && toPreserved.ValueBool() {
+	if !toStaged.ValueBool() && toPreserved.ValueBool() { // to preserved
 		if accountStage.Equal(types.StringValue("staged")) {
 			resp.Diagnostics.AddError("User Lifecycle", "Preserving a staged user is not allowed.")
 			return
 		}
 		resp.Plan.SetAttribute(ctx, path.Root("state"), types.StringValue("preserved"))
-	} else if toStaged.ValueBool() && !toPreserved.ValueBool() {
-		if accountStage.Equal(types.StringValue("active")) {
+	} else if toStaged.ValueBool() && !toPreserved.ValueBool() { // to staged
+		if accountStage.Equal(types.StringValue("active")) { // active -> staged
 			resp.Diagnostics.AddError("User Lifecycle", "Staging an active user is not allowed.")
 			return
 		}
-		if accountStage.Equal(types.StringValue("preserved")) {
-			resp.Diagnostics.AddError("User Lifecycle", "Staging an preserved user is not allowed.")
-			return
-		}
 		resp.Plan.SetAttribute(ctx, path.Root("state"), types.StringValue("staged"))
-	} else {
+	} else { // to active
 		resp.Plan.SetAttribute(ctx, path.Root("state"), types.StringValue("active"))
 	}
 }
@@ -491,16 +490,14 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	// update preserved user
 	if state.State.Equal(types.StringValue("preserved")) {
+		r.UpdatePreservedUser(ctx, req, resp)
 		if data.State.Equal(types.StringValue("staged")) {
-			resp.Diagnostics.AddError("Client Error", "Staging an active user is not authorized.")
+			r.StagePreservedUser(ctx, req, resp)
 			return
 		}
 		if data.State.Equal(types.StringValue("active")) {
-			r.UpdatePreservedUser(ctx, req, resp)
 			r.ActivatePreservedUser(ctx, req, resp)
 			return
-		} else if data.State.Equal(types.StringValue("preserved")) {
-			r.UpdatePreservedUser(ctx, req, resp)
 		}
 	}
 
@@ -554,7 +551,7 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 		state = "active"
 	}
 
-	if state != "staged" {
+	if state == "active" {
 		optArgs := ipa.UserShowOptionalArgs{
 			All: &all,
 		}
@@ -575,7 +572,11 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
-	} else {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "active")...)
+		return
+	}
+
+	if state == "staged" {
 		optArgs := ipa.StageuserShowOptionalArgs{
 			All: &all,
 		}
@@ -597,5 +598,33 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_staged"), true)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "staged")...)
+		return
+	}
+
+	if state == "preserved" {
+		optArgs := ipa.UserShowOptionalArgs{
+			All: &all,
+		}
+
+		optArgs.UID = &uid
+
+		res, err := r.client.UserShow(&ipa.UserShowArgs{}, &optArgs)
+		if err != nil {
+			resp.Diagnostics.AddError("Import Error", err.Error())
+			return
+		}
+		if res.Result.UID != uid {
+			resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
+			return
+		}
+
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), res.Result.UID)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_preserved"), true)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "preserved")...)
+		return
 	}
 }

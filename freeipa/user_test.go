@@ -514,8 +514,20 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 				},
 			},
 			{
-				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
-				ExpectError: regexp.MustCompile("Staging an preserved user is not allowed."),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 			},
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),

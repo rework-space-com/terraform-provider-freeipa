@@ -11,7 +11,8 @@ import (
 // Other Resource methods are omitted in this example
 var _ resource.ResourceWithUpgradeState = &UserResource{}
 
-type UserResourceModelV1 struct {
+// UserResourceModelV0 describes the resource data model when upgrading from a Version 0 of the schema
+type UserResourceModelV0 struct {
 	Id                     types.String `tfsdk:"id"`
 	FirstName              types.String `tfsdk:"first_name"`
 	LastName               types.String `tfsdk:"last_name"`
@@ -48,15 +49,10 @@ type UserResourceModelV1 struct {
 	EmployeeType           types.String `tfsdk:"employee_type"`
 	PreferredLanguage      types.String `tfsdk:"preferred_language"`
 	AccountDisabled        types.Bool   `tfsdk:"account_disabled"`
-	AccountStaged          types.Bool   `tfsdk:"account_staged"`
-	AccountPreserved       types.Bool   `tfsdk:"account_preserved"`
-	State                  types.String `tfsdk:"state"`
 	SshPublicKeys          types.List   `tfsdk:"ssh_public_key"`
 	UserCerts              types.Set    `tfsdk:"user_certificates"`
 	CarLicense             types.List   `tfsdk:"car_license"`
 	UserClass              types.List   `tfsdk:"userclass"`
-	AddAttr                types.List   `tfsdk:"addattr"`
-	SetAttr                types.List   `tfsdk:"setattr"`
 }
 
 func userSchemaV0() schema.Schema {
@@ -208,48 +204,7 @@ func (r *UserResource) UpgradeState(context.Context) map[int64]resource.StateUpg
 }
 
 func upgradeUserStateV0toV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-	type UserResourceModelV0 struct {
-		Id                     types.String `tfsdk:"id"`
-		FirstName              types.String `tfsdk:"first_name"`
-		LastName               types.String `tfsdk:"last_name"`
-		UID                    types.String `tfsdk:"name"`
-		FullName               types.String `tfsdk:"full_name"`
-		DisplayName            types.String `tfsdk:"display_name"`
-		Initials               types.String `tfsdk:"initials"`
-		HomeDirectory          types.String `tfsdk:"home_directory"`
-		AuthType               types.Set    `tfsdk:"auth_type"`
-		RadiusConfig           types.String `tfsdk:"radius_proxy_config"`
-		RadiusUser             types.String `tfsdk:"radius_proxy_username"`
-		IdpConfig              types.String `tfsdk:"external_idp_config"`
-		IdpUser                types.String `tfsdk:"external_idp_username"`
-		Gecos                  types.String `tfsdk:"gecos"`
-		LoginShell             types.String `tfsdk:"login_shell"`
-		KrbPrincipalName       types.List   `tfsdk:"krb_principal_name"`
-		KrbPrincipalExpiration types.String `tfsdk:"krb_principal_expiration"`
-		KrbPasswordExpiration  types.String `tfsdk:"krb_password_expiration"`
-		UserPassword           types.String `tfsdk:"userpassword"`
-		EmailAddress           types.List   `tfsdk:"email_address"`
-		TelephoneNumbers       types.List   `tfsdk:"telephone_numbers"`
-		MobileNumbers          types.List   `tfsdk:"mobile_numbers"`
-		RandomPassword         types.Bool   `tfsdk:"random_password"`
-		UidNumber              types.Int32  `tfsdk:"uid_number"`
-		GidNumber              types.Int32  `tfsdk:"gid_number"`
-		StreetAddress          types.String `tfsdk:"street_address"`
-		City                   types.String `tfsdk:"city"`
-		Province               types.String `tfsdk:"province"`
-		PostalCode             types.String `tfsdk:"postal_code"`
-		OrganisationUnit       types.String `tfsdk:"organisation_unit"`
-		JobTitle               types.String `tfsdk:"job_title"`
-		Manager                types.String `tfsdk:"manager"`
-		EmployeeNumber         types.String `tfsdk:"employee_number"`
-		EmployeeType           types.String `tfsdk:"employee_type"`
-		PreferredLanguage      types.String `tfsdk:"preferred_language"`
-		AccountDisabled        types.Bool   `tfsdk:"account_disabled"`
-		SshPublicKeys          types.List   `tfsdk:"ssh_public_key"`
-		UserCerts              types.Set    `tfsdk:"user_certificates"`
-		CarLicense             types.List   `tfsdk:"car_license"`
-		UserClass              types.List   `tfsdk:"userclass"`
-	}
+
 	var userDataV0 UserResourceModelV0
 	resp.Diagnostics.Append(req.State.Get(ctx, &userDataV0)...)
 	if resp.Diagnostics.HasError() {
@@ -262,7 +217,7 @@ func upgradeUserStateV0toV1(ctx context.Context, req resource.UpgradeStateReques
 		return
 	}
 
-	upgradedStateData := UserResourceModelV1{
+	upgradedStateData := UserResourceModel{
 		Id:                     userDataV0.Id,
 		FirstName:              userDataV0.FirstName,
 		LastName:               userDataV0.LastName,

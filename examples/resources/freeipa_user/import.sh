@@ -16,7 +16,7 @@ resource "freeipa_user" "testuser" {
   last_name  = "User"
 }
 
-# The import id of an staged must be exactly equal to `username;staged` of the user to import.
+# The import id of n staged must be exactly equal to `username;staged` of the user to import.
 
 # The associated resource in terraform must include the attributes:
 # - `name`
@@ -34,4 +34,24 @@ resource "freeipa_user" "testuser" {
   first_name     = "Test"
   last_name      = "User"
   account_staged = true
+}
+
+# The import id of a preserved must be exactly equal to `username;preserved` of the user to import.
+
+# The associated resource in terraform must include the attributes:
+# - `name`
+# - `first_name`
+# - `last_name`
+# - `account_preserved`
+
+import {
+  to = freeipa_user.testuser
+  id = "testuser;preserved"
+}
+
+resource "freeipa_user" "testuser" {
+  name           = "testuser"
+  first_name     = "Test"
+  last_name      = "User"
+  account_preserved = true
 }

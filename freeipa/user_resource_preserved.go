@@ -471,3 +471,30 @@ func (r *UserResource) ActivatePreservedUser(ctx context.Context, req resource.U
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 }
+
+func (r *UserResource) StagePreservedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data UserResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, err := r.client.UserStage(&ipa.UserStageArgs{}, &ipa.UserStageOptionalArgs{UID: &[]string{data.UID.ValueString()}})
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", err.Error())
+		return
+	}
+
+	data.State = types.StringValue("staged")
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+}

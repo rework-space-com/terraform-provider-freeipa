@@ -14,6 +14,7 @@ func TestAccFreeIPAGroup_posix(t *testing.T) {
 		"gid_number":  "10000",
 		"addattr":     "[\"owner=uid=test\"]",
 		"setattr":     "[\"owner=uid=test\"]",
+		"display_name": "\"TestGroup\"",
 	}
 	testGroup2 := map[string]string{
 		"index":       "2",
@@ -22,6 +23,7 @@ func TestAccFreeIPAGroup_posix(t *testing.T) {
 		"gid_number":  "10002",
 		"addattr":     "[\"owner=uid=test2\"]",
 		"setattr":     "[\"owner=uid=test\"]",
+		"display_name": "\"TestGroup2\"",
 	}
 	testGroupDS := map[string]string{
 		"index": "1",

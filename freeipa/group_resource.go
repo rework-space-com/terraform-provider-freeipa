@@ -39,6 +39,7 @@ type UserGroupResourceModel struct {
 	Id          types.String `tfsdk:"id"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
+	DisplayName types.String `tfsdk:"display_name"`
 	GidNumber   types.Int64  `tfsdk:"gid_number"`
 	NonPosix    types.Bool   `tfsdk:"nonposix"`
 	External    types.Bool   `tfsdk:"external"`
@@ -87,6 +88,10 @@ func (r *UserGroupResource) Schema(ctx context.Context, req resource.SchemaReque
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+            "display_name": schema.StringAttribute{
+        		MarkdownDescription: "Display name",
+        		Optional:            true,
+        	},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Group Description",
 				Optional:            true,
@@ -164,6 +169,11 @@ func (r *UserGroupResource) Create(ctx context.Context, req resource.CreateReque
 	args := ipa.GroupAddArgs{
 		Cn: data.Name.ValueString(),
 	}
+
+	if !data.DisplayName.IsUnknown() {
+		optArgs.DisplayName = data.DisplayName.ValueStringPointer()
+	}
+
 	if !data.Description.IsNull() {
 		optArgs.Description = data.Description.ValueStringPointer()
 	}
@@ -262,6 +272,10 @@ func (r *UserGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	data.Name = types.StringValue(res.Result.Cn)
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group Cn %s", data.Name.ValueString()))
+	if res.Result.DisplayName != nil && !data.DisplayName.IsNull() {
+    		data.DisplayName = types.StringValue(*res.Result.DisplayName)
+    		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group DisplayName %s", data.DisplayName.ValueString()))
+    }
 	if res.Result.Description != nil && !data.Description.IsNull() {
 		data.Description = types.StringValue(*res.Result.Description)
 		tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa group Description %s", data.Description.ValueString()))
@@ -301,6 +315,10 @@ func (r *UserGroupResource) Update(ctx context.Context, req resource.UpdateReque
 		Cn: data.Name.ValueString(),
 	}
 	optArgs := ipa.GroupModOptionalArgs{}
+
+	if !data.DisplayName.Equal(state.DisplayName) {
+		optArgs.DisplayName = data.DisplayName.ValueStringPointer()
+	}
 
 	if !data.Description.Equal(state.Description) {
 		optArgs.Description = data.Description.ValueStringPointer()

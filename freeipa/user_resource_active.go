@@ -517,19 +517,39 @@ func (r *UserResource) UpdateActiveUser(ctx context.Context, req resource.Update
 		optArgs.Gidnumber = &gid
 	}
 	if !data.StreetAddress.Equal(state.StreetAddress) {
-		optArgs.Street = data.StreetAddress.ValueStringPointer()
+		if data.StreetAddress.IsNull() {
+			optArgs.Street = types.StringValue("").ValueStringPointer()
+		} else {
+			optArgs.Street = data.StreetAddress.ValueStringPointer()
+		}
 	}
 	if !data.City.Equal(state.City) {
-		optArgs.L = data.City.ValueStringPointer()
+		if data.City.IsNull() {
+			optArgs.L = types.StringValue("").ValueStringPointer()
+		} else {
+			optArgs.L = data.City.ValueStringPointer()
+		}
 	}
 	if !data.Province.Equal(state.Province) {
-		optArgs.St = data.Province.ValueStringPointer()
+		if data.Province.IsNull() {
+			optArgs.St = types.StringValue("").ValueStringPointer()
+		} else {
+			optArgs.St = data.Province.ValueStringPointer()
+		}
 	}
 	if !data.PostalCode.Equal(state.PostalCode) {
-		optArgs.Postalcode = data.PostalCode.ValueStringPointer()
+		if data.PostalCode.IsNull() {
+			optArgs.Postalcode = types.StringValue("").ValueStringPointer()
+		} else {
+			optArgs.Postalcode = data.PostalCode.ValueStringPointer()
+		}
 	}
 	if !data.OrganisationUnit.Equal(state.OrganisationUnit) {
-		optArgs.Ou = data.OrganisationUnit.ValueStringPointer()
+		if data.OrganisationUnit.IsNull() {
+			optArgs.Ou = types.StringValue("").ValueStringPointer()
+		} else {
+			optArgs.Ou = data.OrganisationUnit.ValueStringPointer()
+		}
 	}
 	if !data.JobTitle.Equal(state.JobTitle) {
 		optArgs.Title = data.JobTitle.ValueStringPointer()

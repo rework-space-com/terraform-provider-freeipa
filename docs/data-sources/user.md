@@ -43,6 +43,7 @@ data "freeipa_user" "user-0" {
 
 - `account_preserved` (Boolean) Lookup in preserved accounts
 - `account_staged` (Boolean) Lookup in staged accounts
+- `user_certificates` (Set of String) List of Base-64 encoded user certificates
 
 ### Read-Only
 

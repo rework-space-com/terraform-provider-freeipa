@@ -15,11 +15,13 @@ package freeipa
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
@@ -71,6 +73,7 @@ type UserDataSourceModel struct {
 	AccountStaged            types.Bool   `tfsdk:"account_staged"`
 	AccountPreserved         types.Bool   `tfsdk:"account_preserved"`
 	SshPublicKeys            types.List   `tfsdk:"ssh_public_key"`
+	UserCerts                types.Set    `tfsdk:"user_certificates"`
 	CarLicense               types.List   `tfsdk:"car_license"`
 	UserClass                types.List   `tfsdk:"userclass"`
 	MemberOfGroup            types.List   `tfsdk:"memberof_group"`
@@ -234,6 +237,11 @@ func (r *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
+			"user_certificates": schema.SetAttribute{
+				MarkdownDescription: "List of Base-64 encoded user certificates",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 			"car_license": schema.ListAttribute{
 				MarkdownDescription: "Car Licenses",
 				Computed:            true,
@@ -308,7 +316,7 @@ func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	if data.AccountStaged.IsNull() || data.AccountStaged.Equal(types.BoolValue(false)) {
+	if !data.AccountStaged.ValueBool() {
 		r.ReadActiveUser(ctx, req, resp)
 	} else {
 		r.ReadStagedUser(ctx, req, resp)
@@ -334,18 +342,25 @@ func (r *UserDataSource) ReadActiveUser(ctx context.Context, req datasource.Read
 
 	res, err := r.client.UserShow(&ipa.UserShowArgs{}, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", err.Error())
+		if strings.Contains(err.Error(), "NotFound") {
+			tflog.Debug(ctx, "[DEBUG] User not found")
+			resp.State.RemoveResource(ctx)
+			return
+		} else {
+			resp.Diagnostics.AddError("Client Error ", err.Error())
+			return
+		}
+	}
+
+	if data.AccountPreserved.ValueBool() && !*res.Result.Preserved {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Preserved User %s returns as active.", data.UID.ValueString()))
+		return
+	}
+	if !data.AccountPreserved.ValueBool() && *res.Result.Preserved {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Active User %s returns as preserved.", data.UID.ValueString()))
 		return
 	}
 
-	if !data.AccountPreserved.IsNull() && data.AccountPreserved.Equal(types.BoolValue(true)) && !*res.Result.Preserved {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("User %s not found in preserved users.", data.UID.ValueString()))
-		return
-	}
-	if (data.AccountPreserved.IsNull() || data.AccountPreserved.Equal(types.BoolValue(false))) && *res.Result.Preserved {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("User %s not found in active users.", data.UID.ValueString()))
-		return
-	}
 	if res.Result.Givenname != nil {
 		data.FirstName = types.StringValue(*res.Result.Givenname)
 	}
@@ -422,13 +437,21 @@ func (r *UserDataSource) ReadActiveUser(ctx context.Context, req datasource.Read
 	if res.Result.Nsaccountlock != nil {
 		data.AccountDisabled = types.BoolValue(*res.Result.Nsaccountlock)
 	}
-	if res.Result.Ipasshpubkey != nil && !data.SshPublicKeys.IsNull() {
+	if res.Result.Ipasshpubkey != nil {
 		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
+	}
+	if res.Result.Usercertificate != nil {
+		var resVals []string
+		for _, v := range *res.Result.Usercertificate {
+			str := v.([]interface{})[0].(map[string]interface{})["__base64__"]
+			resVals = append(resVals, str.(string))
+		}
+		data.UserCerts, _ = types.SetValueFrom(ctx, types.StringType, resVals)
 	}
 	if res.Result.Carlicense != nil {
 		data.CarLicense, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Carlicense)
 	}
-	if res.Result.Krbprincipalexpiration != nil && !data.KrbPrincipalExpiration.IsNull() {
+	if res.Result.Krbprincipalexpiration != nil {
 		timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", res.Result.Krbprincipalexpiration.String())
 		if err != nil {
 			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))
@@ -436,7 +459,7 @@ func (r *UserDataSource) ReadActiveUser(ctx context.Context, req datasource.Read
 		}
 		data.KrbPrincipalExpiration = types.StringValue(timestamp.Format(time.RFC3339))
 	}
-	if res.Result.Krbpasswordexpiration != nil && !data.KrbPasswordExpiration.IsNull() {
+	if res.Result.Krbpasswordexpiration != nil {
 		timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", res.Result.Krbpasswordexpiration.String())
 		if err != nil {
 			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))
@@ -570,13 +593,13 @@ func (r *UserDataSource) ReadStagedUser(ctx context.Context, req datasource.Read
 	if res.Result.Preferredlanguage != nil {
 		data.PreferredLanguage = types.StringValue(*res.Result.Preferredlanguage)
 	}
-	if res.Result.Ipasshpubkey != nil && !data.SshPublicKeys.IsNull() {
+	if res.Result.Ipasshpubkey != nil {
 		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
 	}
 	if res.Result.Carlicense != nil {
 		data.CarLicense, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Carlicense)
 	}
-	if res.Result.Krbprincipalexpiration != nil && !data.KrbPrincipalExpiration.IsNull() {
+	if res.Result.Krbprincipalexpiration != nil {
 		timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", res.Result.Krbprincipalexpiration.String())
 		if err != nil {
 			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))
@@ -584,7 +607,7 @@ func (r *UserDataSource) ReadStagedUser(ctx context.Context, req datasource.Read
 		}
 		data.KrbPrincipalExpiration = types.StringValue(timestamp.Format(time.RFC3339))
 	}
-	if res.Result.Krbpasswordexpiration != nil && !data.KrbPasswordExpiration.IsNull() {
+	if res.Result.Krbpasswordexpiration != nil {
 		timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", res.Result.Krbpasswordexpiration.String())
 		if err != nil {
 			resp.Diagnostics.AddError("Attribute format", fmt.Sprintf("The krb_principal_expiration timestamp could not be parsed as RFC3339: %s", err))

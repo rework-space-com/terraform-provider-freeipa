@@ -193,6 +193,9 @@ func testAccFreeIPAUser_datasource(dataset map[string]string) string {
 	if dataset["account_staged"] != "" {
 		tf_def += fmt.Sprintf("  account_staged = %s\n", dataset["account_staged"])
 	}
+	if dataset["account_preserved"] != "" {
+		tf_def += fmt.Sprintf("  account_preserved = %s\n", dataset["account_preserved"])
+	}
 	tf_def += "}\n"
 	return tf_def
 }

@@ -468,11 +468,12 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			resp.Diagnostics.AddError("Client Error", "Staging an active user is not authorized.")
 			return
 		}
-		r.UpdateActiveUser(ctx, req, resp)
 		if data.State.Equal(types.StringValue("preserved")) {
 			r.PreserveActiveUser(ctx, req, resp)
+			r.UpdatePreservedUser(ctx, req, resp)
 			return
 		}
+		r.UpdateActiveUser(ctx, req, resp)
 	}
 
 	// update staged user
@@ -481,24 +482,27 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			resp.Diagnostics.AddError("Client Error", "Preserving a staged user is not authorized.")
 			return
 		}
-		r.UpdateStagedUser(ctx, req, resp)
 		if data.State.Equal(types.StringValue("active")) {
 			r.ActivateStagedUser(ctx, req, resp)
+			r.UpdateActiveUser(ctx, req, resp)
 			return
 		}
+		r.UpdateStagedUser(ctx, req, resp)
 	}
 
 	// update preserved user
 	if state.State.Equal(types.StringValue("preserved")) {
-		r.UpdatePreservedUser(ctx, req, resp)
 		if data.State.Equal(types.StringValue("staged")) {
 			r.StagePreservedUser(ctx, req, resp)
+			r.UpdateStagedUser(ctx, req, resp)
 			return
 		}
 		if data.State.Equal(types.StringValue("active")) {
 			r.ActivatePreservedUser(ctx, req, resp)
+			r.UpdateActiveUser(ctx, req, resp)
 			return
 		}
+		r.UpdatePreservedUser(ctx, req, resp)
 	}
 
 }

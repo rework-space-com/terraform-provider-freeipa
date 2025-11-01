@@ -382,10 +382,19 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 		"account_staged": "true",
 	}
 	testUserActive := map[string]string{
-		"index":     "0",
-		"login":     "\"TestACC-User\"",
-		"firstname": "\"Dev\"",
-		"lastname":  "\"User\"",
+		"index":             "0",
+		"login":             "\"TestACC-User\"",
+		"firstname":         "\"Dev\"",
+		"lastname":          "\"User\"",
+		"organisation_unit": "\"Developers\"",
+		"telephone_numbers": "[\"1234567890\"]",
+		"mobile_numbers":    "[\"0123456789\"]",
+		"car_license":       "[\"A-111-B\"]",
+		"street_address":    "\"Mykhaïlo Hrouchevsky Street, 12/2\"",
+		"city":              "\"Kyiv\"",
+		"province":          "\"Ukraine\"",
+		"postal_code":       "\"01008\"",
+		"ssh_public_key":    "[\"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDEobivsBY6REElik0hNMLkwcbqIba4c9RWRhD0cy7Kh\"]",
 	}
 	testUserActiveDS := map[string]string{
 		"index": "0",
@@ -405,15 +414,22 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 		"lastname":          "\"User\"",
 		"account_preserved": "true",
 	}
+	testUserPreservedDS := map[string]string{
+		"index":             "0",
+		"name":              "freeipa_user.user-0.name",
+		"account_preserved": "true",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
+			// Step 1
 			{
 				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
 				ExpectError: regexp.MustCompile("Creating a preserved user is not allowed."),
 			},
+			// Step 2
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -423,6 +439,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 3
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -431,6 +448,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					},
 				},
 			},
+			// Step 4
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged) + testAccFreeIPAUser_datasource(testUserStagedDS),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -439,10 +457,12 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 5
 			{
 				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
 				ExpectError: regexp.MustCompile("Preserving a staged user is not allowed."),
 			},
+			// Step 6
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -452,6 +472,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 7
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -460,18 +481,30 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					},
 				},
 			},
+			// Step 8
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive) + testAccFreeIPAUser_datasource(testUserActiveDS),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
 					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
 					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "organisation_unit", "Developers"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "telephone_numbers.0", "1234567890"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "mobile_numbers.0", "0123456789"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "car_license.0", "A-111-B"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "street_address", "Mykhaïlo Hrouchevsky Street, 12/2"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "city", "Kyiv"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "province", "Ukraine"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "postal_code", "01008"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "ssh_public_key.0", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDEobivsBY6REElik0hNMLkwcbqIba4c9RWRhD0cy7Kh"),
 				),
 			},
+			// Step 9
 			{
 				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
 				ExpectError: regexp.MustCompile("Staging an active user is not allowed."),
 			},
+			// Step 10
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -481,6 +514,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 11
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -489,6 +523,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					},
 				},
 			},
+			// Step 12
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled) + testAccFreeIPAUser_datasource(testUserActiveDS),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -497,6 +532,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 13
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -505,6 +541,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 14
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -513,6 +550,25 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					},
 				},
 			},
+			// Step 15
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved) + testAccFreeIPAUser_datasource(testUserPreservedDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "organisation_unit"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "telephone_numbers.0"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "mobile_numbers.0"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "car_license.0"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "street_address"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "city"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "province"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "postal_code"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "ssh_public_key"),
+				),
+			},
+			// Step 16
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -521,6 +577,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 17
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -529,6 +586,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					},
 				},
 			},
+			// Step 18
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -538,6 +596,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 19
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -546,6 +605,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					},
 				},
 			},
+			// Step 20
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -555,6 +615,7 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
 				),
 			},
+			// Step 21
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
 				ConfigPlanChecks: resource.ConfigPlanChecks{

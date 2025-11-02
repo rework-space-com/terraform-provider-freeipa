@@ -7,9 +7,6 @@
 //
 // Authors:
 //   Antoine Gatineau <antoine.gatineau@infra-monkey.com>
-//   Mixton <maxime.thomas@mtconsulting.tech>
-//   Parsa <p.yousefi97@gmail.com>
-//   Roman Butsiy <butsiyroman@gmail.com>
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
@@ -28,7 +25,10 @@ import (
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
-func (r *UserResource) ReadPreservedUser(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r PreservedUserResource) CreateUser(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+}
+
+func (r PreservedUserResource) ReadUser(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data UserResourceModel
 
 	// Read Terraform prior state data into the model
@@ -183,7 +183,7 @@ func (r *UserResource) ReadPreservedUser(ctx context.Context, req resource.ReadR
 	}
 }
 
-func (r *UserResource) UpdatePreservedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r PreservedUserResource) UpdateUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data, state, config UserResourceModel
 
 	// Read Terraform plan data into the model
@@ -450,71 +450,4 @@ func (r *UserResource) UpdatePreservedUser(ctx context.Context, req resource.Upd
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func (r *UserResource) ActivatePreservedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data UserResourceModel
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	_, err := r.client.UserUndel(&ipa.UserUndelArgs{}, &ipa.UserUndelOptionalArgs{UID: data.UID.ValueStringPointer()})
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", err.Error())
-		return
-	}
-
-	if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
-		_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
-		if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
-			resp.Diagnostics.AddError("Client Error", err.Error())
-			return
-		}
-	} else {
-		_, err := r.client.UserEnable(&ipa.UserEnableArgs{}, &ipa.UserEnableOptionalArgs{UID: data.UID.ValueStringPointer()})
-		if err != nil && !strings.Contains(err.Error(), "This entry is already enabled") {
-			resp.Diagnostics.AddError("Client Error", err.Error())
-			return
-		}
-	}
-	data.State = types.StringValue("active")
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-
-}
-
-func (r *UserResource) StagePreservedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data UserResourceModel
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	_, err := r.client.UserStage(&ipa.UserStageArgs{}, &ipa.UserStageOptionalArgs{UID: &[]string{data.UID.ValueString()}})
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", err.Error())
-		return
-	}
-
-	data.State = types.StringValue("staged")
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-
 }

@@ -7,9 +7,6 @@
 //
 // Authors:
 //   Antoine Gatineau <antoine.gatineau@infra-monkey.com>
-//   Mixton <maxime.thomas@mtconsulting.tech>
-//   Parsa <p.yousefi97@gmail.com>
-//   Roman Butsiy <butsiyroman@gmail.com>
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
@@ -28,7 +25,7 @@ import (
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
-func (r *UserResource) CreateActiveUser(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r ActiveUserResource) CreateUser(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data UserResourceModel
 
 	// Read Terraform plan data into the model
@@ -263,7 +260,7 @@ func (r *UserResource) CreateActiveUser(ctx context.Context, req resource.Create
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *UserResource) ReadActiveUser(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r ActiveUserResource) ReadUser(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data UserResourceModel
 
 	// Read Terraform prior state data into the model
@@ -421,7 +418,7 @@ func (r *UserResource) ReadActiveUser(ctx context.Context, req resource.ReadRequ
 	}
 }
 
-func (r *UserResource) UpdateActiveUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r ActiveUserResource) UpdateUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data, state, config UserResourceModel
 
 	// Read Terraform plan data into the model
@@ -678,40 +675,12 @@ func (r *UserResource) UpdateActiveUser(ctx context.Context, req resource.Update
 			}
 		}
 	}
-	data.State = types.StringValue("active")
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa user %s returns %s", data.UID.String(), res.String()))
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func (r *UserResource) PreserveActiveUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data, config UserResourceModel
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	preserve := true
-	optArgs := ipa.UserDelOptionalArgs{}
-	optArgs.UID = &[]string{data.UID.ValueString()}
-	optArgs.Preserve = &preserve
-
-	_, err := r.client.UserDel(&ipa.UserDelArgs{}, &optArgs)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", err.Error())
-	}
-	data.AccountPreserved = types.BoolValue(true)
-	data.AccountDisabled = config.AccountDisabled
-	data.State = types.StringValue("preserved")
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

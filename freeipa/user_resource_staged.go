@@ -7,9 +7,6 @@
 //
 // Authors:
 //   Antoine Gatineau <antoine.gatineau@infra-monkey.com>
-//   Mixton <maxime.thomas@mtconsulting.tech>
-//   Parsa <p.yousefi97@gmail.com>
-//   Roman Butsiy <butsiyroman@gmail.com>
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
@@ -28,7 +25,7 @@ import (
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
-func (r *UserResource) CreateStagedUser(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r StagedUserResource) CreateUser(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data UserResourceModel
 
 	// Read Terraform plan data into the model
@@ -240,6 +237,7 @@ func (r *UserResource) CreateStagedUser(ctx context.Context, req resource.Create
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa user %s returns %s", data.UID.String(), res.String()))
 
 	data.Id = types.StringValue(res.Result.UID)
+	data.State = types.StringValue("staged")
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -249,7 +247,7 @@ func (r *UserResource) CreateStagedUser(ctx context.Context, req resource.Create
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *UserResource) ReadStagedUser(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r StagedUserResource) ReadUser(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data UserResourceModel
 
 	// Read Terraform prior state data into the model
@@ -404,51 +402,7 @@ func (r *UserResource) ReadStagedUser(ctx context.Context, req resource.ReadRequ
 	}
 }
 
-func (r *UserResource) ActivateStagedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data, state, config UserResourceModel
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	all := true
-	res, err := r.client.StageuserActivate(&ipa.StageuserActivateArgs{}, &ipa.StageuserActivateOptionalArgs{All: &all, UID: data.UID.ValueStringPointer()})
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", err.Error())
-		return
-	}
-	if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
-		_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
-		if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
-			resp.Diagnostics.AddError("Client Error", err.Error())
-			return
-		}
-	} else {
-		_, err := r.client.UserEnable(&ipa.UserEnableArgs{}, &ipa.UserEnableOptionalArgs{UID: data.UID.ValueStringPointer()})
-		if err != nil && !strings.Contains(err.Error(), "This entry is already enabled") {
-			resp.Diagnostics.AddError("Client Error", err.Error())
-			return
-		}
-	}
-
-	data.State = types.StringValue("active")
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa user %s returns %s", data.UID.String(), res.String()))
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-
-}
-
-func (r *UserResource) UpdateStagedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r StagedUserResource) UpdateUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data, state, config UserResourceModel
 
 	// Read Terraform plan data into the model

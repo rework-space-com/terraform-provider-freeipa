@@ -48,6 +48,23 @@ type UserResource struct {
 	client *ipa.Client
 }
 
+type UserInterface interface {
+	CreateUser(context.Context, resource.CreateRequest, *resource.CreateResponse)
+	ReadUser(context.Context, resource.ReadRequest, *resource.ReadResponse)
+	UpdateUser(context.Context, resource.UpdateRequest, *resource.UpdateResponse)
+}
+
+type ActiveUserResource struct {
+	client *ipa.Client
+}
+
+type StagedUserResource struct {
+	client *ipa.Client
+}
+type PreservedUserResource struct {
+	client *ipa.Client
+}
+
 // UserResourceModel describes the resource data model.
 type UserResourceModel struct {
 	Id                     types.String `tfsdk:"id"`
@@ -408,7 +425,7 @@ func (r *UserResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRe
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data UserResourceModel
-
+	var resource UserInterface
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
@@ -417,14 +434,19 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	if data.State.Equal(types.StringValue("active")) {
-		r.CreateActiveUser(ctx, req, resp)
+		resource = ActiveUserResource{client: r.client}
 	} else if data.State.Equal(types.StringValue("staged")) {
-		r.CreateStagedUser(ctx, req, resp)
+		resource = StagedUserResource{client: r.client}
+	} else {
+		resp.Diagnostics.AddError("User Lifecycle", "User can only be created as active or staged.")
+		return
 	}
+	resource.CreateUser(ctx, req, resp)
 }
 
 func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data UserResourceModel
+	var resource UserInterface
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -433,26 +455,23 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read User state = %s", data.State.String()))
 	if data.State.Equal(types.StringValue("active")) {
-		tflog.Debug(ctx, "[DEBUG] Read Active")
-		r.ReadActiveUser(ctx, req, resp)
+		resource = ActiveUserResource{client: r.client}
+	} else if data.State.Equal(types.StringValue("staged")) {
+		resource = StagedUserResource{client: r.client}
+	} else if data.State.Equal(types.StringValue("preserved")) {
+		resource = PreservedUserResource{client: r.client}
+	} else {
+		resp.Diagnostics.AddError("User Lifecycle", "User can only be created as active or staged.")
 		return
 	}
-	if data.State.Equal(types.StringValue("staged")) {
-		tflog.Debug(ctx, "[DEBUG] Read Staged")
-		r.ReadStagedUser(ctx, req, resp)
-		return
-	}
-	if data.State.Equal(types.StringValue("preserved")) {
-		tflog.Debug(ctx, "[DEBUG] Read Preserved")
-		r.ReadPreservedUser(ctx, req, resp)
-		return
-	}
+
+	resource.ReadUser(ctx, req, resp)
 }
 
 func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data, state UserResourceModel
+	var resource UserInterface
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -470,10 +489,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		if data.State.Equal(types.StringValue("preserved")) {
 			r.PreserveActiveUser(ctx, req, resp)
-			r.UpdatePreservedUser(ctx, req, resp)
-			return
 		}
-		r.UpdateActiveUser(ctx, req, resp)
 	}
 
 	// update staged user
@@ -484,26 +500,31 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 		if data.State.Equal(types.StringValue("active")) {
 			r.ActivateStagedUser(ctx, req, resp)
-			r.UpdateActiveUser(ctx, req, resp)
-			return
 		}
-		r.UpdateStagedUser(ctx, req, resp)
 	}
 
 	// update preserved user
 	if state.State.Equal(types.StringValue("preserved")) {
 		if data.State.Equal(types.StringValue("staged")) {
 			r.StagePreservedUser(ctx, req, resp)
-			r.UpdateStagedUser(ctx, req, resp)
 			return
 		}
 		if data.State.Equal(types.StringValue("active")) {
 			r.ActivatePreservedUser(ctx, req, resp)
-			r.UpdateActiveUser(ctx, req, resp)
 			return
 		}
-		r.UpdatePreservedUser(ctx, req, resp)
 	}
+
+	if data.State.Equal(types.StringValue("active")) {
+		resource = ActiveUserResource{client: r.client}
+	} else if data.State.Equal(types.StringValue("staged")) {
+		resource = StagedUserResource{client: r.client}
+	} else if data.State.Equal(types.StringValue("active")) {
+		resource = PreservedUserResource{client: r.client}
+	} else {
+		return
+	}
+	resource.UpdateUser(ctx, req, resp)
 
 }
 
@@ -631,4 +652,142 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "preserved")...)
 		return
 	}
+}
+
+func (r *UserResource) ActivateStagedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, state, config UserResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	all := true
+	res, err := r.client.StageuserActivate(&ipa.StageuserActivateArgs{}, &ipa.StageuserActivateOptionalArgs{All: &all, UID: data.UID.ValueStringPointer()})
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", err.Error())
+		return
+	}
+	if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
+		_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
+		if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
+			resp.Diagnostics.AddError("Client Error", err.Error())
+			return
+		}
+	} else {
+		_, err := r.client.UserEnable(&ipa.UserEnableArgs{}, &ipa.UserEnableOptionalArgs{UID: data.UID.ValueStringPointer()})
+		if err != nil && !strings.Contains(err.Error(), "This entry is already enabled") {
+			resp.Diagnostics.AddError("Client Error", err.Error())
+			return
+		}
+	}
+
+	data.State = types.StringValue("active")
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa user %s returns %s", data.UID.String(), res.String()))
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+}
+
+func (r *UserResource) ActivatePreservedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data UserResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, err := r.client.UserUndel(&ipa.UserUndelArgs{}, &ipa.UserUndelOptionalArgs{UID: data.UID.ValueStringPointer()})
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", err.Error())
+		return
+	}
+
+	if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
+		_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
+		if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
+			resp.Diagnostics.AddError("Client Error", err.Error())
+			return
+		}
+	} else {
+		_, err := r.client.UserEnable(&ipa.UserEnableArgs{}, &ipa.UserEnableOptionalArgs{UID: data.UID.ValueStringPointer()})
+		if err != nil && !strings.Contains(err.Error(), "This entry is already enabled") {
+			resp.Diagnostics.AddError("Client Error", err.Error())
+			return
+		}
+	}
+	data.State = types.StringValue("active")
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+}
+
+func (r *UserResource) StagePreservedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data UserResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, err := r.client.UserStage(&ipa.UserStageArgs{}, &ipa.UserStageOptionalArgs{UID: &[]string{data.UID.ValueString()}})
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", err.Error())
+		return
+	}
+
+	data.State = types.StringValue("staged")
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+}
+
+func (r *UserResource) PreserveActiveUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data, config UserResourceModel
+
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	preserve := true
+	optArgs := ipa.UserDelOptionalArgs{}
+	optArgs.UID = &[]string{data.UID.ValueString()}
+	optArgs.Preserve = &preserve
+
+	_, err := r.client.UserDel(&ipa.UserDelArgs{}, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", err.Error())
+	}
+	data.AccountPreserved = types.BoolValue(true)
+	data.AccountDisabled = config.AccountDisabled
+	data.State = types.StringValue("preserved")
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

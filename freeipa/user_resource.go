@@ -52,6 +52,8 @@ type UserInterface interface {
 	CreateUser(context.Context, resource.CreateRequest, *resource.CreateResponse)
 	ReadUser(context.Context, resource.ReadRequest, *resource.ReadResponse)
 	UpdateUser(context.Context, resource.UpdateRequest, *resource.UpdateResponse)
+	DeleteUser(context.Context, resource.DeleteRequest, *resource.DeleteResponse)
+	ImportUserState(context.Context, resource.ImportStateRequest, *resource.ImportStateResponse, string)
 }
 
 type ActiveUserResource struct {
@@ -530,6 +532,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state UserResourceModel
+	var resource UserInterface
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -538,34 +541,22 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		return
 	}
 
-	// update active user
-	if state.State.Equal(types.StringValue("active")) || state.State.Equal(types.StringValue("preserved")) {
-
-		optArgs := ipa.UserDelOptionalArgs{}
-		optArgs.UID = &[]string{state.UID.ValueString()}
-
-		_, err := r.client.UserDel(&ipa.UserDelArgs{}, &optArgs)
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", err.Error())
-			return
-		}
-		return
+	if state.State.Equal(types.StringValue("active")) {
+		resource = ActiveUserResource{client: r.client}
+	} else if state.State.Equal(types.StringValue("staged")) {
+		resource = StagedUserResource{client: r.client}
+	} else if state.State.Equal(types.StringValue("active")) {
+		resource = PreservedUserResource{client: r.client}
 	} else {
-		optArgs := ipa.StageuserDelOptionalArgs{}
-		optArgs.UID = &[]string{state.UID.ValueString()}
-
-		_, err := r.client.StageuserDel(&ipa.StageuserDelArgs{}, &optArgs)
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", err.Error())
-			return
-		}
 		return
 	}
+	resource.DeleteUser(ctx, req, resp)
+
 }
 
 func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 
-	all := true
+	var resource UserInterface
 	var uid, state string
 	if strings.Contains(req.ID, ";") {
 		idelements := strings.SplitN(req.ID, ";", 2)
@@ -576,82 +567,17 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 		state = "active"
 	}
 
-	if state == "active" {
-		optArgs := ipa.UserShowOptionalArgs{
-			All: &all,
-		}
-
-		optArgs.UID = &uid
-
-		res, err := r.client.UserShow(&ipa.UserShowArgs{}, &optArgs)
-		if err != nil {
-			resp.Diagnostics.AddError("Import Error", err.Error())
-			return
-		}
-		if res.Result.UID != uid {
-			resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
-			return
-		}
-
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), res.Result.UID)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "active")...)
+	switch state {
+	case "active":
+		resource = ActiveUserResource{client: r.client}
+	case "staged":
+		resource = StagedUserResource{client: r.client}
+	case "preserved":
+		resource = PreservedUserResource{client: r.client}
+	default:
 		return
 	}
-
-	if state == "staged" {
-		optArgs := ipa.StageuserShowOptionalArgs{
-			All: &all,
-		}
-
-		optArgs.UID = &uid
-
-		res, err := r.client.StageuserShow(&ipa.StageuserShowArgs{}, &optArgs)
-		if err != nil {
-			resp.Diagnostics.AddError("Import Error", err.Error())
-			return
-		}
-		if res.Result.UID != uid {
-			resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
-			return
-		}
-
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), res.Result.UID)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_staged"), true)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "staged")...)
-		return
-	}
-
-	if state == "preserved" {
-		optArgs := ipa.UserShowOptionalArgs{
-			All: &all,
-		}
-
-		optArgs.UID = &uid
-
-		res, err := r.client.UserShow(&ipa.UserShowArgs{}, &optArgs)
-		if err != nil {
-			resp.Diagnostics.AddError("Import Error", err.Error())
-			return
-		}
-		if res.Result.UID != uid {
-			resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
-			return
-		}
-
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), res.Result.UID)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_preserved"), true)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "preserved")...)
-		return
-	}
+	resource.ImportUserState(ctx, req, resp, uid)
 }
 
 func (r *UserResource) ActivateStagedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

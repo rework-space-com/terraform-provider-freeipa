@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -650,4 +651,50 @@ func (r StagedUserResource) UpdateUser(ctx context.Context, req resource.UpdateR
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r StagedUserResource) DeleteUser(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state UserResourceModel
+
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	optArgs := ipa.StageuserDelOptionalArgs{}
+	optArgs.UID = &[]string{state.UID.ValueString()}
+
+	_, err := r.client.StageuserDel(&ipa.StageuserDelArgs{}, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", err.Error())
+	}
+}
+
+func (r StagedUserResource) ImportUserState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse, uid string) {
+
+	all := true
+	optArgs := ipa.StageuserShowOptionalArgs{
+		All: &all,
+	}
+
+	optArgs.UID = &uid
+
+	res, err := r.client.StageuserShow(&ipa.StageuserShowArgs{}, &optArgs)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", err.Error())
+		return
+	}
+	if res.Result.UID != uid {
+		resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), res.Result.UID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_staged"), true)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "staged")...)
 }

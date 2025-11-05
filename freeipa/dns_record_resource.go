@@ -93,13 +93,13 @@ func (r *DNSRecordResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHFP)",
+				MarkdownDescription: "The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHFP, NS)",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
-					stringvalidator.OneOf("A", "AAAA", "CNAME", "MX", "PTR", "SRV", "TXT", "SSHFP"),
+					stringvalidator.OneOf("A", "AAAA", "CNAME", "MX", "PTR", "SRV", "TXT", "SSHFP", "NS"),
 				},
 			},
 			"records": schema.SetAttribute{

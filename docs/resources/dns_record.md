@@ -86,7 +86,7 @@ resource "freeipa_dns_record" "ptrrecord" {
 
 - `name` (String) Record name
 - `records` (Set of String) A string list of records
-- `type` (String) The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHFP)
+- `type` (String) The record type (A, AAAA, CNAME, MX, PTR, SRV, TXT, SSHFP, NS)
 - `zone_name` (String) Zone name (FQDN)
 
 ### Optional

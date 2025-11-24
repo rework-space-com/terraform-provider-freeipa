@@ -1,10 +1,12 @@
 ---
 page_title: "freeipa_user Resource - freeipa"
 description: |-
-  FreeIPA User resource. The user lifecycle is managed with the attributes:
+  FreeIPA User resource. The user lifecycle is managed with the attribute state:
   
-  account_staged
-  account_preserved
+  active
+  disabled
+  staged
+  preserved
   (defaults to active)
   An active user can be preserved.
   A user can be staged at the user's creation or from a preservedstate.
@@ -14,11 +16,15 @@ description: |-
 
 # freeipa_user (Resource)
 
-FreeIPA User resource. The user lifecycle is managed with the attributes:
+FreeIPA User resource. The user lifecycle is managed with the attribute state:
 
-- account_staged
+- active
 
-- account_preserved
+- disabled
+
+- staged
+
+- preserved
 
 (defaults to active)
 
@@ -38,6 +44,15 @@ resource "freeipa_user" "user-1" {
   first_name        = "Roman"
   last_name         = "Roman"
   name              = "roman"
+  telephone_numbers = ["+380982555429", "2-10-11"]
+  email_address     = ["roman@example.com"]
+}
+
+resource "freeipa_user" "user-2" {
+  first_name        = "Roman"
+  last_name         = "Roman"
+  name              = "roman"
+  state             = "staged"
   telephone_numbers = ["+380982555429", "2-10-11"]
   email_address     = ["roman@example.com"]
 }
@@ -72,7 +87,7 @@ resource "freeipa_user" "testuser" {
 # - `name`
 # - `first_name`
 # - `last_name`
-# - `account_staged`
+# - `state`
 
 import {
   to = freeipa_user.testuser
@@ -83,7 +98,7 @@ resource "freeipa_user" "testuser" {
   name           = "testuser"
   first_name     = "Test"
   last_name      = "User"
-  account_staged = true
+  state          = "staged
 }
 
 # The import id of a preserved must be exactly equal to `username;preserved` of the user to import.
@@ -92,7 +107,7 @@ resource "freeipa_user" "testuser" {
 # - `name`
 # - `first_name`
 # - `last_name`
-# - `account_preserved`
+# - `state`
 
 import {
   to = freeipa_user.testuser
@@ -103,7 +118,7 @@ resource "freeipa_user" "testuser" {
   name           = "testuser"
   first_name     = "Test"
   last_name      = "User"
-  account_preserved = true
+  state          = "preserved"
 }
 ```
 
@@ -124,9 +139,7 @@ resource "freeipa_user" "testuser" {
 
 ### Optional
 
-- `account_disabled` (Boolean) Account disabled.
-- `account_preserved` (Boolean) Account preserved.
-- `account_staged` (Boolean) Account staged.
+- `account_disabled` (Boolean, Deprecated) Account disabled.
 - `addattr` (List of String) Add an attribute/value pair. Format is attr=value. The attribute must be part of the LDAP schema.
 - `auth_type` (Set of String) User authentication type. Possible values of the elements are (password, radius, otp, pkinit, hardened, idp, passkey)
 - `car_license` (List of String) Car Licenses
@@ -158,6 +171,7 @@ resource "freeipa_user" "testuser" {
 - `random_password` (Boolean) Generate a random user password
 - `setattr` (List of String) Set an attribute to a name/value pair. Format is attr=value.
 - `ssh_public_key` (List of String) List of SSH public keys
+- `state` (String) The current state of the user, can be `active`, `disabled`, `staged`, or `preserved`
 - `street_address` (String) Street address
 - `telephone_numbers` (List of String) Telephone Number
 - `uid_number` (Number) User ID Number (system will assign one if not provided)
@@ -168,4 +182,3 @@ resource "freeipa_user" "testuser" {
 ### Read-Only
 
 - `id` (String) ID of the resource
-- `state` (String) The current state of the user, can be `active`, `staged`, or `preserved`

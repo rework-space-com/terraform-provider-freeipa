@@ -22,11 +22,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -105,8 +105,6 @@ type UserResourceModel struct {
 	EmployeeType           types.String `tfsdk:"employee_type"`
 	PreferredLanguage      types.String `tfsdk:"preferred_language"`
 	AccountDisabled        types.Bool   `tfsdk:"account_disabled"`
-	AccountStaged          types.Bool   `tfsdk:"account_staged"`
-	AccountPreserved       types.Bool   `tfsdk:"account_preserved"`
 	State                  types.String `tfsdk:"state"`
 	SshPublicKeys          types.List   `tfsdk:"ssh_public_key"`
 	UserCerts              types.Set    `tfsdk:"user_certificates"`
@@ -127,9 +125,11 @@ func (r *UserResource) ConfigValidators(ctx context.Context) []resource.ConfigVa
 func userSchema() schema.Schema {
 	return schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "FreeIPA User resource. The user lifecycle is managed with the attributes:\n\n" +
-			"- account_staged\n\n" +
-			"- account_preserved\n\n" +
+		MarkdownDescription: "FreeIPA User resource. The user lifecycle is managed with the attribute state:\n\n" +
+			"- active\n\n" +
+			"- disabled\n\n" +
+			"- staged\n\n" +
+			"- preserved\n\n" +
 			"(defaults to active)\n\n" +
 			"An `active` user can be preserved.\n\n" +
 			"A user can be `staged` at the user's creation or from a `preserved`state.\n\n" +
@@ -158,6 +158,18 @@ func userSchema() schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+			},
+			"state": schema.StringAttribute{
+				MarkdownDescription: "The current state of the user, can be `active`, `disabled`, `staged`, or `preserved`",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf("active", "disabled", "staged", "preserved"),
+				},
+				Computed: true,
+				Default:  stringdefault.StaticString("active"),
 			},
 			"full_name": schema.StringAttribute{
 				MarkdownDescription: "Full name",
@@ -300,30 +312,10 @@ func userSchema() schema.Schema {
 			},
 			"account_disabled": schema.BoolAttribute{
 				MarkdownDescription: "Account disabled.",
+				DeprecationMessage:  "use `state = disabled` instead",
 				Optional:            true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"account_staged": schema.BoolAttribute{
-				MarkdownDescription: "Account staged.",
-				Optional:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"account_preserved": schema.BoolAttribute{
-				MarkdownDescription: "Account preserved.",
-				Optional:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"state": schema.StringAttribute{
-				MarkdownDescription: "The current state of the user, can be `active`, `staged`, or `preserved`",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"ssh_public_key": schema.ListAttribute{
@@ -349,13 +341,11 @@ func userSchema() schema.Schema {
 			"addattr": schema.ListAttribute{
 				MarkdownDescription: "Add an attribute/value pair. Format is attr=value. The attribute must be part of the LDAP schema.",
 				Optional:            true,
-				Computed:            false,
 				ElementType:         types.StringType,
 			},
 			"setattr": schema.ListAttribute{
 				MarkdownDescription: "Set an attribute to a name/value pair. Format is attr=value.",
 				Optional:            true,
-				Computed:            false,
 				ElementType:         types.StringType,
 			},
 		},
@@ -389,40 +379,45 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 }
 
 func (r *UserResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	var accountStage types.String
-	req.State.GetAttribute(ctx, path.Root("state"), &accountStage)
-	var toPreserved, toStaged types.Bool
-	req.Plan.GetAttribute(ctx, path.Root("account_preserved"), &toPreserved)
-	req.Plan.GetAttribute(ctx, path.Root("account_staged"), &toStaged)
+	var state, data UserResourceModel
 
-	if toPreserved.ValueBool() && toStaged.ValueBool() {
-		resp.Diagnostics.AddError("User Lifecycle", "account_staged and account_preserved cannot be both true.")
-		return
-	}
 	// on delete
 	if req.Plan.Raw.IsNull() {
 		return
 	}
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if data.State.Equal(types.StringValue("active")) {
+		if data.AccountDisabled.ValueBool() {
+			data.State = types.StringValue("disabled")
+		}
+	}
 	// create as preserved
-	if req.State.Raw.IsNull() && toPreserved.ValueBool() {
+	if req.State.Raw.IsNull() && data.State.Equal(types.StringValue("preserved")) {
 		resp.Diagnostics.AddError("User Lifecycle", "Creating a preserved user is not allowed.")
 		return
 	}
-	if !toStaged.ValueBool() && toPreserved.ValueBool() { // to preserved
-		if accountStage.Equal(types.StringValue("staged")) {
+	if req.State.Raw.IsNull() && (data.State.Equal(types.StringValue("active")) || data.State.Equal(types.StringValue("disabled"))) {
+		return
+	}
+	if req.State.Raw.IsNull() && (data.State.Equal(types.StringValue("staged"))) {
+		return
+	}
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if data.State.Equal(types.StringValue("preserved")) { // to preserved
+		if state.State.Equal(types.StringValue("staged")) {
 			resp.Diagnostics.AddError("User Lifecycle", "Preserving a staged user is not allowed.")
 			return
 		}
-		resp.Plan.SetAttribute(ctx, path.Root("state"), types.StringValue("preserved"))
-	} else if toStaged.ValueBool() && !toPreserved.ValueBool() { // to staged
-		if accountStage.Equal(types.StringValue("active")) { // active -> staged
+	} else if data.State.Equal(types.StringValue("staged")) { // to staged
+		if state.State.Equal(types.StringValue("active")) || state.State.Equal(types.StringValue("disabled")) { // active -> staged
 			resp.Diagnostics.AddError("User Lifecycle", "Staging an active user is not allowed.")
 			return
 		}
-		resp.Plan.SetAttribute(ctx, path.Root("state"), types.StringValue("staged"))
-	} else { // to active
-		resp.Plan.SetAttribute(ctx, path.Root("state"), types.StringValue("active"))
 	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &data)...)
 }
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -435,7 +430,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	if data.State.Equal(types.StringValue("active")) {
+	if data.State.Equal(types.StringValue("active")) || data.State.Equal(types.StringValue("disabled")) {
 		resource = ActiveUserResource{client: r.client}
 	} else if data.State.Equal(types.StringValue("staged")) {
 		resource = StagedUserResource{client: r.client}
@@ -457,15 +452,12 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	if data.State.Equal(types.StringValue("active")) {
+	if data.State.IsNull() || data.State.Equal(types.StringValue("active")) || data.State.Equal(types.StringValue("disabled")) {
 		resource = ActiveUserResource{client: r.client}
 	} else if data.State.Equal(types.StringValue("staged")) {
 		resource = StagedUserResource{client: r.client}
 	} else if data.State.Equal(types.StringValue("preserved")) {
 		resource = PreservedUserResource{client: r.client}
-	} else {
-		resp.Diagnostics.AddError("User Lifecycle", "User can only be created as active or staged.")
-		return
 	}
 
 	resource.ReadUser(ctx, req, resp)
@@ -484,7 +476,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	// update active user
-	if state.State.IsNull() || state.State.Equal(types.StringValue("active")) {
+	if state.State.IsNull() || state.State.Equal(types.StringValue("active")) || state.State.Equal(types.StringValue("disabled")) {
 		if data.State.Equal(types.StringValue("staged")) {
 			resp.Diagnostics.AddError("Client Error", "Staging an active user is not authorized.")
 			return
@@ -500,7 +492,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			resp.Diagnostics.AddError("Client Error", "Preserving a staged user is not authorized.")
 			return
 		}
-		if data.State.Equal(types.StringValue("active")) {
+		if data.State.Equal(types.StringValue("active")) || data.State.Equal(types.StringValue("disabled")) {
 			r.ActivateStagedUser(ctx, req, resp)
 		}
 	}
@@ -511,17 +503,17 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			r.StagePreservedUser(ctx, req, resp)
 			return
 		}
-		if data.State.Equal(types.StringValue("active")) {
+		if data.State.Equal(types.StringValue("active")) || data.State.Equal(types.StringValue("disabled")) {
 			r.ActivatePreservedUser(ctx, req, resp)
 			return
 		}
 	}
 
-	if data.State.Equal(types.StringValue("active")) {
+	if data.State.Equal(types.StringValue("active")) || data.State.Equal(types.StringValue("disabled")) {
 		resource = ActiveUserResource{client: r.client}
 	} else if data.State.Equal(types.StringValue("staged")) {
 		resource = StagedUserResource{client: r.client}
-	} else if data.State.Equal(types.StringValue("active")) {
+	} else if data.State.Equal(types.StringValue("preserved")) {
 		resource = PreservedUserResource{client: r.client}
 	} else {
 		return
@@ -541,11 +533,11 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		return
 	}
 
-	if state.State.Equal(types.StringValue("active")) {
+	if state.State.Equal(types.StringValue("active")) || state.State.Equal(types.StringValue("disabled")) {
 		resource = ActiveUserResource{client: r.client}
 	} else if state.State.Equal(types.StringValue("staged")) {
 		resource = StagedUserResource{client: r.client}
-	} else if state.State.Equal(types.StringValue("active")) {
+	} else if state.State.Equal(types.StringValue("preserved")) {
 		resource = PreservedUserResource{client: r.client}
 	} else {
 		return
@@ -570,6 +562,8 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 	switch state {
 	case "active":
 		resource = ActiveUserResource{client: r.client}
+	case "disabled":
+		resource = ActiveUserResource{client: r.client}
 	case "staged":
 		resource = StagedUserResource{client: r.client}
 	case "preserved":
@@ -581,12 +575,10 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 }
 
 func (r *UserResource) ActivateStagedUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data, state, config UserResourceModel
+	var data UserResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -598,7 +590,7 @@ func (r *UserResource) ActivateStagedUser(ctx context.Context, req resource.Upda
 		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
-	if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
+	if data.State.Equal(types.StringValue("disabled")) {
 		_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
 		if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
 			resp.Diagnostics.AddError("Client Error", err.Error())
@@ -612,7 +604,6 @@ func (r *UserResource) ActivateStagedUser(ctx context.Context, req resource.Upda
 		}
 	}
 
-	data.State = types.StringValue("active")
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa user %s returns %s", data.UID.String(), res.String()))
 
 	if resp.Diagnostics.HasError() {
@@ -640,7 +631,7 @@ func (r *UserResource) ActivatePreservedUser(ctx context.Context, req resource.U
 		return
 	}
 
-	if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
+	if data.State.Equal(types.StringValue("disabled")) {
 		_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
 		if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
 			resp.Diagnostics.AddError("Client Error", err.Error())
@@ -653,7 +644,6 @@ func (r *UserResource) ActivatePreservedUser(ctx context.Context, req resource.U
 			return
 		}
 	}
-	data.State = types.StringValue("active")
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -680,8 +670,6 @@ func (r *UserResource) StagePreservedUser(ctx context.Context, req resource.Upda
 		return
 	}
 
-	data.State = types.StringValue("staged")
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -692,11 +680,10 @@ func (r *UserResource) StagePreservedUser(ctx context.Context, req resource.Upda
 }
 
 func (r *UserResource) PreserveActiveUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data, config UserResourceModel
+	var data UserResourceModel
 
 	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -711,9 +698,7 @@ func (r *UserResource) PreserveActiveUser(ctx context.Context, req resource.Upda
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", err.Error())
 	}
-	data.AccountPreserved = types.BoolValue(true)
-	data.AccountDisabled = config.AccountDisabled
-	data.State = types.StringValue("preserved")
+
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

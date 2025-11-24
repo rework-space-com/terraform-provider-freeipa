@@ -18,8 +18,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
@@ -72,6 +74,7 @@ type UserDataSourceModel struct {
 	AccountDisabled          types.Bool   `tfsdk:"account_disabled"`
 	AccountStaged            types.Bool   `tfsdk:"account_staged"`
 	AccountPreserved         types.Bool   `tfsdk:"account_preserved"`
+	State                    types.String `tfsdk:"state"`
 	SshPublicKeys            types.List   `tfsdk:"ssh_public_key"`
 	UserCerts                types.Set    `tfsdk:"user_certificates"`
 	CarLicense               types.List   `tfsdk:"car_license"`
@@ -110,13 +113,12 @@ func (r *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				MarkdownDescription: "UID or Login\n\n	- The name must not exceed 32 characters.\n	- The name must contain only lowercase letters (a-z), digits (0-9), and the characters (. - _).\n	- The name must not start with a special character.\n	- A user and a group cannot have the same name.",
 				Required:            true,
 			},
-			"account_staged": schema.BoolAttribute{
-				MarkdownDescription: "Lookup in staged accounts",
+			"state": schema.StringAttribute{
+				MarkdownDescription: "State of the account to lookup. Can be `active`, `disabled`, `staged` or `preserved`",
 				Optional:            true,
-			},
-			"account_preserved": schema.BoolAttribute{
-				MarkdownDescription: "Lookup in preserved accounts",
-				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("active", "disabled", "staged", "preserved"),
+				},
 			},
 			"full_name": schema.StringAttribute{
 				MarkdownDescription: "Full name",
@@ -229,7 +231,15 @@ func (r *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				Computed:            true,
 			},
 			"account_disabled": schema.BoolAttribute{
-				MarkdownDescription: "Account disabled",
+				MarkdownDescription: "Is the account disabled",
+				Computed:            true,
+			},
+			"account_staged": schema.BoolAttribute{
+				MarkdownDescription: "Is the account staged",
+				Computed:            true,
+			},
+			"account_preserved": schema.BoolAttribute{
+				MarkdownDescription: "Is the account preserved",
 				Computed:            true,
 			},
 			"ssh_public_key": schema.ListAttribute{
@@ -316,7 +326,7 @@ func (r *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	if !data.AccountStaged.ValueBool() {
+	if data.State.IsNull() || !data.State.Equal(types.StringValue("staged")) {
 		r.ReadActiveUser(ctx, req, resp)
 	} else {
 		r.ReadStagedUser(ctx, req, resp)
@@ -352,11 +362,11 @@ func (r *UserDataSource) ReadActiveUser(ctx context.Context, req datasource.Read
 		}
 	}
 
-	if data.AccountPreserved.ValueBool() && !*res.Result.Preserved {
+	if data.State.Equal(types.StringValue("preserved")) && !*res.Result.Preserved {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Preserved User %s returns as active.", data.UID.ValueString()))
 		return
 	}
-	if !data.AccountPreserved.ValueBool() && *res.Result.Preserved {
+	if !data.State.Equal(types.StringValue("preserved")) && *res.Result.Preserved {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Active User %s returns as preserved.", data.UID.ValueString()))
 		return
 	}
@@ -437,6 +447,13 @@ func (r *UserDataSource) ReadActiveUser(ctx context.Context, req datasource.Read
 	if res.Result.Nsaccountlock != nil {
 		data.AccountDisabled = types.BoolValue(*res.Result.Nsaccountlock)
 	}
+	if res.Result.Preserved != nil {
+		data.AccountPreserved = types.BoolValue(*res.Result.Preserved)
+	}
+
+	falseVal := false
+	data.AccountPreserved = types.BoolValue(falseVal)
+	data.AccountStaged = types.BoolValue(falseVal)
 	if res.Result.Ipasshpubkey != nil {
 		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
 	}
@@ -487,9 +504,6 @@ func (r *UserDataSource) ReadActiveUser(ctx context.Context, req datasource.Read
 	}
 	if res.Result.MemberofindirectSudorule != nil {
 		data.MemberOfIndirectSudoRule, _ = types.ListValueFrom(ctx, types.StringType, res.Result.MemberofindirectSudorule)
-	}
-	if res.Result.Preserved != nil {
-		data.AccountPreserved = types.BoolValue(*res.Result.Preserved)
 	}
 
 	data.Id = types.StringValue(data.UID.ValueString())
@@ -593,6 +607,11 @@ func (r *UserDataSource) ReadStagedUser(ctx context.Context, req datasource.Read
 	if res.Result.Preferredlanguage != nil {
 		data.PreferredLanguage = types.StringValue(*res.Result.Preferredlanguage)
 	}
+	trueVal := true
+	falseVal := false
+	data.AccountDisabled = types.BoolValue(falseVal)
+	data.AccountPreserved = types.BoolValue(falseVal)
+	data.AccountStaged = types.BoolValue(trueVal)
 	if res.Result.Ipasshpubkey != nil {
 		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
 	}

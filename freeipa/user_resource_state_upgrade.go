@@ -260,9 +260,11 @@ func upgradeUserStateV0toV1(ctx context.Context, req resource.UpgradeStateReques
 		UserClass:              userDataV0.UserClass,
 	}
 
-	upgradedStateData.State = types.StringValue("active")
-	upgradedStateData.AccountPreserved = types.BoolNull()
-	upgradedStateData.AccountStaged = types.BoolNull()
+	if userDataV0.AccountDisabled.ValueBool() {
+		upgradedStateData.State = types.StringValue("disabled")
+	} else {
+		upgradedStateData.State = types.StringValue("active")
+	}
 	upgradedStateData.SetAttr = types.ListNull(types.StringType)
 	upgradedStateData.AddAttr = types.ListNull(types.StringType)
 

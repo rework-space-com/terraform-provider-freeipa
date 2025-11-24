@@ -7,6 +7,6 @@ data "freeipa_user" "user-0" {
 # Lookup an staged user
 
 data "freeipa_user" "user-0" {
-  name           = "test-user"
-  account_staged = true
+  name  = "test-user"
+  state = "staged"
 }

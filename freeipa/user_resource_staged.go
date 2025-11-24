@@ -404,12 +404,11 @@ func (r StagedUserResource) ReadUser(ctx context.Context, req resource.ReadReque
 }
 
 func (r StagedUserResource) UpdateUser(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data, state, config UserResourceModel
+	var data, state UserResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 
 	if resp.Diagnostics.HasError() {
 		return

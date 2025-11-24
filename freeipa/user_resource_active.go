@@ -235,7 +235,7 @@ func (r ActiveUserResource) CreateUser(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group: %s", err))
 		return
 	}
-	if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
+	if data.State.Equal(types.StringValue("disabled")) {
 		_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
 		if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
 			resp.Diagnostics.AddError("Client Error", err.Error())
@@ -250,7 +250,6 @@ func (r ActiveUserResource) CreateUser(ctx context.Context, req resource.CreateR
 	}
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa user %s returns %s", data.UID.String(), res.String()))
 
-	data.State = types.StringValue("active")
 	data.Id = types.StringValue(res.Result.UID)
 
 	if resp.Diagnostics.HasError() {
@@ -661,8 +660,8 @@ func (r ActiveUserResource) UpdateUser(ctx context.Context, req resource.UpdateR
 		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
-	if !data.AccountDisabled.Equal(state.AccountDisabled) {
-		if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
+	if !data.State.Equal(state.State) {
+		if data.State.Equal(types.StringValue("disabled")) {
 			_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
 			if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
 				resp.Diagnostics.AddError("Client Error", err.Error())
@@ -728,6 +727,11 @@ func (r ActiveUserResource) ImportUserState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "active")...)
+	if *res.Result.Nsaccountlock {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), types.StringValue("disabled"))...)
+		// resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_disabled"), true)...)
+	} else {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), types.StringValue("active"))...)
+	}
 
 }

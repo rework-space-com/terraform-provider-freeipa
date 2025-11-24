@@ -167,7 +167,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified) + testAccFreeIPAUser_datasource(testUserDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "first_name", "Test"),
@@ -208,7 +208,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2) + testAccFreeIPAUser_datasource(testUserDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "first_name", "Test"),
@@ -249,7 +249,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2) + testAccFreeIPAUser_datasource(testUserDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),
@@ -370,20 +370,21 @@ func TestAccFreeIPAUser_staged(t *testing.T) {
 
 func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 	testUserStaged := map[string]string{
-		"index":          "0",
-		"login":          "\"TestACC-User\"",
-		"firstname":      "\"Dev\"",
-		"lastname":       "\"User\"",
-		"account_staged": "true",
+		"index":     "0",
+		"login":     "\"TestACC-User\"",
+		"firstname": "\"Dev\"",
+		"lastname":  "\"User\"",
+		"state":     "\"staged\"",
 	}
 	testUserStagedDS := map[string]string{
-		"index":          "0",
-		"name":           "freeipa_user.user-0.name",
-		"account_staged": "true",
+		"index": "0",
+		"name":  "freeipa_user.user-0.name",
+		"state": "\"staged\"",
 	}
 	testUserActive := map[string]string{
 		"index":             "0",
 		"login":             "\"TestACC-User\"",
+		"state":             "\"active\"",
 		"firstname":         "\"Dev\"",
 		"lastname":          "\"User\"",
 		"organisation_unit": "\"Developers\"",
@@ -401,23 +402,23 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 		"name":  "freeipa_user.user-0.name",
 	}
 	testUserDisabled := map[string]string{
-		"index":            "0",
-		"login":            "\"TestACC-User\"",
-		"firstname":        "\"Dev\"",
-		"lastname":         "\"User\"",
-		"account_disabled": "true",
+		"index":     "0",
+		"login":     "\"TestACC-User\"",
+		"firstname": "\"Dev\"",
+		"lastname":  "\"User\"",
+		"state":     "\"disabled\"",
 	}
 	testUserPreserved := map[string]string{
-		"index":             "0",
-		"login":             "\"TestACC-User\"",
-		"firstname":         "\"Dev\"",
-		"lastname":          "\"User\"",
-		"account_preserved": "true",
+		"index":     "0",
+		"login":     "\"TestACC-User\"",
+		"firstname": "\"Dev\"",
+		"lastname":  "\"User\"",
+		"state":     "\"preserved\"",
 	}
 	testUserPreservedDS := map[string]string{
-		"index":             "0",
-		"name":              "freeipa_user.user-0.name",
-		"account_preserved": "true",
+		"index": "0",
+		"name":  "freeipa_user.user-0.name",
+		"state": "\"preserved\"",
 	}
 
 	resource.Test(t, resource.TestCase{

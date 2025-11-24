@@ -22,7 +22,7 @@ resource "freeipa_user" "testuser" {
 # - `name`
 # - `first_name`
 # - `last_name`
-# - `account_staged`
+# - `state`
 
 import {
   to = freeipa_user.testuser
@@ -33,7 +33,7 @@ resource "freeipa_user" "testuser" {
   name           = "testuser"
   first_name     = "Test"
   last_name      = "User"
-  account_staged = true
+  state          = "staged
 }
 
 # The import id of a preserved must be exactly equal to `username;preserved` of the user to import.
@@ -42,7 +42,7 @@ resource "freeipa_user" "testuser" {
 # - `name`
 # - `first_name`
 # - `last_name`
-# - `account_preserved`
+# - `state`
 
 import {
   to = freeipa_user.testuser
@@ -53,5 +53,5 @@ resource "freeipa_user" "testuser" {
   name           = "testuser"
   first_name     = "Test"
   last_name      = "User"
-  account_preserved = true
+  state          = "preserved"
 }

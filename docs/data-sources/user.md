@@ -21,8 +21,8 @@ data "freeipa_user" "user-0" {
 # Lookup an staged user
 
 data "freeipa_user" "user-0" {
-  name           = "test-user"
-  account_staged = true
+  name  = "test-user"
+  state = "staged"
 }
 ```
 
@@ -41,13 +41,14 @@ data "freeipa_user" "user-0" {
 
 ### Optional
 
-- `account_preserved` (Boolean) Lookup in preserved accounts
-- `account_staged` (Boolean) Lookup in staged accounts
+- `state` (String) State of the account to lookup. Can be `active`, `disabled`, `staged` or `preserved`
 - `user_certificates` (Set of String) List of Base-64 encoded user certificates
 
 ### Read-Only
 
-- `account_disabled` (Boolean) Account disabled
+- `account_disabled` (Boolean) Is the account disabled
+- `account_preserved` (Boolean) Is the account preserved
+- `account_staged` (Boolean) Is the account staged
 - `car_license` (List of String) Car Licenses
 - `city` (String) City
 - `display_name` (String) Display name

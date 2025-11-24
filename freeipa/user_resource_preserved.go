@@ -426,23 +426,6 @@ func (r PreservedUserResource) UpdateUser(ctx context.Context, req resource.Upda
 		resp.Diagnostics.AddError("Client Error", err.Error())
 		return
 	}
-	if !data.AccountDisabled.Equal(state.AccountDisabled) {
-		if !data.AccountDisabled.IsNull() && data.AccountDisabled.Equal(types.BoolValue(true)) {
-			_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
-			if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
-				resp.Diagnostics.AddError("Client Error", err.Error())
-				return
-			}
-		} else {
-			_, err := r.client.UserEnable(&ipa.UserEnableArgs{}, &ipa.UserEnableOptionalArgs{UID: data.UID.ValueStringPointer()})
-			if err != nil && !strings.Contains(err.Error(), "This entry is already enabled") {
-				resp.Diagnostics.AddError("Client Error", err.Error())
-				return
-			}
-		}
-	}
-	resp.Diagnostics.AddWarning("DEBUG", fmt.Sprintf("update preserved user disabled, state = %s plan = %s", state.AccountDisabled.String(), data.AccountDisabled.String()))
-	data.State = types.StringValue("preserved")
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Update freeipa user %s returns %s", data.UID.String(), res.String()))
 
 	if resp.Diagnostics.HasError() {
@@ -495,6 +478,5 @@ func (r PreservedUserResource) ImportUserState(ctx context.Context, req resource
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_preserved"), true)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "preserved")...)
 }

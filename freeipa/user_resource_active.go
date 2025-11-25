@@ -718,7 +718,7 @@ func (r ActiveUserResource) ImportUserState(ctx context.Context, req resource.Im
 		resp.Diagnostics.AddError("Import Error", err.Error())
 		return
 	}
-	if res.Result.UID != uid {
+	if res.Result.UID != strings.ToLower(uid) {
 		resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
 		return
 	}
@@ -729,7 +729,6 @@ func (r ActiveUserResource) ImportUserState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
 	if *res.Result.Nsaccountlock {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), types.StringValue("disabled"))...)
-		// resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_disabled"), true)...)
 	} else {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), types.StringValue("active"))...)
 	}

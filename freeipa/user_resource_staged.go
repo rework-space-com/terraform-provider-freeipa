@@ -685,7 +685,7 @@ func (r StagedUserResource) ImportUserState(ctx context.Context, req resource.Im
 		resp.Diagnostics.AddError("Import Error", err.Error())
 		return
 	}
-	if res.Result.UID != uid {
+	if res.Result.UID != strings.ToLower(uid) {
 		resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
 		return
 	}
@@ -694,6 +694,5 @@ func (r StagedUserResource) ImportUserState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), res.Result.UID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("first_name"), res.Result.Givenname)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("last_name"), res.Result.Sn)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("account_staged"), true)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), "staged")...)
 }

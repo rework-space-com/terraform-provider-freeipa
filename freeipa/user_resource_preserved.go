@@ -469,7 +469,7 @@ func (r PreservedUserResource) ImportUserState(ctx context.Context, req resource
 		resp.Diagnostics.AddError("Import Error", err.Error())
 		return
 	}
-	if res.Result.UID != uid {
+	if res.Result.UID != strings.ToLower(uid) {
 		resp.Diagnostics.AddError("Import Error", "The import ID and the name attribute must be identical")
 		return
 	}

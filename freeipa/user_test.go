@@ -6,6 +6,7 @@
 package freeipa
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -166,7 +167,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified) + testAccFreeIPAUser_datasource(testUserDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "first_name", "Test"),
@@ -207,7 +208,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2) + testAccFreeIPAUser_datasource(testUserDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "first_name", "Test"),
@@ -248,7 +249,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2) + testAccFreeIPAUser_datasource(testUserDS),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),
@@ -302,6 +303,322 @@ func TestAccFreeIPAUser_simple_CaseInsensitive(t *testing.T) {
 			},
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_datasource(testUserDS),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestAccFreeIPAUser_staged(t *testing.T) {
+	testUser := map[string]string{
+		"index":          "0",
+		"login":          "\"TestACC-User\"",
+		"firstname":      "\"Dev\"",
+		"lastname":       "\"User\"",
+		"account_staged": "true",
+	}
+	testUserDS := map[string]string{
+		"index":          "0",
+		"name":           "freeipa_user.user-0.name",
+		"account_staged": "true",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_datasource(testUserDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_datasource(testUserDS),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestAccFreeIPAUser_lifecycle(t *testing.T) {
+	testUserStaged := map[string]string{
+		"index":     "0",
+		"login":     "\"TestACC-User\"",
+		"firstname": "\"Dev\"",
+		"lastname":  "\"User\"",
+		"state":     "\"staged\"",
+	}
+	testUserStagedDS := map[string]string{
+		"index": "0",
+		"name":  "freeipa_user.user-0.name",
+		"state": "\"staged\"",
+	}
+	testUserActive := map[string]string{
+		"index":             "0",
+		"login":             "\"TestACC-User\"",
+		"state":             "\"active\"",
+		"firstname":         "\"Dev\"",
+		"lastname":          "\"User\"",
+		"organisation_unit": "\"Developers\"",
+		"telephone_numbers": "[\"1234567890\"]",
+		"mobile_numbers":    "[\"0123456789\"]",
+		"car_license":       "[\"A-111-B\"]",
+		"street_address":    "\"Mykhaïlo Hrouchevsky Street, 12/2\"",
+		"city":              "\"Kyiv\"",
+		"province":          "\"Ukraine\"",
+		"postal_code":       "\"01008\"",
+		"ssh_public_key":    "[\"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDEobivsBY6REElik0hNMLkwcbqIba4c9RWRhD0cy7Kh\"]",
+	}
+	testUserActiveDS := map[string]string{
+		"index": "0",
+		"name":  "freeipa_user.user-0.name",
+	}
+	testUserDisabled := map[string]string{
+		"index":     "0",
+		"login":     "\"TestACC-User\"",
+		"firstname": "\"Dev\"",
+		"lastname":  "\"User\"",
+		"state":     "\"disabled\"",
+	}
+	testUserPreserved := map[string]string{
+		"index":     "0",
+		"login":     "\"TestACC-User\"",
+		"firstname": "\"Dev\"",
+		"lastname":  "\"User\"",
+		"state":     "\"preserved\"",
+	}
+	testUserPreservedDS := map[string]string{
+		"index": "0",
+		"name":  "freeipa_user.user-0.name",
+		"state": "\"preserved\"",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1
+			{
+				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
+				ExpectError: regexp.MustCompile("Creating a preserved user is not allowed."),
+			},
+			// Step 2
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 3
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			// Step 4
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged) + testAccFreeIPAUser_datasource(testUserStagedDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 5
+			{
+				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
+				ExpectError: regexp.MustCompile("Preserving a staged user is not allowed."),
+			},
+			// Step 6
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 7
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			// Step 8
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive) + testAccFreeIPAUser_datasource(testUserActiveDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "organisation_unit", "Developers"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "telephone_numbers.0", "1234567890"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "mobile_numbers.0", "0123456789"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "car_license.0", "A-111-B"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "street_address", "Mykhaïlo Hrouchevsky Street, 12/2"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "city", "Kyiv"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "province", "Ukraine"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "postal_code", "01008"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "ssh_public_key.0", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDEobivsBY6REElik0hNMLkwcbqIba4c9RWRhD0cy7Kh"),
+				),
+			},
+			// Step 9
+			{
+				Config:      testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				ExpectError: regexp.MustCompile("Staging an active user is not allowed."),
+			},
+			// Step 10
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 11
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			// Step 12
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled) + testAccFreeIPAUser_datasource(testUserActiveDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 13
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 14
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			// Step 15
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserPreserved) + testAccFreeIPAUser_datasource(testUserPreservedDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("data.freeipa_user.user-0", "last_name", "User"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "organisation_unit"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "telephone_numbers.0"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "mobile_numbers.0"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "car_license.0"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "street_address"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "city"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "province"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "postal_code"),
+					resource.TestCheckNoResourceAttr("data.freeipa_user.user-0", "ssh_public_key"),
+				),
+			},
+			// Step 16
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 17
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserStaged),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			// Step 18
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 19
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserDisabled),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			// Step 20
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "id", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "name", "TestACC-User"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "first_name", "Dev"),
+					resource.TestCheckResourceAttr("freeipa_user.user-0", "last_name", "User"),
+				),
+			},
+			// Step 21
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserActive),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),

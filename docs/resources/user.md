@@ -1,12 +1,40 @@
 ---
 page_title: "freeipa_user Resource - freeipa"
 description: |-
-  FreeIPA User resource
+  FreeIPA User resource. The user lifecycle is managed with the attribute state:
+  
+  active
+  disabled
+  staged
+  preserved
+  (defaults to active)
+  An active user can be preserved.
+  A user can be staged at the user's creation or from a preservedstate.
+  A staged user can be preserved.
+  A preserved or staged user can activated.
 ---
 
 # freeipa_user (Resource)
 
-FreeIPA User resource
+FreeIPA User resource. The user lifecycle is managed with the attribute state:
+
+- active
+
+- disabled
+
+- staged
+
+- preserved
+
+(defaults to active)
+
+An `active` user can be preserved.
+
+A user can be `staged` at the user's creation or from a `preserved`state.
+
+A `staged` user can be preserved.
+
+A `preserved` or `staged` user can activated.
 
 
 ## Example Usage
@@ -19,6 +47,15 @@ resource "freeipa_user" "user-1" {
   telephone_numbers = ["+380982555429", "2-10-11"]
   email_address     = ["roman@example.com"]
 }
+
+resource "freeipa_user" "user-2" {
+  first_name        = "Roman"
+  last_name         = "Roman"
+  name              = "roman"
+  state             = "staged"
+  telephone_numbers = ["+380982555429", "2-10-11"]
+  email_address     = ["roman@example.com"]
+}
 ```
 
 
@@ -26,7 +63,7 @@ resource "freeipa_user" "user-1" {
 ## Import Usage
 
 ```terraform
-# The import id must be exactly equal to `username` of the user to import.
+# The import id of an active must be exactly equal to `username` of the user to import.
 
 # The associated resource in terraform must include the attributes:
 # - `name`
@@ -42,6 +79,46 @@ resource "freeipa_user" "testuser" {
   name       = "testuser"
   first_name = "Test"
   last_name  = "User"
+}
+
+# The import id of n staged must be exactly equal to `username;staged` of the user to import.
+
+# The associated resource in terraform must include the attributes:
+# - `name`
+# - `first_name`
+# - `last_name`
+# - `state`
+
+import {
+  to = freeipa_user.testuser
+  id = "testuser;staged"
+}
+
+resource "freeipa_user" "testuser" {
+  name           = "testuser"
+  first_name     = "Test"
+  last_name      = "User"
+  state          = "staged
+}
+
+# The import id of a preserved must be exactly equal to `username;preserved` of the user to import.
+
+# The associated resource in terraform must include the attributes:
+# - `name`
+# - `first_name`
+# - `last_name`
+# - `state`
+
+import {
+  to = freeipa_user.testuser
+  id = "testuser;preserved"
+}
+
+resource "freeipa_user" "testuser" {
+  name           = "testuser"
+  first_name     = "Test"
+  last_name      = "User"
+  state          = "preserved"
 }
 ```
 
@@ -62,7 +139,8 @@ resource "freeipa_user" "testuser" {
 
 ### Optional
 
-- `account_disabled` (Boolean) Account disabled
+- `account_disabled` (Boolean, Deprecated) Account disabled.
+- `addattr` (List of String) Add an attribute/value pair. Format is attr=value. The attribute must be part of the LDAP schema.
 - `auth_type` (Set of String) User authentication type. Possible values of the elements are (password, radius, otp, pkinit, hardened, idp, passkey)
 - `car_license` (List of String) Car Licenses
 - `city` (String) City
@@ -91,7 +169,9 @@ resource "freeipa_user" "testuser" {
 - `radius_proxy_config` (String) RADIUS proxy configuration
 - `radius_proxy_username` (String) RADIUS proxy username
 - `random_password` (Boolean) Generate a random user password
+- `setattr` (List of String) Set an attribute to a name/value pair. Format is attr=value.
 - `ssh_public_key` (List of String) List of SSH public keys
+- `state` (String) The current state of the user, can be `active`, `disabled`, `staged`, or `preserved`
 - `street_address` (String) Street address
 - `telephone_numbers` (List of String) Telephone Number
 - `uid_number` (Number) User ID Number (system will assign one if not provided)

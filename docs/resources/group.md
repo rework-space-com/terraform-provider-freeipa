@@ -90,7 +90,7 @@ resource "freeipa_group" "group-nonposix" {
 
 ### Optional
 
-- `addattr` (List of String) Add an attribute/value pair. Format is attr=value. The attribute must be part of the schema.
+- `addattr` (List of String) Add an attribute/value pair. Format is attr=value. The attribute must be part of the LDAP schema.
 - `description` (String) Group Description
 - `external` (Boolean) Allow adding external non-IPA members from trusted domains
 - `gid_number` (Number) GID (use this option to set it manually)

@@ -12,10 +12,17 @@ FreeIPA User data source
 ## Example Usage
 
 ```terraform
+# Lookup an active user
+
 data "freeipa_user" "user-0" {
-  name       = "test-user"
-  first_name = "John"
-  last_name  = "Doe"
+  name = "test-user"
+}
+
+# Lookup an staged user
+
+data "freeipa_user" "user-0" {
+  name  = "test-user"
+  state = "staged"
 }
 ```
 
@@ -32,9 +39,16 @@ data "freeipa_user" "user-0" {
 	- The name must not start with a special character.
 	- A user and a group cannot have the same name.
 
+### Optional
+
+- `state` (String) State of the account to lookup. Can be `active`, `disabled`, `staged` or `preserved`
+- `user_certificates` (Set of String) List of Base-64 encoded user certificates
+
 ### Read-Only
 
-- `account_disabled` (Boolean) Account disabled
+- `account_disabled` (Boolean) Is the account disabled
+- `account_preserved` (Boolean) Is the account preserved
+- `account_staged` (Boolean) Is the account staged
 - `car_license` (List of String) Car Licenses
 - `city` (String) City
 - `display_name` (String) Display name

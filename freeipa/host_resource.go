@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -69,6 +70,7 @@ type HostResourceModel struct {
 	UserPassword            types.String `tfsdk:"userpassword"`
 	RandomPassword          types.Bool   `tfsdk:"random_password"`
 	GeneratedPassword       types.String `tfsdk:"generated_password"`
+	UpdateDns               types.Bool   `tfsdk:"update_dns"`
 }
 
 func (r *HostResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -102,9 +104,6 @@ func (r *HostResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"ip_address": schema.StringAttribute{
 				MarkdownDescription: "IP address of the host",
 				Optional:            true,
-				// PlanModifiers: []planmodifier.String{
-				// 	stringplanmodifier.RequiresReplace(),
-				// },
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "A description of this host",
@@ -184,6 +183,12 @@ func (r *HostResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				MarkdownDescription: "Generated random password created at host creation",
 				Computed:            true,
 				Sensitive:           true,
+			},
+			"update_dns": schema.BoolAttribute{
+				MarkdownDescription: "Update DNS when updating or deleting the host (default to `true`)",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
 			},
 		},
 	}
@@ -311,7 +316,7 @@ func (r *HostResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	if !data.RandomPassword.IsNull() && data.RandomPassword.ValueBool() {
+	if data.RandomPassword.ValueBool() {
 		data.GeneratedPassword = types.StringValue(*res.Result.Randompassword)
 	} else {
 		data.GeneratedPassword = types.StringValue("")
@@ -465,11 +470,6 @@ func (r *HostResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if res.Result.Ipakrboktoauthasdelegate != nil && !data.TrustedToAuthAsDelegate.IsNull() {
 		data.TrustedToAuthAsDelegate = types.BoolValue(*res.Result.Ipakrboktoauthasdelegate)
 	}
-	if res.Result.Randompassword != nil && !data.RandomPassword.IsNull() && data.RandomPassword.ValueBool() {
-		data.GeneratedPassword = types.StringValue(*res.Result.Randompassword)
-	} else {
-		data.GeneratedPassword = types.StringValue("")
-	}
 
 	data.Id = data.Name
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa host %s", res.Result.Fqdn))
@@ -492,7 +492,9 @@ func (r *HostResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	optArgs := ipa.HostModOptionalArgs{}
+	optArgs := ipa.HostModOptionalArgs{
+		Updatedns: data.UpdateDns.ValueBoolPointer(),
+	}
 
 	args := ipa.HostModArgs{
 		Fqdn: data.Name.ValueString(),
@@ -659,9 +661,8 @@ func (r *HostResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	args := ipa.HostDelArgs{
 		Fqdn: []string{data.Name.ValueString()},
 	}
-	valTrue := true
 	optArgs := ipa.HostDelOptionalArgs{
-		Updatedns: &valTrue,
+		Updatedns: data.UpdateDns.ValueBoolPointer(),
 	}
 	_, err := r.client.HostDel(&args, &optArgs)
 	if err != nil {

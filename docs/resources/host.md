@@ -65,6 +65,7 @@ resource "freeipa_host" "testhost" {
 - `random_password` (Boolean) Generate a random password to be used in bulk enrollment
 - `trusted_for_delegation` (Boolean) Client credentials may be delegated to the service
 - `trusted_to_auth_as_delegate` (Boolean) The service is allowed to authenticate on behalf of a client
+- `update_dns` (Boolean) Update DNS when updating or deleting the host (default to `true`)
 - `user_certificates` (List of String) Base-64 encoded host certificate
 - `userclass` (List of String) Host category (semantics placed on this attribute are for local interpretation)
 - `userpassword` (String, Sensitive) Password used in bulk enrollment

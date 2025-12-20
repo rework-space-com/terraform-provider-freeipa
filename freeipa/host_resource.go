@@ -669,7 +669,26 @@ func (r *HostResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("[DEBUG] Host %s deletion failed: %s", data.Id.ValueString(), err))
 		return
 	}
-
+	if data.UpdateDns.ValueBool() {
+		var dnsname interface{} = strings.SplitN(strings.ToLower(data.Name.ValueString()), ".", 2)[0]
+		var dnszone interface{} = strings.SplitN(strings.ToLower(data.Name.ValueString()), ".", 2)[1]
+		dnsArg := ipa.DnsrecordDelArgs{
+			Idnsname: dnsname,
+		}
+		dnsOptArgs := ipa.DnsrecordDelOptionalArgs{
+			Dnszoneidnsname: &dnszone,
+			DelAll:          data.UpdateDns.ValueBoolPointer(),
+		}
+		_, err = r.client.DnsrecordDel(&dnsArg, &dnsOptArgs)
+		if err != nil {
+			if strings.Contains(err.Error(), "NotFound") {
+				tflog.Debug(ctx, fmt.Sprintf("[DEBUG] No DNS recordsfound for host %s", data.Id.ValueString()))
+			} else {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS records deletion for host %s failed: %s", data.Id.ValueString(), err))
+				return
+			}
+		}
+	}
 }
 
 func (r *HostResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

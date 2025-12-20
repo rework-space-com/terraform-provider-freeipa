@@ -334,6 +334,9 @@ func testAccFreeIPAHost_resource(dataset map[string]string) string {
 	if dataset["description"] != "" {
 		tf_def += fmt.Sprintf("  description = %s\n", dataset["description"])
 	}
+	if dataset["update_dns"] != "" {
+		tf_def += fmt.Sprintf("  update_dns = %s\n", dataset["update_dns"])
+	}
 	if dataset["locality"] != "" {
 		tf_def += fmt.Sprintf("  locality = %s\n", dataset["locality"])
 	}

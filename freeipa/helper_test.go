@@ -325,6 +325,15 @@ func testAccFreeIPADNSRecord_resource(dataset map[string]string) string {
 	return tf_def
 }
 
+func testAccFreeIPADNSRecord_datasource(dataset map[string]string) string {
+	return fmt.Sprintf(`
+	data "freeipa_dns_record" "dns-record-%s" {
+	  zone_name   = %s
+	  record_name = %s
+	}
+	`, dataset["index"], dataset["zone_name"], dataset["record_name"])
+}
+
 func testAccFreeIPAHost_resource(dataset map[string]string) string {
 	tf_def := fmt.Sprintf(`
 	resource "freeipa_host" "host-%s" {

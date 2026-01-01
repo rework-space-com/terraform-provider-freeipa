@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
@@ -38,9 +39,18 @@ type dnsRecordDataSource struct {
 
 // resourceModelModel describes the resource data model.
 type dnsRecordDataSourceModel struct {
-	Id         types.String `tfsdk:"id"`
-	RecordName types.String `tfsdk:"record_name"`
-	ZoneName   types.String `tfsdk:"zone_name"`
+	Id           types.String `tfsdk:"id"`
+	RecordName   types.String `tfsdk:"record_name"`
+	ZoneName     types.String `tfsdk:"zone_name"`
+	ARecords     types.Set    `tfsdk:"a_records"`
+	AAAARecords  types.Set    `tfsdk:"aaaa_records"`
+	CnameRecords types.Set    `tfsdk:"cname_records"`
+	MxRecords    types.Set    `tfsdk:"mx_records"`
+	PtrRecords   types.Set    `tfsdk:"ptr_records"`
+	SrvRecords   types.Set    `tfsdk:"srv_records"`
+	TxtRecords   types.Set    `tfsdk:"txt_records"`
+	SshfpRecords types.Set    `tfsdk:"sshfp_records"`
+	NsRecords    types.Set    `tfsdk:"ns_records"`
 }
 
 func (r *dnsRecordDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -68,6 +78,51 @@ func (r *dnsRecordDataSource) Schema(ctx context.Context, req datasource.SchemaR
 			"zone_name": schema.StringAttribute{
 				MarkdownDescription: "Zone name (FQDN)",
 				Required:            true,
+			},
+			"a_records": schema.SetAttribute{
+				MarkdownDescription: "List of A records",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"aaaa_records": schema.SetAttribute{
+				MarkdownDescription: "List of AAAA records",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"cname_records": schema.SetAttribute{
+				MarkdownDescription: "List of CNAME records",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"mx_records": schema.SetAttribute{
+				MarkdownDescription: "List of MX records",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"ptr_records": schema.SetAttribute{
+				MarkdownDescription: "List of PTR records",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"srv_records": schema.SetAttribute{
+				MarkdownDescription: "List of SRV records",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"txt_records": schema.SetAttribute{
+				MarkdownDescription: "List of TXT records",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"sshfp_records": schema.SetAttribute{
+				MarkdownDescription: "List of SSHFP records",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"ns_records": schema.SetAttribute{
+				MarkdownDescription: "List of NS records",
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -104,13 +159,13 @@ func (r *dnsRecordDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	structured := true
 	reqArgs := ipa.DnsrecordShowArgs{
 		Idnsname: data.RecordName.ValueString(),
 	}
+	all := true
 	optArgs := ipa.DnsrecordShowOptionalArgs{
 		Dnszoneidnsname: &zone_name,
-		Structured:      &structured,
+		All:             &all,
 	}
 
 	res, err := r.client.DnsrecordShow(&reqArgs, &optArgs)
@@ -126,6 +181,71 @@ func (r *dnsRecordDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
+	if res.Result.Arecord != nil {
+		var diag diag.Diagnostics
+		data.ARecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Arecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+	if res.Result.Aaaarecord != nil {
+		var diag diag.Diagnostics
+		data.AAAARecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Aaaarecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+	if res.Result.Cnamerecord != nil {
+		var diag diag.Diagnostics
+		data.CnameRecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Cnamerecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+	if res.Result.Mxrecord != nil {
+		var diag diag.Diagnostics
+		data.MxRecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Mxrecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+	if res.Result.Ptrrecord != nil {
+		var diag diag.Diagnostics
+		data.MxRecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Ptrrecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+	if res.Result.Srvrecord != nil {
+		var diag diag.Diagnostics
+		data.SrvRecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Srvrecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+	if res.Result.Txtrecord != nil {
+		var diag diag.Diagnostics
+		data.TxtRecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Txtrecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+	if res.Result.Sshfprecord != nil {
+		var diag diag.Diagnostics
+		data.SshfpRecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Sshfprecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+	if res.Result.Nsrecord != nil {
+		var diag diag.Diagnostics
+		data.NsRecords, diag = types.SetValueFrom(ctx, types.StringType, res.Result.Nsrecord)
+		if diag.HasError() {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("diag: %v\n", diag))
+		}
+	}
+
+	data.Id = types.StringValue(fmt.Sprintf("%s.%s", data.RecordName.ValueString(), data.ZoneName.ValueString()))
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	if resp.Diagnostics.HasError() {

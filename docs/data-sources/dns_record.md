@@ -34,4 +34,13 @@ data "freeipa_dns_record" "dns-zone-1" {
 
 ### Read-Only
 
+- `a_records` (Set of String) List of A records
+- `aaaa_records` (Set of String) List of AAAA records
+- `cname_records` (Set of String) List of CNAME records
 - `id` (String) ID of the resource
+- `mx_records` (Set of String) List of MX records
+- `ns_records` (Set of String) List of NS records
+- `ptr_records` (Set of String) List of PTR records
+- `srv_records` (Set of String) List of SRV records
+- `sshfp_records` (Set of String) List of SSHFP records
+- `txt_records` (Set of String) List of TXT records

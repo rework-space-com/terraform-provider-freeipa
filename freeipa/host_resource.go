@@ -682,7 +682,7 @@ func (r *HostResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		_, err = r.client.DnsrecordDel(&dnsArg, &dnsOptArgs)
 		if err != nil {
 			if strings.Contains(err.Error(), "NotFound") {
-				tflog.Debug(ctx, fmt.Sprintf("[DEBUG] No DNS recordsfound for host %s", data.Id.ValueString()))
+				tflog.Debug(ctx, fmt.Sprintf("[DEBUG] No DNS records found for host %s", data.Id.ValueString()))
 			} else {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("DNS records deletion for host %s failed: %s", data.Id.ValueString(), err))
 				return

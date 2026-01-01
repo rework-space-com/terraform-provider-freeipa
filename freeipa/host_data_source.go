@@ -312,7 +312,6 @@ func (r *HostDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		data.MemberOfIndirectSudoRule, _ = types.ListValueFrom(ctx, types.StringType, res.Result.MemberofindirectSudorule)
 	}
 
-	data.Id = data.Name
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa host %s", res.Result.Fqdn))
 
 	data.Id = types.StringValue(data.Name.ValueString())

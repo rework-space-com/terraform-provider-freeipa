@@ -7,6 +7,7 @@
 package freeipa
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -174,6 +175,128 @@ func TestAccFreeIPAHost_full_CaseInsensitive(t *testing.T) {
 						plancheck.ExpectEmptyPlan(),
 					},
 				},
+			},
+		},
+	})
+}
+
+func TestAccFreeIPAHost_delete_dns_records(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
+	}
+	testHost := map[string]string{
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
+		"update_dns": "true",
+	}
+	testHostRecordDS := map[string]string{
+		"index":       "0",
+		"zone_name":   "\"testacc.ipatest.lan\"",
+		"record_name": "\"testacc-host-1\"",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "id", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost) + testAccFreeIPADNSRecord_datasource(testHostRecordDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "id", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "record_name", "testacc-host-1"),
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "a_records.0", "192.168.10.65"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone),
+			},
+			{
+				Config:      testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPADNSRecord_datasource(testHostRecordDS),
+				ExpectError: regexp.MustCompile("DNS resource record not found"),
+			},
+		},
+	})
+}
+
+func TestAccFreeIPAHost_no_delete_dns_records(t *testing.T) {
+	testZone := map[string]string{
+		"index":     "0",
+		"zone_name": "\"testacc.ipatest.lan\"",
+	}
+	testHost := map[string]string{
+		"index":      "0",
+		"name":       "\"testacc-host-1.${freeipa_dns_zone.dns-zone-0.zone_name}\"",
+		"ip_address": "\"192.168.10.65\"",
+		"update_dns": "false",
+	}
+	testHostRecordDS := map[string]string{
+		"index":       "0",
+		"zone_name":   "\"testacc.ipatest.lan\"",
+		"record_name": "\"testacc-host-1\"",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "id", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "name", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("freeipa_host.host-0", "ip_address", "192.168.10.65"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPAHost_resource(testHost) + testAccFreeIPADNSRecord_datasource(testHostRecordDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "id", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "record_name", "testacc-host-1"),
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "a_records.0", "192.168.10.65"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPADNSZone_resource(testZone) + testAccFreeIPADNSRecord_datasource(testHostRecordDS),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "id", "testacc-host-1.testacc.ipatest.lan"),
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "record_name", "testacc-host-1"),
+					resource.TestCheckResourceAttr("data.freeipa_dns_record.dns-record-0", "a_records.0", "192.168.10.65"),
+				),
 			},
 		},
 	})

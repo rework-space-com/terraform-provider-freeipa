@@ -241,6 +241,7 @@ func userSchema() schema.Schema {
 			"userpassword": schema.StringAttribute{
 				MarkdownDescription: "Prompt to set the user password",
 				Optional:            true,
+				Computed:            true,
 				Sensitive:           true,
 			},
 			"email_address": schema.ListAttribute{
@@ -393,15 +394,20 @@ func (r *UserResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRe
 			data.State = types.StringValue("disabled")
 		}
 	}
+	if !req.State.Raw.IsNull() && data.UserPassword.IsUnknown() {
+		data.UserPassword = types.StringNull()
+	}
 	// create as preserved
 	if req.State.Raw.IsNull() && data.State.Equal(types.StringValue("preserved")) {
 		resp.Diagnostics.AddError("User Lifecycle", "Creating a preserved user is not allowed.")
 		return
 	}
 	if req.State.Raw.IsNull() && (data.State.Equal(types.StringValue("active")) || data.State.Equal(types.StringValue("disabled"))) {
+		resp.Diagnostics.Append(resp.Plan.Set(ctx, &data)...)
 		return
 	}
 	if req.State.Raw.IsNull() && (data.State.Equal(types.StringValue("staged"))) {
+		resp.Diagnostics.Append(resp.Plan.Set(ctx, &data)...)
 		return
 	}
 

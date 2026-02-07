@@ -239,7 +239,7 @@ func userSchema() schema.Schema {
 				Optional: true,
 			},
 			"userpassword": schema.StringAttribute{
-				MarkdownDescription: "Prompt to set the user password",
+				MarkdownDescription: "Prompt to set the user password. Also contains the result of random password generation.",
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
@@ -260,7 +260,7 @@ func userSchema() schema.Schema {
 				ElementType:         types.StringType,
 			},
 			"random_password": schema.BoolAttribute{
-				MarkdownDescription: "Generate a random user password",
+				MarkdownDescription: "Generate a random user password. Generated random password is returned in `userpassword`.",
 				Optional:            true,
 			},
 			"uid_number": schema.Int32Attribute{

@@ -90,7 +90,9 @@ func (r StagedUserResource) CreateUser(ctx context.Context, req resource.CreateR
 		}
 		optArgs.Krbprincipalname = &v
 	}
-	if !data.UserPassword.IsNull() {
+	if data.UserPassword.IsUnknown() || data.UserPassword.IsNull() {
+		data.UserPassword = types.StringNull()
+	} else {
 		optArgs.Userpassword = data.UserPassword.ValueStringPointer()
 	}
 	if len(data.EmailAddress.Elements()) > 0 {
@@ -232,10 +234,14 @@ func (r StagedUserResource) CreateUser(ctx context.Context, req resource.CreateR
 
 	res, err := r.client.StageuserAdd(&args, &optArgs)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user: %s", err))
 		return
 	}
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Create freeipa user %s returns %s", data.UID.String(), res.String()))
+
+	if data.RandomPassword.ValueBool() && res.Result.Randompassword != nil {
+		data.UserPassword = types.StringValue(*res.Result.Randompassword)
+	}
 
 	data.Id = types.StringValue(res.Result.UID)
 	data.State = types.StringValue("staged")
@@ -250,7 +256,7 @@ func (r StagedUserResource) CreateUser(ctx context.Context, req resource.CreateR
 
 func (r StagedUserResource) ReadUser(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data UserResourceModel
-
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa staged user %s ", data.Id.ValueString()))
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -481,7 +487,7 @@ func (r StagedUserResource) UpdateUser(ctx context.Context, req resource.UpdateR
 	if !data.LoginShell.Equal(state.LoginShell) {
 		optArgs.Loginshell = data.LoginShell.ValueStringPointer()
 	}
-	if !data.UserPassword.Equal(state.UserPassword) {
+	if !data.RandomPassword.ValueBool() && !data.UserPassword.Equal(state.UserPassword) {
 		optArgs.Userpassword = data.UserPassword.ValueStringPointer()
 	}
 	if !data.RandomPassword.Equal(state.RandomPassword) {

@@ -90,7 +90,9 @@ func (r ActiveUserResource) CreateUser(ctx context.Context, req resource.CreateR
 		}
 		optArgs.Krbprincipalname = &v
 	}
-	if !data.UserPassword.IsNull() {
+	if data.UserPassword.IsUnknown() {
+		data.UserPassword = types.StringNull()
+	} else {
 		optArgs.Userpassword = data.UserPassword.ValueStringPointer()
 	}
 	if len(data.EmailAddress.Elements()) > 0 {
@@ -235,6 +237,9 @@ func (r ActiveUserResource) CreateUser(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error creating freeipa user group: %s", err))
 		return
 	}
+	if data.RandomPassword.ValueBool() && res.Result.Randompassword != nil {
+		data.UserPassword = types.StringValue(*res.Result.Randompassword)
+	}
 	if data.State.Equal(types.StringValue("disabled")) {
 		_, err := r.client.UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: data.UID.ValueStringPointer()})
 		if err != nil && !strings.Contains(err.Error(), "This entry is already disabled") {
@@ -263,6 +268,7 @@ func (r ActiveUserResource) CreateUser(ctx context.Context, req resource.CreateR
 func (r ActiveUserResource) ReadUser(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data UserResourceModel
 
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Read freeipa active user %s ", data.Id.String()))
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -499,7 +505,7 @@ func (r ActiveUserResource) UpdateUser(ctx context.Context, req resource.UpdateR
 	if !data.LoginShell.Equal(state.LoginShell) {
 		optArgs.Loginshell = data.LoginShell.ValueStringPointer()
 	}
-	if !data.UserPassword.Equal(state.UserPassword) {
+	if !data.RandomPassword.ValueBool() && !data.UserPassword.Equal(state.UserPassword) {
 		optArgs.Userpassword = data.UserPassword.ValueStringPointer()
 	}
 	if !data.RandomPassword.Equal(state.RandomPassword) {

@@ -168,7 +168,7 @@ resource "freeipa_user" "testuser" {
 - `province` (String) Province/State/Country
 - `radius_proxy_config` (String) RADIUS proxy configuration
 - `radius_proxy_username` (String) RADIUS proxy username
-- `random_password` (Boolean) Generate a random user password
+- `random_password` (Boolean) Generate a random user password. Generated random password is returned in `userpassword`.
 - `setattr` (List of String) Set an attribute to a name/value pair. Format is attr=value.
 - `ssh_public_key` (List of String) List of SSH public keys
 - `state` (String) The current state of the user, can be `active`, `disabled`, `staged`, or `preserved`
@@ -177,7 +177,7 @@ resource "freeipa_user" "testuser" {
 - `uid_number` (Number) User ID Number (system will assign one if not provided)
 - `user_certificates` (Set of String) List of Base-64 encoded user certificates
 - `userclass` (List of String) User category (semantics placed on this attribute are for local interpretation)
-- `userpassword` (String, Sensitive) Prompt to set the user password
+- `userpassword` (String, Sensitive) Prompt to set the user password. Also contains the result of random password generation.
 
 ### Read-Only
 

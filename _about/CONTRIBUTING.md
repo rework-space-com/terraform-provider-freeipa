@@ -20,10 +20,10 @@ To run the full suite of Acceptance tests export the required environment variab
 
 
 ```shell
-$ export FREEIPA_HOST=ipa.ipatest.lan
-$ export FREEIPA_USERNAME=admin
-$ export FREEIPA_PASSWORD=P@ssword
-$ make testacc
+export FREEIPA_HOST=ipa.ipatest.lan
+export FREEIPA_USERNAME=admin
+export FREEIPA_PASSWORD=P@ssword
+make testacc
 ```
 
 ## Install provider locally

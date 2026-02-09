@@ -25,7 +25,6 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 		"login":                    "\"testacc-user\"",
 		"firstname":                "\"Test\"",
 		"lastname":                 "\"User\"",
-		"account_disabled":         "false",
 		"car_license":              "[\"A-111-B\"]",
 		"city":                     "\"El Mundo\"",
 		"display_name":             "\"Test User\"",
@@ -55,12 +54,46 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 		"krb_principal_expiration": "\"2049-12-31T23:59:59Z\"",
 		"userclass":                "[\"user-account\"]",
 	}
+	testUserStaged := map[string]string{
+		"index":                    "2",
+		"login":                    "\"testacc-user-staged\"",
+		"firstname":                "\"Test\"",
+		"lastname":                 "\"UserStaged\"",
+		"state":                    "\"staged\"",
+		"car_license":              "[\"A-111-B\"]",
+		"city":                     "\"El Mundo\"",
+		"display_name":             "\"Test User Staged\"",
+		"email_address":            "[\"testuserstaged@example.com\"]",
+		"employee_number":          "\"000001\"",
+		"employee_type":            "\"Developer\"",
+		"full_name":                "\"Test User\"",
+		"gecos":                    "\"Test User\"",
+		"gid_number":               "10001",
+		"home_directory":           "\"/home/testuserstaged\"",
+		"initials":                 "\"TU\"",
+		"job_title":                "\"Developer\"",
+		"krb_principal_name":       "[\"tuserstaged@IPATEST.LAN\"]",
+		"login_shell":              "\"/bin/bash\"",
+		"manager":                  "\"testacc-devmanager\"",
+		"mobile_numbers":           "[\"0123456789\"]",
+		"organisation_unit":        "\"Devs\"",
+		"postal_code":              "\"12345\"",
+		"preferred_language":       "\"English\"",
+		"province":                 "\"England\"",
+		"random_password":          "false",
+		"ssh_public_key":           "[\"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDDmMkNHn3R+DzSamQDSW60a0iVlAvzbuC3auu8lNoi3u6lvMemsZqPTuvfY4Xlf7uzm+dya3fTRdPKn8sYgPwQ4saUpCSlegN44PjJMhonR1a7FbpHLWj8CRRfzdUSznQhzFcFff0wMBYAklXlyjvdFM8ahl7zHO08HR6469XOVwO1Tb3OGPrXB2lzStK5PKfk5DO/IKl4vHSKhVNVnsZe52rHiZrxOqdGyCijtvwmW2YfIAGc1k4Seqn/Nn7NxKIFBH3hxaUDqgpZneXzuw9GI/F0M8phnHxXNFVZvIWZVcanEeXtH9Z+vVx1ujNcB2QhiPfLMqkNl9db7uykSGKFM4jD0UjGj5kJ8TOC39Safk7XzpQTnrqvIi158zBHVSgugth+QsE1I9/PL2wlzx1qWV2991JKIOc8m52Iwq02tyO8JaSssFTk9szkLTAHedPnZeBbdnlRYcHqX+NPaUh3hqRTZBIR79Ruk6WAliFkED1L0SgwDfGFlevn1Kde9ok=\"]",
+		"street_address":           "\"1600, Pensylvania av.\"",
+		"telephone_numbers":        "[\"1234567890\"]",
+		"uid_number":               "10001",
+		"userpassword":             "\"P@ssword\"",
+		"krb_principal_expiration": "\"2049-12-31T23:59:59Z\"",
+		"userclass":                "[\"user-account\"]",
+	}
 	testUserModified := map[string]string{
 		"index":                    "1",
 		"login":                    "\"testacc-user\"",
 		"firstname":                "\"Test\"",
 		"lastname":                 "\"User\"",
-		"account_disabled":         "false",
 		"car_license":              "[\"A-222-B\"]",
 		"city":                     "\"The World\"",
 		"display_name":             "\"Test User Modfied\"",
@@ -95,7 +128,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 		"login":                    "\"testacc-user\"",
 		"firstname":                "\"Test\"",
 		"lastname":                 "\"User\"",
-		"account_disabled":         "true",
+		"state":                    "\"disabled\"",
 		"car_license":              "[\"A-222-B\"]",
 		"city":                     "\"The World\"",
 		"display_name":             "\"Test User Modfied\"",
@@ -143,7 +176,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUser),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_resource(testUserStaged),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "first_name", "Test"),
@@ -151,7 +184,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUser),
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_resource(testUserStaged),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),
@@ -172,7 +205,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "first_name", "Test"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "last_name", "User"),
-					resource.TestCheckResourceAttr("freeipa_user.user-1", "account_disabled", "false"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "state", "active"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "car_license.#", "1"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "car_license.0", "A-222-B"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "city", "The World"),
@@ -213,7 +246,7 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "first_name", "Test"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "last_name", "User"),
-					resource.TestCheckResourceAttr("freeipa_user.user-1", "account_disabled", "true"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "state", "disabled"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "car_license.#", "1"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "car_license.0", "A-222-B"),
 					resource.TestCheckResourceAttr("freeipa_user.user-1", "city", "The World"),
@@ -250,6 +283,47 @@ func TestAccFreeIPAUser_full(t *testing.T) {
 			},
 			{
 				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(managerUser) + testAccFreeIPAUser_resource(testUserModified2),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestAccFreeIPAUser_randompassword(t *testing.T) {
+	testUser := map[string]string{
+		"index":           "1",
+		"login":           "\"testacc-user\"",
+		"firstname":       "\"Test\"",
+		"lastname":        "\"User\"",
+		"random_password": "true",
+	}
+	testUserStaged := map[string]string{
+		"index":           "2",
+		"login":           "\"testacc-user-staged\"",
+		"firstname":       "\"Test\"",
+		"lastname":        "\"UserStaged\"",
+		"state":           "\"staged\"",
+		"random_password": "true",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_resource(testUserStaged),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "first_name", "Test"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "last_name", "User"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_resource(testUserStaged),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),

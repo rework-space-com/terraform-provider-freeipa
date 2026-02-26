@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -30,6 +31,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleOptionResource{}
+var _ resource.ResourceWithImportState = &SudoRuleOptionResource{}
 
 func NewSudoRuleOptionResource() resource.Resource {
 	return &SudoRuleOptionResource{}
@@ -237,6 +239,36 @@ func (r *SudoRuleOptionResource) Delete(ctx context.Context, req resource.Delete
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo host membership: %s", err))
 		return
 	}
+}
+
+func (r *SudoRuleOptionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	sudoruleId, _, optId, err := parseSudoRuleOptionID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error parsing ID for import: %s", err))
+		return
+	}
+
+	all := true
+	optArgs := ipa.SudoruleShowOptionalArgs{
+		All: &all,
+	}
+	args := ipa.SudoruleShowArgs{
+		Cn: sudoruleId,
+	}
+
+	_, err = r.client.SudoruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			resp.Diagnostics.AddError("Import Error", "Sudo rule not found")
+			return
+		}
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), sudoruleId)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("option"), optId)...)
 }
 
 func parseSudoRuleOptionID(id string) (string, string, string, error) {

@@ -333,5 +333,30 @@ func (r *HbacPolicyResource) Delete(ctx context.Context, req resource.DeleteRequ
 }
 
 func (r *HbacPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
+	all := true
+	optArgs := ipa.HbacruleShowOptionalArgs{
+		All: &all,
+	}
+
+	args := ipa.HbacruleShowArgs{
+		Cn: req.ID,
+	}
+
+	res, err := r.client.HbacruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			tflog.Debug(ctx, "[DEBUG] Hbac policy not found")
+			resp.State.RemoveResource(ctx)
+			return
+		} else {
+			resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
+			return
+		}
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), req.ID)...)
+	if res.Result.Ipaenabledflag != nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("enabled"), res.Result.Ipaenabledflag)...)
+	}
 }

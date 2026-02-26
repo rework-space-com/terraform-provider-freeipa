@@ -34,6 +34,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &HbacPolicyUserMembershipResource{}
+var _ resource.ResourceWithImportState = &HbacPolicyUserMembershipResource{}
 
 func NewHbacPolicyUserMembershipResource() resource.Resource {
 	return &HbacPolicyUserMembershipResource{}
@@ -486,6 +487,44 @@ func (r *HbacPolicyUserMembershipResource) Delete(ctx context.Context, req resou
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa hbac policy user membership: %s", err))
 		return
+	}
+}
+
+func (r *HbacPolicyUserMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	hbacpolicyId, typeId, memberId, err := parseHBACPolicyUserMembershipID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error parsing ID for import: %s", err))
+		return
+	}
+
+	all := true
+	optArgs := ipa.HbacruleShowOptionalArgs{
+		All: &all,
+	}
+	args := ipa.HbacruleShowArgs{
+		Cn: hbacpolicyId,
+	}
+
+	_, err = r.client.HbacruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			resp.Diagnostics.AddError("Import Error", "HBAC policy not found")
+			return
+		}
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa hbac policy: %s", err))
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), hbacpolicyId)...)
+
+	switch typeId {
+	case "u":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("user"), memberId)...)
+	case "g":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("group"), memberId)...)
+	case "mu":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}
 }
 

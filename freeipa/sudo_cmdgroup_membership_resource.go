@@ -34,6 +34,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoCmdGroupMembershipResource{}
+var _ resource.ResourceWithImportState = &SudoCmdGroupMembershipResource{}
 
 func NewSudoCmdGroupMembershipResource() resource.Resource {
 	return &SudoCmdGroupMembershipResource{}
@@ -374,6 +375,42 @@ func (r *SudoCmdGroupMembershipResource) Delete(ctx context.Context, req resourc
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo command group membership: %s", err))
 		return
+	}
+}
+
+func (r *SudoCmdGroupMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	cmdgrpId, typeId, memberId, err := parseSudocmdgroupMembershipID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error parsing ID for import: %s", err))
+		return
+	}
+
+	all := true
+	optArgs := ipa.SudocmdgroupShowOptionalArgs{
+		All: &all,
+	}
+	args := ipa.SudocmdgroupShowArgs{
+		Cn: cmdgrpId,
+	}
+
+	_, err = r.client.SudocmdgroupShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			resp.Diagnostics.AddError("Import Error", "Sudo command group not found")
+			return
+		}
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa sudo command group: %s", err))
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), cmdgrpId)...)
+
+	switch typeId {
+	case "sc":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("sudocmd"), memberId)...)
+	case "msc":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}
 }
 

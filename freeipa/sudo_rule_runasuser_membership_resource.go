@@ -34,6 +34,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleRunAsUserMembershipResource{}
+var _ resource.ResourceWithImportState = &SudoRuleRunAsUserMembershipResource{}
 
 func NewSudoRuleRunAsUserMembershipResource() resource.Resource {
 	return &SudoRuleRunAsUserMembershipResource{}
@@ -384,6 +385,42 @@ func (r *SudoRuleRunAsUserMembershipResource) Delete(ctx context.Context, req re
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo runasuser membership: %s", err))
 		return
+	}
+}
+
+func (r *SudoRuleRunAsUserMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	sudoruleId, typeId, memberId, err := parseSudoRuleRunAsUserMembershipID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error parsing ID for import: %s", err))
+		return
+	}
+
+	all := true
+	optArgs := ipa.SudoruleShowOptionalArgs{
+		All: &all,
+	}
+	args := ipa.SudoruleShowArgs{
+		Cn: sudoruleId,
+	}
+
+	_, err = r.client.SudoruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			resp.Diagnostics.AddError("Import Error", "Sudo rule not found")
+			return
+		}
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), sudoruleId)...)
+
+	switch typeId {
+	case "srrau":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("runasuser"), memberId)...)
+	case "msrrau":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}
 }
 

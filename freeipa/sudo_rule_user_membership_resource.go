@@ -522,10 +522,13 @@ func (r *SudoRuleUserMembershipResource) ImportState(ctx context.Context, req re
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), sudoruleId)...)
 
 	switch typeId {
-	case "sru":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("user"), memberId)...)
-	case "srug":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("group"), memberId)...)
+	case "sru", "srug":
+		resp.Diagnostics.AddError(
+			"Import with deprecated ID format not supported",
+			fmt.Sprintf("The ID %q uses a deprecated single-value format. "+
+				"Please use the multi-value format with type 'msru' and an identifier.", req.ID),
+		)
+		return
 	case "msru":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}

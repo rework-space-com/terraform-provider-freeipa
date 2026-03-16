@@ -519,10 +519,13 @@ func (r *HbacPolicyServiceMembershipResource) ImportState(ctx context.Context, r
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), hbacpolicyId)...)
 
 	switch typeId {
-	case "s":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("service"), memberId)...)
-	case "sg":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("servicegroup"), memberId)...)
+	case "s", "sg":
+		resp.Diagnostics.AddError(
+			"Import with deprecated ID format not supported",
+			fmt.Sprintf("The ID %q uses a deprecated single-value format. "+
+				"Please use the multi-value format with type 'ms' and an identifier.", req.ID),
+		)
+		return
 	case "ms":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}

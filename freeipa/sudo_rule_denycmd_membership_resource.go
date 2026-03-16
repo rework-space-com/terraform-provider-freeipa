@@ -519,10 +519,13 @@ func (r *SudoRuleDenyCmdMembershipResource) ImportState(ctx context.Context, req
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), sudoruleId)...)
 
 	switch typeId {
-	case "srdc":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("sudocmd"), memberId)...)
-	case "srdcg":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("sudocmd_group"), memberId)...)
+	case "srdc", "srdcg":
+		resp.Diagnostics.AddError(
+			"Import with deprecated ID format not supported",
+			fmt.Sprintf("The ID %q uses a deprecated single-value format. "+
+				"Please use the multi-value format with type 'msrdc' and an identifier.", req.ID),
+		)
+		return
 	case "msrdc":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}

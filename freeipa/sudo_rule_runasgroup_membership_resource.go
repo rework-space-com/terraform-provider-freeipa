@@ -411,7 +411,12 @@ func (r *SudoRuleRunAsGroupMembershipResource) ImportState(ctx context.Context, 
 
 	switch typeId {
 	case "srraug":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("runasgroup"), memberId)...)
+		resp.Diagnostics.AddError(
+			"Import with deprecated ID format not supported",
+			fmt.Sprintf("The ID %q uses a deprecated single-value format. "+
+				"Please use the multi-value format with type 'msrraug' and an identifier.", req.ID),
+		)
+		return
 	case "msrraug":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}

@@ -408,7 +408,12 @@ func (r *SudoCmdGroupMembershipResource) ImportState(ctx context.Context, req re
 
 	switch typeId {
 	case "sc":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("sudocmd"), memberId)...)
+		resp.Diagnostics.AddError(
+			"Import with deprecated ID format not supported",
+			fmt.Sprintf("The ID %q uses a deprecated single-value format. "+
+				"Please use the multi-value format with type 'msc' and an identifier.", req.ID),
+		)
+		return
 	case "msc":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}

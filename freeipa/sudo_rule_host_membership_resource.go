@@ -34,6 +34,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SudoRuleHostMembershipResource{}
+var _ resource.ResourceWithImportState = &SudoRuleHostMembershipResource{}
 
 func NewSudoRuleHostMembershipResource() resource.Resource {
 	return &SudoRuleHostMembershipResource{}
@@ -486,6 +487,47 @@ func (r *SudoRuleHostMembershipResource) Delete(ctx context.Context, req resourc
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error delete freeipa sudo host membership: %s", err))
 		return
+	}
+}
+
+func (r *SudoRuleHostMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	sudoruleId, typeId, memberId, err := parseSudoRuleHostMembershipID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error parsing ID for import: %s", err))
+		return
+	}
+
+	all := true
+	optArgs := ipa.SudoruleShowOptionalArgs{
+		All: &all,
+	}
+	args := ipa.SudoruleShowArgs{
+		Cn: sudoruleId,
+	}
+
+	_, err = r.client.SudoruleShow(&args, &optArgs)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotFound") {
+			resp.Diagnostics.AddError("Import Error", "Sudo rule not found")
+			return
+		}
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Error reading freeipa sudo rule: %s", err))
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), sudoruleId)...)
+
+	switch typeId {
+	case "srh", "srhg":
+		resp.Diagnostics.AddError(
+			"Import with deprecated ID format not supported",
+			fmt.Sprintf("The ID %q uses a deprecated single-value format. "+
+				"Please use the multi-value format with type 'msrh' and an identifier.", req.ID),
+		)
+		return
+	case "msrh":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identifier"), memberId)...)
 	}
 }
 

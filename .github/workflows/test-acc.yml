@@ -12,6 +12,7 @@ on:
     paths:
       - '.github/workflows/test-acc.yml'
       - '**.go'
+      - '**.mod'
 
 permissions:
   # Permission for checking out code

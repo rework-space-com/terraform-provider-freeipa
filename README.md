@@ -1,13 +1,13 @@
 Terraform FreeIPA Provider
 ============================
-Tested on FreeIPA version 4.12.2
+Tested on FreeIPA version 4.13.1
 Download provider from [registry.terraform.io](https://registry.terraform.io/providers/rework-space-com/freeipa/latest)
 
 Requirements
 ------------
 
 - [Terraform](https://www.terraform.io/downloads.html) 1.0+
-- [Go](https://golang.org/doc/install) 1.22+ (to build the provider plugin)
+- [Go](https://golang.org/doc/install) 1.25+ (to build the provider plugin)
 
 Building The Provider
 ---------------------

@@ -32,7 +32,7 @@ func testAccFreeIPAProvider() string {
 		password = "%s"
 		insecure = true
 	  }
-	
+
 	`, provider_host, provider_user, provider_pass)
 }
 
@@ -842,4 +842,45 @@ func testAccFreeIPADNSForwardZone_resource(dataset map[string]string) string {
 	}
 	tf_def += "}\n"
 	return tf_def
+}
+
+func testAccFreeIPASysAccount_resource(dataset map[string]string) string {
+	tf_def := fmt.Sprintf(`
+	resource "freeipa_sysaccount" "sysaccount-%s" {
+	  name        = %s
+	`, dataset["index"], dataset["name"])
+	if dataset["description"] != "" {
+		tf_def += fmt.Sprintf("  description = %s\n", dataset["description"])
+	}
+	if dataset["password"] != "" {
+		tf_def += fmt.Sprintf("  password = %s\n", dataset["password"])
+	}
+	if dataset["random_password"] != "" {
+		tf_def += fmt.Sprintf("  random_password = %s\n", dataset["random_password"])
+	}
+	if dataset["random"] != "" {
+		tf_def += fmt.Sprintf("  random = %s\n", dataset["random"])
+	}
+	if dataset["disabled"] != "" {
+		tf_def += fmt.Sprintf("  disabled = %s\n", dataset["disabled"])
+	}
+	if dataset["privileged"] != "" {
+		tf_def += fmt.Sprintf("  privileged = %s\n", dataset["privileged"])
+	}
+	if dataset["addattr"] != "" {
+		tf_def += fmt.Sprintf("  addattr = %s\n", dataset["addattr"])
+	}
+	if dataset["setattr"] != "" {
+		tf_def += fmt.Sprintf("  setattr = %s\n", dataset["setattr"])
+	}
+	tf_def += "}\n"
+	return tf_def
+}
+
+func testAccFreeIPASysAccount_datasource(dataset map[string]string) string {
+	return fmt.Sprintf(`
+	data "freeipa_sysaccount" "sysaccount-%s" {
+		name = %s
+	}
+	`, dataset["index"], dataset["name"])
 }

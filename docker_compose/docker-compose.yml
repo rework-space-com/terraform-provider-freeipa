@@ -15,18 +15,16 @@
 # limitations under the License.
 #
 
-version: "3"
-
 services:
   ipa:
-    image: freeipa/freeipa-server:fedora-42-4.12.5
+    image: freeipa/freeipa-server:fedora-44-4.13.1
     container_name: ipa
     hostname: ipa.ipatest.lan
     restart: unless-stopped
     environment:
       container: "docker"
       IPA_SERVER_HOSTNAME: "ipa.ipatest.lan"
-      IPA_SERVER_INSTALL_OPTS: '--no-ntp --ds-password=P@ssword --admin-password=P@ssword --domain=ipatest.lan --realm=IPATEST.LAN --no-forwarders --setup-dns --no-dnssec-validation --allow-zone-overlap --no-reverse --unattended'
+      IPA_SERVER_INSTALL_OPTS: "--no-ntp --ds-password=P@ssword --admin-password=P@ssword --domain=ipatest.lan --realm=IPATEST.LAN --no-forwarders --setup-dns --no-dnssec-validation --allow-zone-overlap --no-reverse --unattended"
     ports:
       - "80:80"
       - "443:443"
@@ -41,11 +39,9 @@ services:
     volumes:
       - "ipa-data:/data"
 
-      
 networks:
   ipa_network:
     driver: bridge
-
 
 volumes:
   ipa-data:

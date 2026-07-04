@@ -3,3 +3,5 @@ terraform-provider-freeipa
 .env
 test/
 test-migv4/
+terraform*
+.terraform*

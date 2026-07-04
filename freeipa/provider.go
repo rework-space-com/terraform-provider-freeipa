@@ -275,6 +275,7 @@ func (p *freeipaProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewHbacPolicyServiceMembershipResource,
 		NewAutomemberResource,
 		NewAutomemberConditionResource,
+		NewSysAccountResource,
 	}
 }
 
@@ -289,6 +290,7 @@ func (p *freeipaProvider) DataSources(ctx context.Context) []func() datasource.D
 		NewSudoCmdGroupDataSource,
 		NewSudoRuleDataSource,
 		NewHbacPolicyDataSource,
+		NewSysAccountDataSource,
 	}
 }
 

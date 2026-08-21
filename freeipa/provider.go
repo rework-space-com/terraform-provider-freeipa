@@ -187,22 +187,13 @@ func (p *freeipaProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	// Create a new FreeIPA client using the configuration values
-	client, err := p.NewFreeIPAClient(ctx, &config)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Create FreeIPA API Client",
-			"An unexpected error occurred when creating the FreeIPA API client. "+
-				"If the error is not clear, please contact the provider developers.\n\n"+
-				"FreeIPA Client Error: "+err.Error(),
-		)
-		return
-	}
-
-	// Make the FreeIPA client available during DataSource and Resource
-	// type Configure methods.
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	// Pass the resolved configuration (not a connected client) to
+	// DataSource and Resource type Configure methods. Each resource/data
+	// source creates its own FreeIPA client lazily, only when it is
+	// actually used, so declaring the provider without using any of its
+	// resources does not require a reachable FreeIPA host.
+	resp.DataSourceData = &config
+	resp.ResourceData = &config
 }
 
 // Client creates a FreeIPA client scoped to the global API

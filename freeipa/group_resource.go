@@ -152,14 +152,24 @@ func (r *UserGroupResource) Configure(ctx context.Context, req resource.Configur
 		return
 	}
 
-	client, ok := req.ProviderData.(*ipa.Client)
-
+	config, ok := req.ProviderData.(*freeipaProviderModel)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *freeipaProviderModel, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
+		return
+	}
 
+	p := &freeipaProvider{}
+	client, err := p.NewFreeIPAClient(ctx, config)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Create FreeIPA API Client",
+			"An unexpected error occurred when creating the FreeIPA API client. "+
+				"If the error is not clear, please contact the provider developers.\n\n"+
+				"FreeIPA Client Error: "+err.Error(),
+		)
 		return
 	}
 

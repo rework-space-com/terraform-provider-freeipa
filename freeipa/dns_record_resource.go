@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -55,6 +57,7 @@ type DNSRecordResourceModel struct {
 	Records       types.Set    `tfsdk:"records"`
 	TTL           types.Int32  `tfsdk:"ttl"`
 	SetIdentifier types.String `tfsdk:"set_identifier"`
+	CreateReverse types.Bool   `tfsdk:"create_reverse"`
 }
 
 func (r *DNSRecordResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -119,6 +122,15 @@ func (r *DNSRecordResource) Schema(ctx context.Context, req resource.SchemaReque
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"create_reverse": schema.BoolAttribute{
+				MarkdownDescription: "Create additional reverse records for type A and AAAA records",
+				Optional:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
+			},
 		},
 	}
 }
@@ -175,8 +187,10 @@ func (r *DNSRecordResource) Create(ctx context.Context, req resource.CreateReque
 		switch _type {
 		case "A":
 			optArgs.Arecord = &records
+			optArgs.AExtraCreateReverse = data.CreateReverse.ValueBoolPointer()
 		case "AAAA":
 			optArgs.Aaaarecord = &records
+			optArgs.AaaaExtraCreateReverse = data.CreateReverse.ValueBoolPointer()
 		case "CNAME":
 			optArgs.Cnamerecord = &records
 		case "MX":

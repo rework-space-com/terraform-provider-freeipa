@@ -4,10 +4,11 @@ resource "freeipa_dns_zone" "dns_zone-2" {
 }
 
 resource "freeipa_dns_record" "record-8" {
-  zone_name = resource.freeipa_dns_zone.dns_zone-2.id
-  name      = "test-record"
-  records   = ["192.168.10.10", "192.168.10.11"]
-  type      = "A"
+  zone_name      = resource.freeipa_dns_zone.dns_zone-2.id
+  name           = "test-record"
+  records        = ["192.168.10.10", "192.168.10.11"]
+  type           = "A"
+  create_reverse = true
 }
 
 resource "freeipa_dns_record" "record-7" {

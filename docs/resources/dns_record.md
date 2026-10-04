@@ -18,10 +18,11 @@ resource "freeipa_dns_zone" "dns_zone-2" {
 }
 
 resource "freeipa_dns_record" "record-8" {
-  zone_name = resource.freeipa_dns_zone.dns_zone-2.id
-  name      = "test-record"
-  records   = ["192.168.10.10", "192.168.10.11"]
-  type      = "A"
+  zone_name      = resource.freeipa_dns_zone.dns_zone-2.id
+  name           = "test-record"
+  records        = ["192.168.10.10", "192.168.10.11"]
+  type           = "A"
+  create_reverse = true
 }
 
 resource "freeipa_dns_record" "record-7" {
@@ -91,6 +92,7 @@ resource "freeipa_dns_record" "ptrrecord" {
 
 ### Optional
 
+- `create_reverse` (Boolean) Create additional reverse records for type A and AAAA records
 - `set_identifier` (String) Unique identifier to differentiate records with routing policies from one another
 - `ttl` (Number) Time to live
 

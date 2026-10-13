@@ -14,8 +14,12 @@
 package freeipa
 
 import (
+	"context"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
 func testAccPreCheck(t *testing.T) {
@@ -32,4 +36,17 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("FREEIPA_PASSWORD"); v == "" {
 		t.Fatal("FREEIPA_PASSWORD must be set for acceptance tests")
 	}
+}
+
+func testAccFreeIPAClient(t *testing.T) *ipa.Client {
+	client, err := (&freeipaProvider{}).NewFreeIPAClient(context.Background(), &freeipaProviderModel{
+		Host:               types.StringValue(os.Getenv("FREEIPA_HOST")),
+		Username:           types.StringValue(os.Getenv("FREEIPA_USERNAME")),
+		Password:           types.StringValue(os.Getenv("FREEIPA_PASSWORD")),
+		InsecureSkipVerify: types.BoolValue(true),
+	})
+	if err != nil {
+		t.Fatalf("Error creating FreeIPA client: %s", err)
+	}
+	return client
 }

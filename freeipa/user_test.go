@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	ipa "github.com/infra-monkey/go-freeipa/freeipa"
 )
 
 func TestAccFreeIPAUser_full(t *testing.T) {
@@ -699,6 +700,68 @@ func TestAccFreeIPAUser_lifecycle(t *testing.T) {
 					},
 				},
 			},
+		},
+	})
+}
+
+func TestAccFreeIPAUser_stateDrift(t *testing.T) {
+	uid := "testacc-user-drift"
+	testUser := func(state string) map[string]string {
+		return map[string]string{
+			"index":     "0",
+			"login":     "\"" + uid + "\"",
+			"firstname": "\"Drift\"",
+			"lastname":  "\"User\"",
+			"state":     "\"" + state + "\"",
+		}
+	}
+	driftStep := func(state string, drift func(*testing.T)) resource.TestStep {
+		return resource.TestStep{
+			PreConfig: func() { drift(t) },
+			Config:    testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser(state)),
+			ConfigPlanChecks: resource.ConfigPlanChecks{
+				PreApply: []plancheck.PlanCheck{
+					plancheck.ExpectResourceAction("freeipa_user.user-0", plancheck.ResourceActionUpdate),
+				},
+			},
+			Check: resource.TestCheckResourceAttr("freeipa_user.user-0", "state", state),
+		}
+	}
+	preserve := true
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser("disabled")),
+			},
+			driftStep("disabled", func(t *testing.T) {
+				if _, err := testAccFreeIPAClient(t).UserEnable(&ipa.UserEnableArgs{}, &ipa.UserEnableOptionalArgs{UID: &uid}); err != nil {
+					t.Fatal(err)
+				}
+			}),
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser("active")),
+			},
+			driftStep("active", func(t *testing.T) {
+				if _, err := testAccFreeIPAClient(t).UserDisable(&ipa.UserDisableArgs{}, &ipa.UserDisableOptionalArgs{UID: &uid}); err != nil {
+					t.Fatal(err)
+				}
+			}),
+			driftStep("active", func(t *testing.T) {
+				if _, err := testAccFreeIPAClient(t).UserDel(&ipa.UserDelArgs{}, &ipa.UserDelOptionalArgs{UID: &[]string{uid}, Preserve: &preserve}); err != nil {
+					t.Fatal(err)
+				}
+			}),
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser("preserved")),
+			},
+			driftStep("preserved", func(t *testing.T) {
+				if _, err := testAccFreeIPAClient(t).UserUndel(&ipa.UserUndelArgs{}, &ipa.UserUndelOptionalArgs{UID: &uid}); err != nil {
+					t.Fatal(err)
+				}
+			}),
 		},
 	})
 }

@@ -718,3 +718,16 @@ func (r *UserResource) PreserveActiveUser(ctx context.Context, req resource.Upda
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
+
+func userState(user *ipa.User, current types.String) types.String {
+	if user.Preserved == nil || user.Nsaccountlock == nil {
+		return current
+	}
+	if *user.Preserved {
+		return types.StringValue("preserved")
+	}
+	if *user.Nsaccountlock {
+		return types.StringValue("disabled")
+	}
+	return types.StringValue("active")
+}

@@ -383,6 +383,7 @@ func (r ActiveUserResource) ReadUser(ctx context.Context, req resource.ReadReque
 	if res.Result.Nsaccountlock != nil && !data.AccountDisabled.IsNull() {
 		data.AccountDisabled = types.BoolValue(*res.Result.Nsaccountlock)
 	}
+	data.State = userState(&res.Result, data.State)
 	if res.Result.Ipasshpubkey != nil && !data.SshPublicKeys.IsNull() {
 		data.SshPublicKeys, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Ipasshpubkey)
 	}

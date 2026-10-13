@@ -176,6 +176,7 @@ func (r PreservedUserResource) ReadUser(ctx context.Context, req resource.ReadRe
 	if res.Result.Userclass != nil && !data.UserClass.IsNull() {
 		data.UserClass, _ = types.ListValueFrom(ctx, types.StringType, res.Result.Userclass)
 	}
+	data.State = userState(&res.Result, data.State)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

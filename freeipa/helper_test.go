@@ -90,6 +90,12 @@ func testAccFreeIPAUser_resource(dataset map[string]string) string {
 	if dataset["city"] != "" {
 		tf_def += fmt.Sprintf("  city = %s\n", dataset["city"])
 	}
+	if dataset["password_wo"] != "" {
+		tf_def += fmt.Sprintf("  password_wo = %s\n", dataset["password_wo"])
+	}
+	if dataset["password_wo_version"] != "" {
+		tf_def += fmt.Sprintf("  password_wo_version = %s\n", dataset["password_wo_version"])
+	}
 	if dataset["display_name"] != "" {
 		tf_def += fmt.Sprintf("  display_name = %s\n", dataset["display_name"])
 	}

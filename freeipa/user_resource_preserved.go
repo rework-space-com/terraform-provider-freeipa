@@ -268,6 +268,11 @@ func (r PreservedUserResource) UpdateUser(ctx context.Context, req resource.Upda
 	if !data.UserPassword.Equal(state.UserPassword) {
 		optArgs.Userpassword = data.UserPassword.ValueStringPointer()
 	}
+	if !data.PasswordWoVersion.Equal(state.PasswordWoVersion) {
+		if pw := writeOnlyPassword(ctx, req.Config, &resp.Diagnostics); !pw.IsNull() && !pw.IsUnknown() {
+			optArgs.Userpassword = pw.ValueStringPointer()
+		}
+	}
 	if !data.RandomPassword.Equal(state.RandomPassword) {
 		optArgs.Random = data.RandomPassword.ValueBoolPointer()
 	}

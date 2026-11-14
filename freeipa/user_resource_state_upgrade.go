@@ -267,6 +267,8 @@ func upgradeUserStateV0toV1(ctx context.Context, req resource.UpgradeStateReques
 	}
 	upgradedStateData.SetAttr = types.ListNull(types.StringType)
 	upgradedStateData.AddAttr = types.ListNull(types.StringType)
+	upgradedStateData.PasswordWo = types.StringNull()
+	upgradedStateData.PasswordWoVersion = types.Int64Null()
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
 }

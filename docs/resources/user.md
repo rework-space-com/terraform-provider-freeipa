@@ -56,6 +56,16 @@ resource "freeipa_user" "user-2" {
   telephone_numbers = ["+380982555429", "2-10-11"]
   email_address     = ["roman@example.com"]
 }
+
+# Requires Terraform 1.11 or later. The password is never stored in the state.
+# Increment password_wo_version to push a new password to FreeIPA.
+resource "freeipa_user" "user-3" {
+  first_name          = "Jane"
+  last_name           = "Doe"
+  name                = "jdoe"
+  password_wo         = var.jdoe_password
+  password_wo_version = 1
+}
 ```
 
 
@@ -163,6 +173,8 @@ resource "freeipa_user" "testuser" {
 - `manager` (String) Manager
 - `mobile_numbers` (List of String) Mobile Number
 - `organisation_unit` (String) Org. Unit
+- `password_wo` (String, Sensitive) Write-only user password. The value is sent to FreeIPA but never stored in the plan or state. Requires Terraform 1.11 or later. Because the value is not stored, changing it is not detected: increment `password_wo_version` to set a new password on an existing user. Conflicts with `userpassword` and `random_password`.
+- `password_wo_version` (Number) Version of `password_wo`. Change this value to send the current `password_wo` to FreeIPA on update.
 - `postal_code` (String) Postal code
 - `preferred_language` (String) Preferred Language
 - `province` (String) Province/State/Country

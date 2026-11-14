@@ -95,6 +95,9 @@ func (r ActiveUserResource) CreateUser(ctx context.Context, req resource.CreateR
 	} else {
 		optArgs.Userpassword = data.UserPassword.ValueStringPointer()
 	}
+	if pw := writeOnlyPassword(ctx, req.Config, &resp.Diagnostics); !pw.IsNull() && !pw.IsUnknown() {
+		optArgs.Userpassword = pw.ValueStringPointer()
+	}
 	if len(data.EmailAddress.Elements()) > 0 {
 		var v []string
 		for _, value := range data.EmailAddress.Elements() {
@@ -507,6 +510,11 @@ func (r ActiveUserResource) UpdateUser(ctx context.Context, req resource.UpdateR
 	}
 	if !data.RandomPassword.ValueBool() && !data.UserPassword.Equal(state.UserPassword) {
 		optArgs.Userpassword = data.UserPassword.ValueStringPointer()
+	}
+	if !data.PasswordWoVersion.Equal(state.PasswordWoVersion) {
+		if pw := writeOnlyPassword(ctx, req.Config, &resp.Diagnostics); !pw.IsNull() && !pw.IsUnknown() {
+			optArgs.Userpassword = pw.ValueStringPointer()
+		}
 	}
 	if !data.RandomPassword.Equal(state.RandomPassword) {
 		optArgs.Random = data.RandomPassword.ValueBoolPointer()

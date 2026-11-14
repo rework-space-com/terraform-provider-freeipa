@@ -334,6 +334,66 @@ func TestAccFreeIPAUser_randompassword(t *testing.T) {
 	})
 }
 
+func TestAccFreeIPAUser_passwordWriteOnly(t *testing.T) {
+	testUser := map[string]string{
+		"index":               "1",
+		"login":               "\"testacc-user\"",
+		"firstname":           "\"Test\"",
+		"lastname":            "\"User\"",
+		"password_wo":         "\"P@ssword1\"",
+		"password_wo_version": "1",
+	}
+	testUserStaged := map[string]string{
+		"index":               "2",
+		"login":               "\"testacc-user-staged\"",
+		"firstname":           "\"Test\"",
+		"lastname":            "\"UserStaged\"",
+		"state":               "\"staged\"",
+		"password_wo":         "\"P@ssword1\"",
+		"password_wo_version": "1",
+	}
+	testUserV2 := map[string]string{
+		"index":               "1",
+		"login":               "\"testacc-user\"",
+		"firstname":           "\"Test\"",
+		"lastname":            "\"User\"",
+		"password_wo":         "\"P@ssword2\"",
+		"password_wo_version": "2",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_resource(testUserStaged),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "name", "testacc-user"),
+					resource.TestCheckNoResourceAttr("freeipa_user.user-1", "password_wo"),
+					resource.TestCheckNoResourceAttr("freeipa_user.user-1", "userpassword"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "password_wo_version", "1"),
+					resource.TestCheckNoResourceAttr("freeipa_user.user-2", "password_wo"),
+				),
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUser) + testAccFreeIPAUser_resource(testUserStaged),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				Config: testAccFreeIPAProvider() + testAccFreeIPAUser_resource(testUserV2) + testAccFreeIPAUser_resource(testUserStaged),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr("freeipa_user.user-1", "password_wo"),
+					resource.TestCheckResourceAttr("freeipa_user.user-1", "password_wo_version", "2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccFreeIPAUser_simple_CaseInsensitive(t *testing.T) {
 	managerUser := map[string]string{
 		"index":     "0",

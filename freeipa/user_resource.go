@@ -20,8 +20,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -29,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ipa "github.com/infra-monkey/go-freeipa/freeipa"
@@ -88,6 +92,8 @@ type UserResourceModel struct {
 	KrbPrincipalExpiration types.String `tfsdk:"krb_principal_expiration"`
 	KrbPasswordExpiration  types.String `tfsdk:"krb_password_expiration"`
 	UserPassword           types.String `tfsdk:"userpassword"`
+	PasswordWo             types.String `tfsdk:"password_wo"`
+	PasswordWoVersion      types.Int64  `tfsdk:"password_wo_version"`
 	EmailAddress           types.List   `tfsdk:"email_address"`
 	TelephoneNumbers       types.List   `tfsdk:"telephone_numbers"`
 	MobileNumbers          types.List   `tfsdk:"mobile_numbers"`
@@ -243,6 +249,28 @@ func userSchema() schema.Schema {
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
+			},
+			"password_wo": schema.StringAttribute{
+				MarkdownDescription: "Write-only user password. The value is sent to FreeIPA but never stored in the plan or state. " +
+					"Requires Terraform 1.11 or later. Because the value is not stored, changing it is not detected: " +
+					"increment `password_wo_version` to set a new password on an existing user. " +
+					"Conflicts with `userpassword` and `random_password`.",
+				Optional:  true,
+				WriteOnly: true,
+				Sensitive: true,
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(
+						path.MatchRoot("userpassword"),
+						path.MatchRoot("random_password"),
+					),
+				},
+			},
+			"password_wo_version": schema.Int64Attribute{
+				MarkdownDescription: "Version of `password_wo`. Change this value to send the current `password_wo` to FreeIPA on update.",
+				Optional:            true,
+				Validators: []validator.Int64{
+					int64validator.AlsoRequires(path.MatchRoot("password_wo")),
+				},
 			},
 			"email_address": schema.ListAttribute{
 				MarkdownDescription: "Email address",
@@ -717,4 +745,12 @@ func (r *UserResource) PreserveActiveUser(ctx context.Context, req resource.Upda
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// writeOnlyPassword returns the password_wo value from the configuration.
+// Write-only attributes are only available in the configuration, never in the plan or state.
+func writeOnlyPassword(ctx context.Context, config tfsdk.Config, diags *diag.Diagnostics) types.String {
+	var v types.String
+	diags.Append(config.GetAttribute(ctx, path.Root("password_wo"), &v)...)
+	return v
 }
